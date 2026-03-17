@@ -1,0 +1,737 @@
+/* ========================================
+   СИАРСП - СИСТЕМА УПРАВЛЕНИЯ СКЛАДОМ
+   Оптимизированная версия CSS
+   Дата: 2025
+   Версия: 2.0 (удалены дубликаты)
+   ======================================== */
+
+/* ========================================
+   СТРАНИЦЫ АУТЕНТИФИКАЦИИ
+   (Login, Registration, Password Change)
+   ======================================== */
+
+.auth-page {
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.auth-container {
+    max-width: 450px;
+    width: 100%;
+}
+
+.auth-container--wide {
+    max-width: 600px;
+}
+
+.auth-card {
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+    padding: 3rem;
+    border: none;
+}
+
+.logo-container {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.logo-container img {
+    max-width: 80px;
+    height: auto;
+}
+
+.logo-container--large img {
+    max-width: 120px;
+}
+
+.page-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 0.5rem;
+    color: #212529;
+}
+
+.page-subtitle {
+    text-align: center;
+    color: #6c757d;
+    margin-bottom: 2rem;
+    font-size: 0.95rem;
+}
+
+/* Формы */
+.auth-form .form-control,
+.auth-form .form-select {
+    border-radius: 10px;
+    padding: 0.875rem 1rem;
+    border: 1px solid #e0e0e0;
+    transition: all 0.3s ease;
+    font-size: 0.95rem;
+}
+
+.auth-form .form-control:focus,
+.auth-form .form-select:focus {
+    border-color: #212529;
+    box-shadow: 0 0 0 0.2rem rgba(33, 37, 41, 0.1);
+}
+
+/* Кнопки аутентификации */
+.btn-auth {
+    background: #212529;
+    border: none;
+    border-radius: 50px;
+    padding: 0.875rem 2rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: all 0.3s ease;
+    color: white;
+}
+
+.btn-auth:hover {
+    background: #000;
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    color: white;
+}
+
+.btn-auth:disabled {
+    background: #6c757d;
+    transform: none;
+}
+
+/* Чекбокс */
+.auth-form .form-check-input:checked {
+    background-color: #212529;
+    border-color: #212529;
+}
+
+/* Алерты */
+.auth-form .alert {
+    border-radius: 10px;
+    border: none;
+    font-size: 0.9rem;
+}
+
+/* Разделитель */
+.divider {
+    text-align: center;
+    margin: 1.5rem 0;
+    position: relative;
+}
+
+.divider::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: #e0e0e0;
+}
+
+.divider span {
+    background: white;
+    padding: 0 1rem;
+    position: relative;
+    color: #6c757d;
+    font-size: 0.875rem;
+}
+
+/* Ссылки */
+.link-section {
+    text-align: center;
+    margin-top: 1.5rem;
+}
+
+.link-section a {
+    color: #212529;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.3s ease;
+}
+
+.link-section a:hover {
+    color: #495057;
+}
+
+/* Секции формы регистрации */
+.form-section-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #6c757d;
+    margin-bottom: 1rem;
+}
+
+.password-strength {
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+}
+
+/* Валидация */
+.is-valid {
+    border-color: #28a745 !important;
+}
+
+.is-invalid {
+    border-color: #dc3545 !important;
+}
+
+/* ========================================
+   ПАНЕЛЬ АДМИНИСТРИРОВАНИЯ
+   ======================================== */
+
+.admin-page {
+    background-color: #f8f9fa;
+}
+
+.admin-header {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.admin-title {
+    font-weight: 700;
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    letter-spacing: -0.5px;
+}
+
+.admin-subtitle {
+    color: #6c757d;
+    font-size: 1.1rem;
+}
+
+.admin-card {
+    transition: all 0.3s ease;
+    border: none;
+    height: 100%;
+}
+
+.admin-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1) !important;
+}
+
+.admin-card .card-body {
+    padding: 3rem;
+}
+
+.admin-card h3 {
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+.admin-card p {
+    color: #6c757d;
+    margin-bottom: 1.5rem;
+}
+
+.admin-icon {
+    width: 50px;
+    height: 50px;
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+
+.btn-admin {
+    border-radius: 50px;
+    padding: 0.6rem 2rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    font-size: 0.875rem;
+    letter-spacing: 0.5px;
+}
+
+/* ========================================
+   ТАБЛИЦЫ
+   ======================================== */
+
+.table-container {
+    background: white;
+    border-radius: 15px;
+    padding: 2rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    overflow-x: auto;
+}
+
+.table-modern {
+    margin-bottom: 0;
+}
+
+.table-modern thead {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.table-modern thead th {
+    border: none;
+    padding: 1rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.875rem;
+    letter-spacing: 0.5px;
+}
+
+.table-modern thead th:first-child {
+    border-top-left-radius: 10px;
+}
+
+.table-modern thead th:last-child {
+    border-top-right-radius: 10px;
+}
+
+.table-modern tbody tr {
+    border-bottom: 1px solid #e0e0e0;
+    transition: background-color 0.2s ease;
+}
+
+.table-modern tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.table-modern tbody td {
+    padding: 1rem;
+    vertical-align: middle;
+}
+
+.table-modern tbody td a {
+    color: #667eea;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s ease;
+}
+
+.table-modern tbody td a:hover {
+    color: #764ba2;
+    text-decoration: underline;
+}
+
+/* ========================================
+   МОДАЛЬНЫЕ ОКНА
+   ======================================== */
+
+.modal-content {
+    border-radius: 15px;
+    border: none;
+}
+
+.modal-header {
+    border-bottom: 1px solid #e0e0e0;
+    border-radius: 15px 15px 0 0;
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+}
+
+.modal-title {
+    font-weight: 700;
+    color: #212529;
+}
+
+.modal-body {
+    padding: 2rem;
+}
+
+.modal-footer {
+    border-top: 1px solid #e0e0e0;
+    border-radius: 0 0 15px 15px;
+}
+
+/* ========================================
+   ACTION BUTTONS
+   ======================================== */
+
+.action-buttons {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.action-buttons .btn {
+    min-width: 150px;
+}
+
+/* ========================================
+   INFO DISPLAY (для disabled полей)
+   ======================================== */
+
+.info-display {
+    background: #f8f9fa;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 0.875rem 1rem;
+    color: #495057;
+}
+
+/* ========================================
+   ФОРМА РЕДАКТИРОВАНИЯ
+   ======================================== */
+
+.edit-page {
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    min-height: 100vh;
+    padding: 40px 20px;
+}
+
+.edit-container {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.edit-card {
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+    padding: 3rem;
+    border: none;
+}
+
+/* ========================================
+   СТРАНИЦА СБРОСА ПАРОЛЯ
+   ======================================== */
+
+.reset-container {
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+/* ========================================
+   HOME PAGE
+   ======================================== */
+
+.home-hero {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 4rem 0;
+    text-align: center;
+}
+
+.home-hero h3 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+}
+
+.home-hero h5 {
+    font-size: 1.1rem;
+    font-weight: 400;
+    opacity: 0.9;
+}
+
+.home-image-section {
+    background-size: cover;
+    background-position: center;
+    min-height: 70vh;
+    position: relative;
+}
+
+.home-image-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.2);
+}
+
+/* ========================================
+   VERIFY CODE PAGE
+   ======================================== */
+
+.verify-container {
+    max-width: 450px;
+}
+
+.verify-card {
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+    padding: 3rem;
+    border: none;
+    text-align: center;
+}
+
+.verify-card .logo-container img {
+    max-width: 72px;
+    margin-bottom: 2rem;
+}
+
+.verify-email {
+    background: #f8f9fa;
+    padding: 0.75rem 1rem;
+    border-radius: 10px;
+    margin: 1rem 0;
+    color: #495057;
+    font-weight: 500;
+}
+
+.timer-text {
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+/* ========================================
+   УТИЛИТЫ
+   ======================================== */
+
+.text-gradient {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.badge-notification {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: #dc3545;
+    color: white;
+    border-radius: 50%;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+/* ========================================
+   АДАПТИВНОСТЬ
+   ======================================== */
+
+@media (max-width: 576px) {
+    .auth-card {
+        padding: 2rem 1.5rem;
+    }
+
+    .page-title {
+        font-size: 1.5rem;
+    }
+
+    .admin-title {
+        font-size: 2rem;
+    }
+
+    .admin-card .card-body {
+        padding: 2rem;
+    }
+}
+
+/* ========================================
+   СТРАНИЦЫ ПРОФИЛЯ
+   ======================================== */
+
+.profile-page {
+    background-color: #f8f9fa;
+    min-height: 100vh;
+}
+
+.profile-card {
+    background: white;
+    border-radius: 15px;
+    padding: 2rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    border: none;
+}
+
+.profile-header {
+    border-bottom: 1px solid #e0e0e0;
+    padding-bottom: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.profile-header h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    color: #212529;
+}
+
+.profile-info p {
+    margin-bottom: 0.75rem;
+    color: #495057;
+}
+
+.profile-info strong {
+    color: #212529;
+    font-weight: 600;
+}
+
+.profile-actions {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.btn-profile {
+    border-radius: 50px;
+    padding: 0.6rem 2rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    font-size: 0.875rem;
+    letter-spacing: 0.5px;
+}
+
+/* ========================================
+   ПАНЕЛЬ УСЛУГ (VISITOR PANEL)
+   ======================================== */
+
+.services-panel {
+    background-color: #f8f9fa;
+    min-height: 100vh;
+}
+
+.service-card {
+    transition: all 0.3s ease;
+    border: none;
+    height: 100%;
+    border-radius: 15px;
+    overflow: hidden;
+}
+
+.service-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1) !important;
+}
+
+.service-card .card-body {
+    padding: 2.5rem;
+}
+
+.service-card h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+}
+
+.service-card-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.service-card-secondary {
+    background: white;
+    border: 2px solid #e0e0e0;
+}
+
+/* ========================================
+   ПРОГРЕСС-БАР ДОСТАВКИ
+   ======================================== */
+
+.delivery-progress {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.5rem 0;
+    position: relative;
+    margin-bottom: 1.5rem;
+}
+
+.delivery-progress-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    z-index: 2;
+    flex: 0 0 auto;
+}
+
+.delivery-progress-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    border: 3px solid #dee2e6;
+    background: white;
+    color: #adb5bd;
+    transition: all 0.3s ease;
+}
+
+.delivery-progress-step.completed .delivery-progress-icon {
+    border-color: #198754;
+    background: #198754;
+    color: white;
+}
+
+.delivery-progress-step.active .delivery-progress-icon {
+    border-color: #667eea;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.25);
+    animation: pulse-step 2s infinite;
+}
+
+.delivery-progress-step.cancelled .delivery-progress-icon {
+    border-color: #dc3545;
+    background: #dc3545;
+    color: white;
+}
+
+@keyframes pulse-step {
+    0%, 100% { box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.25); }
+    50% { box-shadow: 0 0 0 8px rgba(102, 126, 234, 0.1); }
+}
+
+.delivery-progress-label {
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #adb5bd;
+    text-align: center;
+    max-width: 80px;
+}
+
+.delivery-progress-step.completed .delivery-progress-label {
+    color: #198754;
+}
+
+.delivery-progress-step.active .delivery-progress-label {
+    color: #667eea;
+}
+
+.delivery-progress-step.cancelled .delivery-progress-label {
+    color: #dc3545;
+}
+
+.delivery-progress-line {
+    flex: 1;
+    height: 3px;
+    background: #dee2e6;
+    position: relative;
+    z-index: 1;
+    margin: 0 -4px;
+    margin-bottom: 1.75rem;
+}
+
+.delivery-progress-line.completed {
+    background: #198754;
+}
+
+.delivery-progress-line.active {
+    background: linear-gradient(90deg, #198754 0%, #667eea 100%);
+}
+
+@media (max-width: 576px) {
+    .delivery-progress-icon {
+        width: 36px;
+        height: 36px;
+        font-size: 1rem;
+    }
+    .delivery-progress-label {
+        font-size: 0.65rem;
+        max-width: 60px;
+    }
+}

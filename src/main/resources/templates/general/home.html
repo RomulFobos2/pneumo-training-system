@@ -1,0 +1,36 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Главная страница | СИАРСП</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/javascript.js"></script>
+</head>
+<body>
+<header th:insert="~{blocks/header :: header}"></header>
+
+<main>
+    <!-- Hero Section -->
+    <section class="home-hero">
+        <div class="container py-5">
+            <div class="row">
+                <div class="col-lg-8 mx-auto">
+                    <h3 class="mb-3">Автоматизированная информационная система</h3>
+                    <h3 class="mb-4">для предприятия малого бизнеса</h3>
+                    <h5 class="lead">Студент: </h5>
+                    <h5 class="lead">МАИ филиал "Восход"</h5>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Image Section -->
+    <section class="home-image-section" style="background-image: url('/images/fon_home.jpg');"></section>
+</main>
+
+<div th:insert="~{blocks/footer :: footer}"></div>
+</body>
+</html>

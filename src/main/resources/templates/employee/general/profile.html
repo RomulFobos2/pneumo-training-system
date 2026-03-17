@@ -1,0 +1,46 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Профиль | СИАРСП</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/javascript.js"></script>
+</head>
+<body class="profile-page">
+<header th:insert="blocks/header :: header"></header>
+
+<div class="container mt-5 mb-5">
+    <div class="profile-card">
+        <div class="profile-header">
+            <h1 th:text="${strRoleName}"></h1>
+            <h2 class="h4 text-muted mb-0"
+                th:text="${currentEmployee.lastName + ' ' + currentEmployee.firstName + ' ' + currentEmployee.patronymicName}">
+            </h2>
+        </div>
+
+        <div class="profile-info">
+            <p><strong>Логин:</strong> <span th:text="${currentEmployee.username}"></span></p>
+        </div>
+
+        <div class="profile-actions mt-4">
+            <a th:href="'/'" class="btn btn-secondary btn-profile">
+                ← Назад
+            </a>
+            <a th:href="'/employee/change-password'" class="btn btn-warning btn-profile">
+                Сменить пароль
+            </a>
+            <a sec:authorize="hasRole('ROLE_EMPLOYEE_ADMIN')"
+               th:href="'/employee/admin/employees/editAdmin/' + ${currentEmployee.id}"
+               class="btn btn-primary btn-profile">
+                Редактировать данные
+            </a>
+        </div>
+    </div>
+</div>
+
+<div th:insert="blocks/footer :: footer"></div>
+</body>
+</html>

@@ -1,0 +1,20 @@
+/* ========== MAP PICKER — стили модального окна с Яндекс Картой ========== */
+
+#mapPickerContainer {
+    width: 100%;
+    height: 450px;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+#mapPickerCoords {
+    font-family: 'Courier New', monospace;
+    font-size: 0.95rem;
+    color: #333;
+}
+
+#mapPickerAddress {
+    font-size: 0.9rem;
+    color: #555;
+    min-height: 1.4em;
+}

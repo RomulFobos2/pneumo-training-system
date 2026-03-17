@@ -1,0 +1,74 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Пользователи | СИАРСП</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+</head>
+<body class="admin-page">
+<header th:insert="~{blocks/header :: header}"></header>
+
+<div class="container my-5">
+    <!-- Action Buttons -->
+    <div class="profile-card mb-4">
+        <div class="profile-actions">
+            <a th:href="'/'"
+               class="btn btn-secondary btn-profile">
+                ← Главная
+            </a>
+            <a th:href="'/employee/admin/employees/addEmployee'"
+               class="btn btn-success btn-profile">
+                + Добавить пользователя
+            </a>
+        </div>
+    </div>
+
+    <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
+    <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
+
+    <!-- Users Table -->
+    <div class="table-container">
+        <h2 class="h3 mb-4 fw-bold">Список пользователей</h2>
+
+        <div class="table-responsive">
+            <table class="table table-modern" id="userTable">
+                <thead>
+                <tr>
+                    <th>№</th>
+                    <th>ФИО</th>
+                    <th>Роль</th>
+                    <th>Специализация</th>
+                    <th>Логин</th>
+                    <th>Дата регистрации</th>
+                    <th>Статус</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="employee, index : ${allEmployees}">
+                    <td th:text="${index.index+1}"></td>
+                    <td>
+                        <a th:text="${employee.getFullName()}"
+                           th:href="'/employee/admin/employees/detailsEmployee/' + ${employee.getId()}"></a>
+                    </td>
+                    <td th:text="${employee.getRoleDescription()}"></td>
+                    <td th:text="${employee.getSpecialization()}"></td>
+                    <td th:text="${employee.getUsername()}"></td>
+                    <td th:text="${#temporals.format(employee.getDateOfRegistration(), 'dd.MM.yyyy')}"></td>
+                    <td>
+                        <span th:if="${employee.isActive()}" class="badge bg-success">Активен</span>
+                        <span th:unless="${employee.isActive()}" class="badge bg-danger">Деактивирован</span>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div th:insert="~{blocks/footer :: footer}"></div>
+</body>
+</html>

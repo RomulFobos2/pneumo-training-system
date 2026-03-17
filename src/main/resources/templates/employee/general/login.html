@@ -1,0 +1,71 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Вход сотрудника | СИАРСП</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/javascript.js"></script>
+</head>
+<body class="auth-page">
+<div class="auth-container">
+    <div class="auth-card">
+        <form action="/employee/login" method="post" class="auth-form">
+
+            <div class="logo-container">
+                <img src="/images/gerb.jpg" alt="СИАРСП">
+            </div>
+
+            <h1 class="page-title">Вход для сотрудников</h1>
+            <p class="page-subtitle">Войдите с использованием служебных данных</p>
+
+            <div class="alert alert-danger" th:if="${param.error}">
+                ⚠️ Неправильный логин или пароль
+            </div>
+
+            <div class="mb-3">
+                <input type="text" id="username" name="username"
+                       placeholder="Имя пользователя"
+                       class="form-control" autofocus="true" required>
+            </div>
+
+            <div class="mb-3">
+                <input type="password" id="inputPassword" name="password"
+                       placeholder="Пароль"
+                       class="form-control" required>
+            </div>
+
+            <div class="form-check text-start mb-4">
+                <input type="checkbox" class="form-check-input" id="togglePassword">
+                <label class="form-check-label" for="togglePassword">
+                    Показать пароль
+                </label>
+            </div>
+
+            <button type="submit" class="w-100 btn btn-auth">
+                Войти
+            </button>
+
+            <div class="divider">
+                <span>или</span>
+            </div>
+
+            <div class="link-section">
+                <a href="/">← Вернуться на главную</a>
+            </div>
+
+        </form>
+    </div>
+</div>
+
+<script>
+    const togglePassword = document.getElementById('togglePassword');
+    const passwordInput = document.getElementById('inputPassword');
+    togglePassword.addEventListener('change', () => {
+        passwordInput.type = togglePassword.checked ? 'text' : 'password';
+    });
+</script>
+</body>
+</html>

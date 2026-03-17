@@ -1,0 +1,171 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Редактировать пользователя | СИАРСП</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+</head>
+<body class="admin-page">
+<header th:insert="~{blocks/header :: header}"></header>
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-12 col-lg-10">
+            <div class="profile-card p-4">
+        <form id="editEmployeeForm" th:action="'/employee/admin/employees/editEmployee/' + ${employeeDTO.getId()}"
+              method="post" class="auth-form">
+
+            <h1 class="page-title">Редактирование пользователя</h1>
+            <p class="page-subtitle">Обновите данные сотрудника</p>
+
+            <div th:if="${usernameError}" class="alert alert-danger" th:text="${usernameError}"></div>
+
+            <div class="mb-4">
+                <h6 class="form-section-title">Личные данные</h6>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <input type="text" class="form-control" name="inputLastName"
+                               id="inputLastName" required placeholder="Фамилия"
+                               maxlength="50" th:value="${employeeDTO.getLastName()}">
+                    </div>
+                    <div class="col-md-6">
+                        <input type="text" class="form-control" name="inputFirstName"
+                               id="inputFirstName" required placeholder="Имя"
+                               maxlength="50" th:value="${employeeDTO.getFirstName()}">
+                    </div>
+                    <div class="col-12">
+                        <input type="text" class="form-control" name="inputPatronymicName"
+                               id="inputPatronymicName" placeholder="Отчество"
+                               maxlength="50" th:value="${employeeDTO.getPatronymicName()}">
+                    </div>
+                    <div class="col-md-6">
+                        <input type="text" class="form-control" name="inputSpecialization"
+                               id="inputSpecialization" placeholder="Специализация"
+                               maxlength="200" th:value="${employeeDTO.getSpecialization()}">
+                    </div>
+                    <div class="col-md-6">
+                        <input type="text" class="form-control" name="inputQualification"
+                               id="inputQualification" placeholder="Квалификация"
+                               maxlength="200" th:value="${employeeDTO.getQualification()}">
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <h6 class="form-section-title">Данные входа</h6>
+
+                <div class="mb-3">
+                    <input type="text" name="inputUsername" id="inputUsername"
+                           placeholder="Логин" class="form-control" required maxlength="50"
+                           pattern="[A-Za-z0-9._-]+"
+                           title="Логин может содержать только латинские буквы, цифры и символы . _ -"
+                           th:value="${employeeDTO.getUsername()}">
+                </div>
+
+                <div class="mb-3">
+                    <label for="inputRole" class="form-label fw-semibold">Роль</label>
+                    <select class="form-select" name="inputRole" id="inputRole" required>
+                        <option selected disabled value="">Выберите роль</option>
+                        <option th:each="role : ${allRoles}" th:value="${role.getName()}"
+                                th:text="${role.getDescription()}"
+                                th:selected="${employeeDTO.getRoleDescription()} == ${role.getDescription()}">
+                        </option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <h6 class="form-section-title">Данные о работе</h6>
+
+                <div class="mb-3">
+                    <input type="number" class="form-control" name="inputSalary"
+                           id="inputSalary" placeholder="Заработная плата (руб.)"
+                           step="0.01" min="0" th:value="${employeeDTO.getSalary()}">
+                </div>
+            </div>
+
+            <button type="submit" class="w-100 btn btn-auth" disabled>
+                Сохранить изменения
+            </button>
+
+            <div class="divider">
+                <span>или</span>
+            </div>
+
+            <div class="link-section">
+                <a th:href="'/employee/admin/employees/detailsEmployee/' + ${employeeDTO.getId()}">
+                    ← Назад
+                </a>
+            </div>
+
+        </form>
+            </div>
+        </div>
+    </div>
+</div>
+<div th:insert="~{blocks/footer :: footer}"></div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const usernameInput = document.getElementById('inputUsername');
+        const originalUsername = usernameInput.value;
+        const form = document.getElementById('editEmployeeForm');
+        const submitButton = form.querySelector('button[type="submit"]');
+
+        // Создаем элемент для ошибки username
+        const usernameErrorDiv = document.createElement('div');
+        usernameErrorDiv.className = 'alert alert-danger mt-2';
+        usernameErrorDiv.style.display = 'none';
+        usernameInput.parentNode.appendChild(usernameErrorDiv);
+
+        function checkFormValidity() {
+            const isUsernameValid = usernameErrorDiv.style.display === 'none';
+            submitButton.disabled = !isUsernameValid;
+        }
+
+        usernameInput.addEventListener('input', function() {
+            const username = usernameInput.value;
+
+            // Если имя пользователя не изменилось, то не выполняем проверку на сервере
+            if (username === originalUsername) {
+                usernameErrorDiv.style.display = 'none';
+                usernameErrorDiv.textContent = '';
+                usernameInput.classList.remove('is-invalid');
+                checkFormValidity();
+                return;
+            }
+
+            if (username.length > 0) {
+                fetch(`/employee/admin/employees/check-username?username=${username}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.exists) {
+                            usernameErrorDiv.textContent = 'Имя пользователя уже занято';
+                            usernameErrorDiv.style.display = 'block';
+                            usernameInput.classList.add('is-invalid');
+                        } else {
+                            usernameErrorDiv.style.display = 'none';
+                            usernameErrorDiv.textContent = '';
+                            usernameInput.classList.remove('is-invalid');
+                            usernameInput.classList.add('is-valid');
+                        }
+                        checkFormValidity();
+                    })
+                    .catch(error => {
+                        console.error('Ошибка:', error);
+                    });
+            } else {
+                usernameErrorDiv.style.display = 'none';
+                checkFormValidity();
+            }
+        });
+
+        checkFormValidity();
+    });
+</script>
+</body>
+</html>
