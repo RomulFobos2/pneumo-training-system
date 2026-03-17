@@ -1,7 +1,7 @@
 # CODESTYLE.md — Правила написания кода для АОС ПИ
 
-> Этот файл читается вместе с `CLAUDE.md` при **написании кода**.
-> При планировании или обсуждении архитектуры его можно не грузить.
+> Читать при **любом написании кода** вместе с `CLAUDE.md`.
+> При создании новой сущности с нуля дополнительно читать `TEMPLATES.md`.
 
 ---
 
@@ -13,692 +13,206 @@ Controller → Service → Repository → Entity (JPA)
                     DTO + Mapper (MapStruct)
 ```
 
-- **Controller** — тонкий: приём параметров из формы, вызов сервиса, формирование `Model`, return шаблон или `redirect:`
-- **Service** — ВСЯ бизнес-логика: валидация, проверки уникальности, каскадные операции, `@Transactional`, логирование
-- **Repository** — только доступ к данным: `JpaRepository`, `@Query` JPQL
+- **Controller** — тонкий: приём `@RequestParam`, вызов сервиса, формирование `Model`, return шаблон или `redirect:`
+- **Service** — ВСЯ логика: проверки уникальности, зависимостей, `@Transactional`, `log.*`, try-catch
+- **Repository** — только данные: `JpaRepository`, `@Query` JPQL
 - **Entity** — JPA-сущность, `@Transient` для вычисляемых полей
-- **DTO** — плоское представление, без бизнес-логики, класс с `@Data` (НЕ record)
+- **DTO** — плоское представление, класс `@Data` (не record)
 - **Mapper** — MapStruct, `Mappers.getMapper()` (без Spring DI)
 
 ---
 
 ## Порядок добавления новой сущности
 
-1. Entity → `models/{EntityName}.java`
-2. Repository → `repo/{EntityName}Repository.java`
-3. DTO → `dto/{EntityName}DTO.java`
-4. Mapper → `mapper/{EntityName}Mapper.java`
-5. Enum → `enumeration/{EntityName}Status.java` (если нужен)
-6. Service → `service/employee/{role}/{EntityName}Service.java`
-7. Controller → `controllers/employee/{role}/{EntityName}Controller.java`
+1. Entity → `models/`
+2. Repository → `repo/`
+3. DTO → `dto/`
+4. Mapper → `mapper/`
+5. Enum → `enumeration/` (если нужен)
+6. Service → `service/employee/{role}/`
+7. Controller → `controllers/employee/{role}/`
 8. HTML → `templates/employee/{role}/{entities}/` (all, add, edit, details)
-9. Навигация → добавить ссылку в header.html
-10. SQL → seed-данные при необходимости
+9. Навигация → `header.html`
+10. SQL seed-данные при необходимости
 
 ---
 
-## Паттерны кода
+## Правила по слоям
 
 ### Entity
-
-```java
-@Data
-@NoArgsConstructor
-@Entity
-@Table(name = "t_entityName")
-@EqualsAndHashCode(of = "id")
-public class EntityName {
-
-    // ========== ПОЛЯ ==========
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    /** [Описание поля на русском] */
-    @Column(nullable = false)
-    private String name;
-
-    @Column(unique = true, nullable = false)
-    private String uniqueField;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private EntityStatus status;
-
-    @ManyToOne
-    @JoinColumn(nullable = false)
-    private RelatedEntity related;
-
-    @ToString.Exclude
-    @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<ChildEntity> children = new ArrayList<>();
-
-    // ========== КОНСТРУКТОРЫ ==========
-
-    // ========== МЕТОДЫ ==========
-
-    @Transient
-    public int getComputedField() { return ...; }
-}
-```
-
-Правила:
+- Аннотации: `@Data`, `@NoArgsConstructor`, `@Entity`, `@Table(name="t_...")`, `@EqualsAndHashCode(of="id")`
 - `@ToString.Exclude` на ВСЕХ коллекциях и обратных ManyToOne-ссылках
-- `@EqualsAndHashCode(of = "id")` — всегда только по id
 - Javadoc на русском для каждого поля
-- Секции с маркерами `// ========== ПОЛЯ ==========`
-- Таблица БД: префикс `t_` + camelCase (`t_product`, `t_clientOrder`)
-
----
+- Секции: `// ========== ПОЛЯ ==========`, `// ========== КОНСТРУКТОРЫ ==========`, `// ========== МЕТОДЫ ==========`
+- Таблица: префикс `t_` + camelCase: `t_product`, `t_testSession`
 
 ### Repository
-
-```java
-public interface EntityNameRepository extends JpaRepository<EntityName, Long> {
-
-    boolean existsByUniqueField(String value);
-    boolean existsByUniqueFieldAndIdNot(String value, Long id);  // для edit
-
-    @Query("SELECT e FROM EntityName e WHERE LOWER(e.name) LIKE LOWER(CONCAT('%', :search, '%'))")
-    Page<EntityName> findByName(@Param("search") String search, Pageable pageable);
-}
-```
-
----
+- `extends JpaRepository<Entity, Long>`
+- Методы уникальности: `existsByField(val)`, `existsByFieldAndIdNot(val, id)`
 
 ### DTO
-
-```java
-@Data
-public class EntityNameDTO {
-    private Long id;
-    private String name;
-
-    // Развёрнутые поля из связей
-    private Long relatedId;        // из related.id
-    private String relatedName;    // из related.name
-
-    // Enum как displayName при необходимости
-    private String statusDisplayName;
-}
-```
-
----
+- Класс с `@Data`, **не** record
+- Все вложенные поля разворачивать: `category.id` → `categoryId`, `category.name` → `categoryName`
 
 ### Mapper
-
-```java
-@Mapper
-public interface EntityNameMapper {
-    EntityNameMapper INSTANCE = Mappers.getMapper(EntityNameMapper.class);
-
-    @Mapping(source = "related.id", target = "relatedId")
-    @Mapping(source = "related.name", target = "relatedName")
-    @Mapping(source = "entity", target = "computedField", qualifiedByName = "computedField")
-    EntityNameDTO toDTO(EntityName entity);
-
-    List<EntityNameDTO> toDTOList(List<EntityName> entities);
-
-    @Named("computedField")
-    default int getComputedField(EntityName entity) {
-        return entity.getComputedField();
-    }
-}
-```
-
----
+- Статический `INSTANCE = Mappers.getMapper(...)`, без `componentModel`
+- `toDTO()` + `toDTOList()` обязательно
+- `@Mapping(source="related.id", target="relatedId")` для вложенных полей
+- `@Named` + `default`-метод для вычисляемых полей
 
 ### Service
-
-```java
-@Service
-@Getter
-@Slf4j
-public class EntityNameService {
-
-    private final EntityNameRepository entityNameRepository;
-    private final RelatedEntityRepository relatedEntityRepository;
-
-    public EntityNameService(EntityNameRepository entityNameRepository,
-                             RelatedEntityRepository relatedEntityRepository) {
-        this.entityNameRepository = entityNameRepository;
-        this.relatedEntityRepository = relatedEntityRepository;
-    }
-
-    public boolean checkUniqueField(String value, Long id) {
-        if (value == null || value.isBlank()) return false;
-        if (id != null) return entityNameRepository.existsByUniqueFieldAndIdNot(value, id);
-        return entityNameRepository.existsByUniqueField(value);
-    }
-
-    @Transactional
-    public Optional<Long> saveEntityName(EntityName entity, Long relatedId) {
-        // 1. Проверка уникальности
-        if (checkUniqueField(entity.getUniqueField(), null)) {
-            log.error("Запись с таким значением уже существует: {}", entity.getUniqueField());
-            return Optional.empty();
-        }
-
-        // 2. Загрузка связанных сущностей
-        Optional<RelatedEntity> relatedOptional = relatedEntityRepository.findById(relatedId);
-        if (relatedOptional.isEmpty()) {
-            log.error("Связанная сущность с id={} не найдена.", relatedId);
-            return Optional.empty();
-        }
-        entity.setRelated(relatedOptional.get());
-
-        // 3. Сохранение
-        try {
-            entityNameRepository.save(entity);
-        } catch (Exception e) {
-            log.error("Ошибка при сохранении: {}", e.getMessage(), e);
-            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
-            return Optional.empty();
-        }
-
-        log.info("Сущность сохранена: id={}", entity.getId());
-        return Optional.of(entity.getId());
-    }
-
-    @Transactional
-    public Optional<Long> editEntityName(Long id, String inputField) {
-        Optional<EntityName> entityOptional = entityNameRepository.findById(id);
-        if (entityOptional.isEmpty()) {
-            log.error("Сущность с id={} не найдена.", id);
-            return Optional.empty();
-        }
-        EntityName entity = entityOptional.get();
-        entity.setName(inputField);
-
-        try {
-            entityNameRepository.save(entity);
-        } catch (Exception e) {
-            log.error("Ошибка при обновлении: {}", e.getMessage(), e);
-            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
-            return Optional.empty();
-        }
-        return Optional.of(entity.getId());
-    }
-
-    @Transactional
-    public boolean deleteEntityName(Long id) {
-        Optional<EntityName> entityOptional = entityNameRepository.findById(id);
-        if (entityOptional.isEmpty()) {
-            log.error("Сущность с id={} не найдена.", id);
-            return false;
-        }
-
-        // Проверка зависимостей перед удалением
-        // if (childRepository.countByEntityNameId(id) > 0) { log.error(...); return false; }
-
-        try {
-            entityNameRepository.delete(entityOptional.get());
-        } catch (Exception e) {
-            log.error("Ошибка при удалении: {}", e.getMessage(), e);
-            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
-            return false;
-        }
-        return true;
-    }
-
-    @Transactional
-    public List<EntityNameDTO> getAllEntityNames() {
-        return EntityNameMapper.INSTANCE.toDTOList(entityNameRepository.findAll());
-    }
-}
-```
-
-Правила:
-- Аннотации: `@Service`, `@Getter`, `@Slf4j`
-- DI только через конструктор
-- `@Transactional` на всех методах записи
+- Аннотации: `@Service`, `@Getter`, `@Slf4j`, конструктор-инъекция
 - Возврат: `Optional<Long>` для save/edit, `boolean` для delete
-- Никогда не бросать exceptions — только `return false` / `Optional.empty()`
-- `TransactionAspectSupport.currentTransactionStatus().setRollbackOnly()` в catch
-- Одноимённые сервисы → `@Service("roleEntityNameService")`
-
----
+- **Никогда не бросать Exception** — только `return false` / `Optional.empty()`
+- Каждый `@Transactional`-метод: try-catch + `TransactionAspectSupport.currentTransactionStatus().setRollbackOnly()`
+- Перед delete — проверять зависимости (`countBy...`)
+- Одноимённые бины: `@Service("roleEntityNameService")`
 
 ### Controller
-
-```java
-@Controller
-@Slf4j
-public class EntityNameController {
-
-    private final EntityNameService entityNameService;
-
-    public EntityNameController(EntityNameService entityNameService) {
-        this.entityNameService = entityNameService;
-    }
-
-    // AJAX-проверка уникальности
-    @GetMapping("/employee/role/entities/check-uniqueField")
-    public ResponseEntity<Map<String, Boolean>> checkUniqueField(
-            @RequestParam String value, @RequestParam(required = false) Long id) {
-        Map<String, Boolean> response = new HashMap<>();
-        response.put("exists", entityNameService.checkUniqueField(value, id));
-        return ResponseEntity.ok(response);
-    }
-
-    @GetMapping("/employee/role/entities/allEntities")
-    public String allEntities(Model model) {
-        model.addAttribute("allEntities", entityNameService.getAllEntityNames().stream()
-                .sorted(Comparator.comparing(EntityNameDTO::getName))
-                .toList());
-        return "employee/role/entities/allEntities";
-    }
-
-    @GetMapping("/employee/role/entities/addEntity")
-    public String addEntity(Model model) {
-        // Добавить в model справочники если нужны
-        return "employee/role/entities/addEntity";
-    }
-
-    @PostMapping("/employee/role/entities/addEntity")
-    public String addEntity(@RequestParam String inputName,
-                            @RequestParam Long inputRelatedId,
-                            Model model) {
-        EntityName entity = new EntityName();
-        entity.setName(inputName);
-
-        Optional<Long> savedId = entityNameService.saveEntityName(entity, inputRelatedId);
-        if (savedId.isEmpty()) {
-            model.addAttribute("entityError", "Ошибка при сохранении.");
-            return "employee/role/entities/addEntity";
-        }
-        return "redirect:/employee/role/entities/detailsEntity/" + savedId.get();
-    }
-
-    @GetMapping("/employee/role/entities/detailsEntity/{id}")
-    public String detailsEntity(@PathVariable(value = "id") long id, Model model) {
-        if (!entityNameService.getEntityNameRepository().existsById(id)) {
-            return "redirect:/employee/role/entities/allEntities";
-        }
-        EntityName entity = entityNameService.getEntityNameRepository().findById(id).get();
-        model.addAttribute("entityDTO", EntityNameMapper.INSTANCE.toDTO(entity));
-        return "employee/role/entities/detailsEntity";
-    }
-
-    @GetMapping("/employee/role/entities/editEntity/{id}")
-    public String editEntity(@PathVariable(value = "id") long id, Model model) {
-        if (!entityNameService.getEntityNameRepository().existsById(id)) {
-            return "redirect:/employee/role/entities/allEntities";
-        }
-        EntityName entity = entityNameService.getEntityNameRepository().findById(id).get();
-        model.addAttribute("entityDTO", EntityNameMapper.INSTANCE.toDTO(entity));
-        return "employee/role/entities/editEntity";
-    }
-
-    @PostMapping("/employee/role/entities/editEntity/{id}")
-    public String editEntity(@PathVariable(value = "id") long id,
-                             @RequestParam String inputName,
-                             RedirectAttributes redirectAttributes) {
-        Optional<Long> editedId = entityNameService.editEntityName(id, inputName);
-        if (editedId.isEmpty()) {
-            redirectAttributes.addFlashAttribute("entityError", "Ошибка при сохранении.");
-            return "redirect:/employee/role/entities/editEntity/" + id;
-        }
-        return "redirect:/employee/role/entities/detailsEntity/" + editedId.get();
-    }
-
-    @GetMapping("/employee/role/entities/deleteEntity/{id}")
-    public String deleteEntity(@PathVariable(value = "id") long id,
-                               RedirectAttributes redirectAttributes) {
-        if (!entityNameService.deleteEntityName(id)) {
-            redirectAttributes.addFlashAttribute("deleteError", "Невозможно удалить запись.");
-            return "redirect:/employee/role/entities/detailsEntity/" + id;
-        }
-        return "redirect:/employee/role/entities/allEntities";
-    }
-}
-```
-
-Правила:
-- `@Controller` (не `@RestController` для HTML)
-- `@PathVariable(value = "id") long id` — всегда с `value = "id"`
+- `@Controller` (не `@RestController` для HTML), `@Slf4j`, конструктор-инъекция
 - `@RequestParam` с префиксом `input`: `inputName`, `inputCategoryId`, `inputFileField`
-- Redirect после POST: details при успехе, форма при ошибке
-- При несуществующем id → redirect на allEntities
-- Одноимённые контроллеры → `@Controller("roleEntityNameController")`
-
----
+- `@PathVariable(value = "id") long id` — всегда с `value = "id"`
+- Redirect: → `detailsEntity/{id}` при успехе, → форма при ошибке, → `allEntities` при отсутствии id
+- AJAX check-endpoint: `ResponseEntity<Map<String, Boolean>>` с ключом `"exists"`
+- Одноимённые бины: `@Controller("roleEntityNameController")`
 
 ### Enum
-
-```java
-@Getter
-public enum EntityStatus {
-    NEW("Новый"),
-    IN_PROGRESS("В работе"),
-    COMPLETED("Завершён"),
-    CANCELLED("Отменён");
-
-    private final String displayName;
-
-    EntityStatus(String displayName) {
-        this.displayName = displayName;
-    }
-}
-```
+- `@Getter`, `displayName` на русском, UPPER_SNAKE_CASE значения
+- Пример: `NEW("Новый")`, `IN_PROGRESS("В работе")`
 
 ---
 
-## HTML-шаблоны (Thymeleaf + Bootstrap)
+## Именование
 
-### Каждая страница
-
-```html
-<!DOCTYPE HTML>
-<html xmlns:th="http://www.thymeleaf.org">
-<head>
-    <title>Заголовок | АОС ПИ</title>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="/css/bootstrap.min.css" rel="stylesheet">
-    <link href="/css/style.css" rel="stylesheet">
-    <script src="/js/bootstrap.bundle.min.js"></script>
-</head>
-<body>
-<header th:insert="~{blocks/header :: header}"></header>
-<!-- содержимое -->
-<div th:insert="~{blocks/footer :: footer}"></div>
-<script>/* vanilla JS */</script>
-</body>
-</html>
-```
-
-### Список (allEntities.html)
-
-```html
-<div class="container my-5">
-    <div class="profile-card mb-4">
-        <div class="profile-actions">
-            <a th:href="'/'" class="btn btn-secondary btn-profile">← Главная</a>
-            <a th:href="'/employee/role/entities/addEntity'" class="btn btn-success btn-profile">+ Добавить</a>
-        </div>
-    </div>
-    <div class="profile-card p-4">
-        <h2 class="h3 mb-4 fw-bold">Список [сущностей]</h2>
-        <div class="table-responsive">
-            <table class="table table-modern">
-                <thead>
-                <tr><th>№</th><th>Название</th><th>Поле</th></tr>
-                </thead>
-                <tbody>
-                <tr th:each="item, index : ${allEntities}">
-                    <td th:text="${index.index + 1}"></td>
-                    <td><a th:text="${item.getName()}"
-                           th:href="'/employee/role/entities/detailsEntity/' + ${item.getId()}"></a></td>
-                    <td th:text="${item.getField()}"></td>
-                </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
-```
-
-### Форма добавления/редактирования
-
-```html
-<div class="container my-5">
-    <div class="row justify-content-center">
-        <div class="col-12 col-lg-10">
-            <div class="profile-card p-4">
-                <form action="/employee/role/entities/addEntity" method="post" class="auth-form">
-                    <h1 class="page-title">Добавление [сущности]</h1>
-                    <p class="page-subtitle">Создайте новую запись</p>
-
-                    <div th:if="${entityError}" class="alert alert-danger" th:text="${entityError}"></div>
-
-                    <div class="mb-4">
-                        <h6 class="form-section-title">Основные данные</h6>
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <input type="text" class="form-control" id="inputName"
-                                       name="inputName" required placeholder="Название" maxlength="255">
-                                <div id="nameError" class="invalid-feedback" style="display:none">
-                                    Такое значение уже существует
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <button type="submit" id="submitBtn" class="btn btn-success btn-profile">Сохранить</button>
-                </form>
-                <div class="link-section mt-3">
-                    <a th:href="'/employee/role/entities/allEntities'">← К списку</a>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-```
-
-Для **editEntity**: `th:action="'/path/editEntity/' + ${entityDTO.getId()}"`, поля с `th:value="${entityDTO.getField()}"`, кнопка «Сохранить изменения».
-
-### Просмотр (detailsEntity.html)
-
-```html
-<div class="container my-5">
-    <div class="row justify-content-center">
-        <div class="col-12 col-lg-10">
-            <div class="profile-card p-4">
-                <h1 class="page-title">Информация о [сущности]</h1>
-
-                <div th:if="${deleteError}" class="alert alert-danger" th:text="${deleteError}"></div>
-
-                <div class="mb-4">
-                    <h6 class="form-section-title">Основные данные</h6>
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label text-muted">Название</label>
-                            <input type="text" class="form-control info-display"
-                                   th:value="${entityDTO.getName()}" disabled>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Связанные данные -->
-                <div class="mb-4" th:if="${relatedItems != null and !relatedItems.isEmpty()}">
-                    <h6 class="form-section-title">Связанные записи</h6>
-                    <div class="table-responsive">
-                        <table class="table table-sm table-striped">
-                            <thead><tr><th>Поле</th></tr></thead>
-                            <tbody>
-                            <tr th:each="item : ${relatedItems}">
-                                <td th:text="${item.getField()}"></td>
-                            </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <div class="action-buttons mb-4">
-                    <button th:onclick="'window.location.href=\'/path/editEntity/' + ${entityDTO.getId()} + '\';'"
-                            class="btn btn-primary btn-profile">Редактировать</button>
-                    <button class="btn btn-danger btn-profile"
-                            th:data-entityid="${entityDTO.getId()}"
-                            th:data-name="${entityDTO.getName()}"
-                            onclick="confirmDelete(this)">Удалить</button>
-                </div>
-
-                <div class="link-section">
-                    <a th:href="'/employee/role/entities/allEntities'">← К списку</a>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-```
-
-### Полезные фрагменты Thymeleaf
-
-```html
-<!-- Дата -->
-th:text="${#temporals.format(date, 'dd.MM.yyyy')}"
-
-<!-- Enum -->
-th:text="${entity.getStatus().getDisplayName()}"
-
-<!-- Ошибки -->
-<div th:if="${entityError}" class="alert alert-danger" th:text="${entityError}"></div>
-<div th:if="${deleteError}" class="alert alert-danger" th:text="${deleteError}"></div>
-<div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
-
-<!-- Нумерация строк -->
-<tr th:each="item, index : ${allEntities}">
-    <td th:text="${index.index + 1}"></td>
-```
+| Элемент | Шаблон | Пример |
+|---|---|---|
+| Entity | PascalCase | `TestSession` |
+| DTO | `{Entity}DTO` | `TestSessionDTO` |
+| Mapper | `{Entity}Mapper` | `TestSessionMapper` |
+| Repository | `{Entity}Repository` | `TestSessionRepository` |
+| Service | `{Entity}Service` | `TestSessionService` |
+| Controller | `{Entity}Controller` | `TestSessionController` |
+| Таблица БД | `t_` + camelCase | `t_testSession` |
+| URL | `/employee/{role}/{entities}/{action}{Entity}` | `/employee/chief/tests/addTest` |
+| HTML-файлы | `all/add/edit/details + Entity` | `allTests.html` |
+| Model списки | `all{Entities}` | `allTests` |
+| Model запись | `{entity}DTO` | `testDTO` |
+| Model ошибка | `{entity}Error`, `deleteError` | `testError` |
 
 ---
 
-## AJAX-валидация уникальности
+## HTML / Thymeleaf
 
-```javascript
-const input = document.getElementById('inputUniqueField');
-const errorDiv = document.getElementById('uniqueFieldError');
-const submitBtn = document.getElementById('submitBtn');
-
-input.addEventListener('input', function () {
-    const value = input.value.trim();
-    if (value.length === 0) {
-        errorDiv.style.display = 'none';
-        input.classList.remove('is-invalid', 'is-valid');
-        submitBtn.disabled = false;
-        return;
-    }
-    fetch('/employee/role/entities/check-uniqueField?value=' + encodeURIComponent(value))
-        .then(r => r.json())
-        .then(data => {
-            if (data.exists) {
-                errorDiv.style.display = 'block';
-                input.classList.add('is-invalid');
-                input.classList.remove('is-valid');
-                submitBtn.disabled = true;
-            } else {
-                errorDiv.style.display = 'none';
-                input.classList.remove('is-invalid');
-                input.classList.add('is-valid');
-                submitBtn.disabled = false;
-            }
-        });
-});
+### Структура каждой страницы
 ```
+header (th:insert) → container.my-5 → profile-card → footer (th:insert)
+```
+
+### Список (allEntities)
+- Панель: `profile-card mb-4` → `profile-actions` → кнопки «Главная» и «Добавить»
+- Таблица: `profile-card p-4` → `table table-modern`
+- Нумерация: `th:each="item, index"` → `${index.index + 1}`
+- Ключевое поле — ссылка на details
+
+### Форма add/edit
+- Layout: `container my-5` → `row justify-content-center` → `col-12 col-lg-10` → `profile-card p-4`
+- Форма: `class="auth-form"`, `method="post"`
+- Заголовок: `h1.page-title` + `p.page-subtitle`
+- Секции: `h6.form-section-title` + `div.row.g-3`
+- Инпуты: `form-control`, `name="inputField"`, `required`, `placeholder`, `maxlength`
+- Кнопка: `btn btn-success btn-profile`
+- Ошибка: `div.alert.alert-danger` с `th:if="${entityError}"`
+- Ссылка назад: `div.link-section.mt-3`
+- edit: `th:action` с id, поля с `th:value`, кнопка «Сохранить изменения»
+
+### Просмотр (details)
+- Read-only поля: `input.form-control.info-display` + `disabled`
+- Labels: `label.form-label.text-muted`
+- Связанные таблицы: `table table-sm table-striped` с `th:if="${list != null and !list.isEmpty()}"`
+- Кнопки: `action-buttons mb-4` → «Редактировать» (primary) + «Удалить» (danger) с `confirmDelete()`
+
+### Фрагменты
+- Дата: `th:text="${#temporals.format(date, 'dd.MM.yyyy')}"`
+- Enum: `th:text="${entity.getStatus().getDisplayName()}"`
+- AJAX-валидация уникальных полей — обязательна (шаблон в `TEMPLATES.md`)
+- `confirmDelete()` — обязателен перед удалением (шаблон в `TEMPLATES.md`)
 
 ---
 
-## Подтверждение удаления
+## CSS-классы (не менять схему)
 
-```javascript
-function confirmDelete(button) {
-    const id = button.getAttribute('data-entityid');
-    const name = button.getAttribute('data-name');
-    if (confirm('Вы точно хотите удалить «' + name + '»?')) {
-        window.location.href = '/employee/role/entities/deleteEntity/' + id;
-    }
-}
-```
-
----
-
-## Цветовая схема CSS
-
-Не менять. Используемые классы:
-
-- Карточка: `profile-card` (белый фон, `border-radius: 15px`, тень)
-- Заголовок страницы: `page-title`, `page-subtitle`
-- Форма: `auth-form`
-- Секция формы: `form-section-title`
-- Кнопки: `btn-profile` + `btn-success`/`btn-primary`/`btn-danger`/`btn-secondary`
-- Таблица: `table-modern` (с градиентным заголовком `#667eea → #764ba2`)
-- Read-only поля: `info-display`
-- Панель кнопок: `profile-actions`, `action-buttons`
-- Ссылка назад: `link-section`
+| Класс | Назначение |
+|---|---|
+| `profile-card` | Белая карточка, border-radius 15px, тень |
+| `page-title`, `page-subtitle` | Заголовок страницы |
+| `auth-form` | Форма добавления/редактирования |
+| `form-section-title` | Заголовок секции формы |
+| `table-modern` | Таблица с градиентным заголовком |
+| `info-display` | Read-only поле на details |
+| `profile-actions` | Панель кнопок на списке |
+| `action-buttons` | Кнопки действий на details |
+| `link-section` | Ссылка «← К списку» |
+| `btn-profile` | Модификатор кнопок Bootstrap |
 
 Градиент: `linear-gradient(135deg, #667eea 0%, #764ba2 100%)`
+
+---
+
+## Статические ресурсы — только локально, никаких CDN
+
+**Запрещено** в HTML-шаблонах любые внешние URL: `cdn.`, `unpkg.`, `jsdelivr.`, `cdnjs.`, `stackpath.` и т.п.
+
+**Правильная структура static:**
+```
+static/
+├── css/bootstrap.min.css
+├── css/bootstrap-icons.min.css
+├── css/style.css
+├── js/bootstrap.bundle.min.js
+└── vendor/{lib}/{lib}.min.css|js    ← для новых библиотек
+```
+
+**Подключение только так:**
+```html
+<link href="/css/bootstrap.min.css" rel="stylesheet">
+<script src="/js/bootstrap.bundle.min.js"></script>
+```
+
+**Нужна новая библиотека?** → сначала укажи файлы для скачивания и папку, потом пиши HTML с локальным путём. CDN не использовать даже временно.
 
 ---
 
 ## Логирование
 
 - `@Slf4j` в каждом сервисе
-- `log.info()` — успешные операции
-- `log.error()` — все ошибки с параметрами: `log.error("Сущность с id={} не найдена.", id)`
-- `log.debug()` — детали
-- Конфигурация: `logback.xml`, файл `logs/aospi.log`
-
----
-
-## Статические ресурсы — только локально, никаких CDN
-
-**Запрещено** подключать любые внешние URL в HTML-шаблонах:
-- `https://cdn.jsdelivr.net/...`
-- `https://cdnjs.cloudflare.com/...`
-- `https://unpkg.com/...`
-- `https://stackpath.bootstrapcdn.com/...`
-- любые другие `https://`, `cdn.`, `unpkg.`, `jsdelivr.` ссылки на CSS/JS
-
-Это касается: Bootstrap, Bootstrap Icons, jQuery, Select2, DataTables, Chart.js, Font Awesome и любых других библиотек.
-
-**Правильная структура:**
-```
-src/main/resources/static/
-├── css/
-│   ├── bootstrap.min.css
-│   ├── bootstrap-icons.min.css
-│   └── style.css
-├── js/
-│   └── bootstrap.bundle.min.js
-└── vendor/                        ← сторонние библиотеки, если понадобятся
-    └── select2/
-        ├── select2.min.css
-        └── select2.min.js
-```
-
-**Правильное подключение в HTML:**
-```html
-<link href="/css/bootstrap.min.css" rel="stylesheet">
-<link href="/css/bootstrap-icons.min.css" rel="stylesheet">
-<script src="/js/bootstrap.bundle.min.js"></script>
-```
-
-**Если для задачи нужна новая библиотека:**
-1. Укажи, какие именно файлы нужно скачать и откуда
-2. Предложи, в какую папку их положить (`/css/`, `/js/`, `/vendor/...`)
-3. В HTML используй только локальный путь
-4. CDN не использовать даже как временное решение
-
-**Самопроверка перед завершением:** в шаблонах нет ни одной внешней `https://` ссылки на CSS/JS.
+- `log.info()` — успешные операции: `log.info("Сохранено: id={}", entity.getId())`
+- `log.error()` — все ошибки: `log.error("Не найдено: id={}", id)`
+- `log.debug()` — детали выполнения
 
 ---
 
 ## Жёсткие ограничения
 
 ### Запрещено
-
-1. `@Autowired` (field/setter injection) — только конструктор
-2. `record` для DTO — только `class` с `@Data`
-3. Бросать `Exception` из Service — только `return false` / `Optional.empty()`
-4. `@RestController` для HTML-страниц — только `@Controller`
+1. `@Autowired` — только конструктор
+2. `record` для DTO
+3. Бросать Exception из Service
+4. `@RestController` для HTML-страниц
 5. Spring `componentModel` в MapStruct
 6. jQuery — только vanilla JS
 7. Подпакеты внутри `dto/`, `mapper/`, `models/`, `repo/`
-8. `th:object` + `th:field` — только `name` + `@RequestParam`
+8. `th:object` + `th:field`
 9. Менять цветовую схему CSS
-10. **Внешние CDN-ссылки в HTML** — только локальные пути из `static/`
+10. Внешние CDN-ссылки в HTML
 
 ### Обязательно
-
-1. `@ToString.Exclude` на всех коллекциях и обратных ссылках в Entity
+1. `@ToString.Exclude` на коллекциях и обратных ссылках в Entity
 2. `@EqualsAndHashCode(of = "id")` в Entity
 3. Javadoc на русском в Entity
-4. `t_` префикс у всех таблиц
-5. `@PathVariable(value = "id") long id` — всегда с `value = "id"`
+4. Префикс `t_` у всех таблиц
+5. `@PathVariable(value = "id") long id`
 6. Redirect после POST: details при успехе, форма при ошибке
-7. AJAX-проверка всех уникальных полей
-8. `confirm()` перед удалением
-9. `try-catch` + `setRollbackOnly()` в каждом `@Transactional`-методе
-10. **Все CSS/JS подключены локально** — самопроверка перед финальным ответом
+7. AJAX-проверка уникальных полей
+8. `confirmDelete()` перед удалением
+9. `try-catch` + `setRollbackOnly()` в `@Transactional`-методах
+10. Все CSS/JS — локально, самопроверка перед финальным ответом
