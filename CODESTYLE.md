@@ -424,15 +424,15 @@ public enum EntityStatus {
         <div class="table-responsive">
             <table class="table table-modern">
                 <thead>
-                    <tr><th>№</th><th>Название</th><th>Поле</th></tr>
+                <tr><th>№</th><th>Название</th><th>Поле</th></tr>
                 </thead>
                 <tbody>
-                    <tr th:each="item, index : ${allEntities}">
-                        <td th:text="${index.index + 1}"></td>
-                        <td><a th:text="${item.getName()}"
-                               th:href="'/employee/role/entities/detailsEntity/' + ${item.getId()}"></a></td>
-                        <td th:text="${item.getField()}"></td>
-                    </tr>
+                <tr th:each="item, index : ${allEntities}">
+                    <td th:text="${index.index + 1}"></td>
+                    <td><a th:text="${item.getName()}"
+                           th:href="'/employee/role/entities/detailsEntity/' + ${item.getId()}"></a></td>
+                    <td th:text="${item.getField()}"></td>
+                </tr>
                 </tbody>
             </table>
         </div>
@@ -508,9 +508,9 @@ public enum EntityStatus {
                         <table class="table table-sm table-striped">
                             <thead><tr><th>Поле</th></tr></thead>
                             <tbody>
-                                <tr th:each="item : ${relatedItems}">
-                                    <td th:text="${item.getField()}"></td>
-                                </tr>
+                            <tr th:each="item : ${relatedItems}">
+                                <td th:text="${item.getField()}"></td>
+                            </tr>
                             </tbody>
                         </table>
                     </div>
@@ -632,6 +632,49 @@ function confirmDelete(button) {
 
 ---
 
+## Статические ресурсы — только локально, никаких CDN
+
+**Запрещено** подключать любые внешние URL в HTML-шаблонах:
+- `https://cdn.jsdelivr.net/...`
+- `https://cdnjs.cloudflare.com/...`
+- `https://unpkg.com/...`
+- `https://stackpath.bootstrapcdn.com/...`
+- любые другие `https://`, `cdn.`, `unpkg.`, `jsdelivr.` ссылки на CSS/JS
+
+Это касается: Bootstrap, Bootstrap Icons, jQuery, Select2, DataTables, Chart.js, Font Awesome и любых других библиотек.
+
+**Правильная структура:**
+```
+src/main/resources/static/
+├── css/
+│   ├── bootstrap.min.css
+│   ├── bootstrap-icons.min.css
+│   └── style.css
+├── js/
+│   └── bootstrap.bundle.min.js
+└── vendor/                        ← сторонние библиотеки, если понадобятся
+    └── select2/
+        ├── select2.min.css
+        └── select2.min.js
+```
+
+**Правильное подключение в HTML:**
+```html
+<link href="/css/bootstrap.min.css" rel="stylesheet">
+<link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+<script src="/js/bootstrap.bundle.min.js"></script>
+```
+
+**Если для задачи нужна новая библиотека:**
+1. Укажи, какие именно файлы нужно скачать и откуда
+2. Предложи, в какую папку их положить (`/css/`, `/js/`, `/vendor/...`)
+3. В HTML используй только локальный путь
+4. CDN не использовать даже как временное решение
+
+**Самопроверка перед завершением:** в шаблонах нет ни одной внешней `https://` ссылки на CSS/JS.
+
+---
+
 ## Жёсткие ограничения
 
 ### Запрещено
@@ -645,6 +688,7 @@ function confirmDelete(button) {
 7. Подпакеты внутри `dto/`, `mapper/`, `models/`, `repo/`
 8. `th:object` + `th:field` — только `name` + `@RequestParam`
 9. Менять цветовую схему CSS
+10. **Внешние CDN-ссылки в HTML** — только локальные пути из `static/`
 
 ### Обязательно
 
@@ -657,3 +701,4 @@ function confirmDelete(button) {
 7. AJAX-проверка всех уникальных полей
 8. `confirm()` перед удалением
 9. `try-catch` + `setRollbackOnly()` в каждом `@Transactional`-методе
+10. **Все CSS/JS подключены локально** — самопроверка перед финальным ответом
