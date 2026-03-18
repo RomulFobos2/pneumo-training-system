@@ -1,36 +1,66 @@
 <!DOCTYPE HTML>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
-    <title>Главная страница | СИАРСП</title>
+    <title>АОС ПИ — Обучающая система</title>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
     <link href="/css/style.css" rel="stylesheet">
-    <script src="/js/bootstrap.bundle.min.js"></script>
-    <script src="/js/javascript.js"></script>
 </head>
 <body>
-<header th:insert="~{blocks/header :: header}"></header>
-
 <main>
-    <!-- Hero Section -->
     <section class="home-hero">
-        <div class="container py-5">
+        <div class="container py-4">
             <div class="row">
                 <div class="col-lg-8 mx-auto">
-                    <h3 class="mb-3">Автоматизированная информационная система</h3>
-                    <h3 class="mb-4">для предприятия малого бизнеса</h3>
-                    <h5 class="lead">Студент: </h5>
-                    <h5 class="lead">МАИ филиал "Восход"</h5>
+                    <h2>Автоматизированная обучающая система</h2>
+                    <p>Подготовка и аттестация специалистов группы обеспечения пневмоиспытаний двигательной установки РКН</p>
+                    <a sec:authorize="!isAuthenticated()" href="/employee/login" class="btn">Войти в систему</a>
+                    <a sec:authorize="isAuthenticated()" href="/employee/profile" class="btn">Перейти в личный кабинет</a>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Image Section -->
-    <section class="home-image-section" style="background-image: url('/images/fon_home.jpg');"></section>
-</main>
+    <section class="home-features">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="bi bi-book"></i></div>
+                        <h5>Теория</h5>
+                        <p class="text-muted">Учебные материалы по пневмосистеме ДУ РКН</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="bi bi-pencil-square"></i></div>
+                        <h5>Тестирование</h5>
+                        <p class="text-muted">Экзамены с таймером и разными типами вопросов</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="bi bi-clipboard-data"></i></div>
+                        <h5>Протоколы</h5>
+                        <p class="text-muted">Формирование отчётов и протоколов экзаменов</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="bi bi-diagram-3"></i></div>
+                        <h5>Мнемосхема</h5>
+                        <p class="text-muted">Интерактивная схема пневмосистемы</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
 
-<div th:insert="~{blocks/footer :: footer}"></div>
+    <footer class="text-center py-3" style="color: var(--text-secondary); font-size: 0.85rem;">
+        &copy; 2026 АОС ПИ &mdash; АО «СП «Байтерек», Байконур | МАИ филиал «Восход»
+    </footer>
+</main>
 </body>
 </html>

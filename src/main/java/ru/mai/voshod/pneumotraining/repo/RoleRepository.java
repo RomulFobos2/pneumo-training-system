@@ -1,6 +1,6 @@
 package ru.mai.voshod.pneumotraining.repo;
 
-import com.mai.siarsp.models.Role;
+import ru.mai.voshod.pneumotraining.models.Role;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

@@ -1,33 +1,18 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ошибка</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
-            text-align: center;
-            padding: 50px;
-        }
-        h1 {
-            color: #333;
-        }
-        p {
-            color: #666;
-        }
-        a {
-            text-decoration: none;
-            color: #007BFF;
-        }
-        a:hover {
-            text-decoration: underline;
-        }
-    </style>
+    <title>Доступ запрещён | АОС ПИ</title>
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
 </head>
-<body class="mb-5">
-<h1>Ошибка 403</h1>
-<p>У вас нет доступа к этой странице. Пожалуйста, попробуйте снова или вернитесь на <a href="/">главную страницу</a>.</p>
+<body class="error-page">
+<div>
+    <div class="error-code">403</div>
+    <h2>Доступ запрещён</h2>
+    <p class="error-message">У вас нет прав для доступа к этой странице.</p>
+    <a href="/" class="btn btn-auth">На главную</a>
+</div>
 </body>
 </html>
