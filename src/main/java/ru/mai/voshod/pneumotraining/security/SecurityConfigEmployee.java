@@ -1,7 +1,6 @@
 package ru.mai.voshod.pneumotraining.security;
 
-
-import com.mai.siarsp.service.employee.EmployeeService;
+import ru.mai.voshod.pneumotraining.service.employee.EmployeeService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -37,20 +36,14 @@ public class SecurityConfigEmployee {
     @Bean
     public SecurityFilterChain employeeSecurityFilterChain(HttpSecurity http, AccessDeniedHandler accessDeniedHandler) throws Exception {
         http
-                .securityMatcher("/employee/**", "/api/mobile/**", "/static/**", "/images/**", "/css/**", "/js/**", "/", "/image/**", "/logout")
+                .securityMatcher("/employee/**", "/static/**", "/css/**", "/js/**", "/", "/logout")
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/static/**", "/images/**", "/css/**", "/js/**", "/", "/image/**").permitAll()
-                        .requestMatchers("/api/mobile/**").hasAnyRole("EMPLOYEE_ADMIN", "EMPLOYEE_MANAGER", "EMPLOYEE_WAREHOUSE_MANAGER", "EMPLOYEE_WAREHOUSE_WORKER", "EMPLOYEE_COURIER", "EMPLOYEE_ACCOUNTER")
-                        .requestMatchers("/employee/warehouseManager/warehouse-management/find-product")
-                        .hasAnyRole("EMPLOYEE_ADMIN", "EMPLOYEE_MANAGER", "EMPLOYEE_WAREHOUSE_MANAGER", "EMPLOYEE_WAREHOUSE_WORKER", "EMPLOYEE_COURIER", "EMPLOYEE_ACCOUNTER")
+                        .requestMatchers("/static/**", "/css/**", "/js/**", "/").permitAll()
                         .requestMatchers("/employee/admin/**").hasRole("EMPLOYEE_ADMIN")
-                        .requestMatchers("/employee/manager/**").hasRole("EMPLOYEE_MANAGER")
-                        .requestMatchers("/employee/warehouseManager/**").hasRole("EMPLOYEE_WAREHOUSE_MANAGER")
-                        .requestMatchers("/employee/accounter/**").hasRole("EMPLOYEE_ACCOUNTER")
-                        .requestMatchers("/employee/warehouseWorker/**").hasRole("EMPLOYEE_WAREHOUSE_WORKER")
-                        .requestMatchers("/employee/courier/**").hasRole("EMPLOYEE_COURIER")
-                        .requestMatchers("/employee/**").hasAnyRole("EMPLOYEE_ADMIN", "EMPLOYEE_MANAGER", "EMPLOYEE_WAREHOUSE_MANAGER", "EMPLOYEE_WAREHOUSE_WORKER", "EMPLOYEE_COURIER", "EMPLOYEE_ACCOUNTER") // любые сотрудники
+                        .requestMatchers("/employee/chief/**").hasRole("EMPLOYEE_CHIEF")
+                        .requestMatchers("/employee/specialist/**").hasAnyRole("EMPLOYEE_SPECIALIST", "EMPLOYEE_OPERATOR")
+                        .requestMatchers("/employee/**").hasAnyRole("EMPLOYEE_ADMIN", "EMPLOYEE_CHIEF", "EMPLOYEE_SPECIALIST", "EMPLOYEE_OPERATOR")
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form
@@ -72,6 +65,4 @@ public class SecurityConfigEmployee {
         provider.setPasswordEncoder(bCryptPasswordEncoder);
         return provider;
     }
-
-
 }

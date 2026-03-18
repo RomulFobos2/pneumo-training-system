@@ -1,7 +1,7 @@
 package ru.mai.voshod.pneumotraining.mapper;
 
-import com.mai.siarsp.dto.EmployeeDTO;
-import com.mai.siarsp.models.Employee;
+import ru.mai.voshod.pneumotraining.dto.EmployeeDTO;
+import ru.mai.voshod.pneumotraining.models.Employee;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
@@ -17,6 +17,7 @@ public interface EmployeeMapper {
     @Mapping(source = "role.description", target = "roleDescription")
     @Mapping(source = "enabled", target = "active")
     @Mapping(source = "employee", target = "fullName", qualifiedByName = "fullNameMapper")
+    @Mapping(source = "needChangePassword", target = "needChangePassword")
     EmployeeDTO toDTO(Employee employee);
 
     List<EmployeeDTO> toDTOList(List<Employee> employees);
@@ -24,6 +25,6 @@ public interface EmployeeMapper {
     @Named("fullNameMapper")
     default String getFullName(Employee employee) {
         return employee.getLastName() + " " + employee.getFirstName() +
-                (employee.getPatronymicName() != null ? " " + employee.getPatronymicName() : "");
+                (employee.getMiddleName() != null ? " " + employee.getMiddleName() : "");
     }
 }

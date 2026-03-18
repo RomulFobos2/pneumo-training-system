@@ -8,6 +8,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
 
+import ru.mai.voshod.pneumotraining.models.Employee;
+
 import java.io.IOException;
 
 @Component
@@ -28,6 +30,13 @@ public class AuthenticationLoggingSuccessHandler implements AuthenticationSucces
         if (request.getSession(false) != null) {
             log.debug("Сессия после успешной авторизации: username={}, sessionId={}",
                     username, request.getSession(false).getId());
+        }
+
+        // Если пароль назначен администратором — перенаправить на страницу смены пароля
+        if (authentication.getPrincipal() instanceof Employee employee && employee.isNeedChangePassword()) {
+            log.info("Пользователь {} перенаправлен на смену пароля", username);
+            response.sendRedirect("/employee/change-password");
+            return;
         }
 
         response.sendRedirect("/");

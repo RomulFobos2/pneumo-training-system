@@ -1,7 +1,7 @@
 package ru.mai.voshod.pneumotraining.mapper;
 
-import com.mai.siarsp.dto.RoleDTO;
-import com.mai.siarsp.models.Role;
+import ru.mai.voshod.pneumotraining.dto.RoleDTO;
+import ru.mai.voshod.pneumotraining.models.Role;
 import org.mapstruct.Mapper;
 import org.mapstruct.factory.Mappers;
 
