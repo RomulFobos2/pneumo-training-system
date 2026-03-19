@@ -1,0 +1,184 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Тестирование | АОС ПИ</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/javascript.js"></script>
+    <script src="/js/testing.js"></script>
+    <style>
+        .sequence-item { padding: 10px 15px; background: var(--bg-secondary, #f8f9fa); border: 1px solid #dee2e6;
+            border-radius: 6px; margin-bottom: 6px; cursor: grab; user-select: none; display: flex; align-items: center; }
+        .sequence-item:active { cursor: grabbing; }
+        .sequence-item.dragging { opacity: 0.4; }
+        .sequence-item.drag-over { border-top: 3px solid var(--accent, #0ea5e9); }
+        .seq-number { width: 30px; height: 30px; border-radius: 50%; background: var(--accent, #0ea5e9);
+            color: #fff; display: flex; align-items: center; justify-content: center; font-weight: bold;
+            margin-right: 12px; flex-shrink: 0; }
+        .seq-grip { color: #999; margin-right: 8px; }
+        .timer-badge { font-size: 1.3rem; font-weight: 600; padding: 8px 16px; }
+    </style>
+</head>
+<body>
+<div id="wrapper">
+    <div th:insert="~{blocks/header :: sidebar}"></div>
+    <div id="content-wrapper">
+        <div th:insert="~{blocks/header :: topbar}"></div>
+        <div th:insert="~{blocks/header :: overlay}"></div>
+        <main class="container-fluid">
+
+            <div class="row justify-content-center">
+                <div class="col-12 col-lg-9">
+
+                    <!-- Заголовок + таймер + прогресс -->
+                    <div class="profile-card p-3 mb-3 d-flex justify-content-between align-items-center flex-wrap">
+                        <div>
+                            <span class="text-muted" th:text="${testTitle}"></span>
+                            <span class="ms-2 fw-bold"
+                                  th:text="'Вопрос ' + (${questionIndex} + 1) + ' из ' + ${totalQuestions}"></span>
+                        </div>
+                        <div th:if="${endTime}" class="d-flex align-items-center">
+                            <i class="bi bi-clock me-1"></i>
+                            <span id="timer" class="timer-badge badge bg-dark">--:--</span>
+                        </div>
+                    </div>
+
+                    <!-- Прогресс-бар -->
+                    <div class="progress mb-3" style="height: 6px;">
+                        <div class="progress-bar" role="progressbar"
+                             th:style="'width: ' + ${(questionIndex + 1) * 100 / totalQuestions} + '%'"></div>
+                    </div>
+
+                    <!-- Вопрос -->
+                    <div class="profile-card p-4 mb-3">
+                        <h5 class="mb-4" th:text="${questionText}"></h5>
+
+                        <form id="answerForm"
+                              th:action="@{/employee/specialist/testing/submitAnswer/{sid}/{qi}(sid=${sessionId},qi=${questionIndex})}"
+                              method="post">
+
+                            <!-- ===== SINGLE_CHOICE ===== -->
+                            <div th:if="${questionType == 'SINGLE_CHOICE'}">
+                                <div class="form-check mb-3" th:each="answer : ${answers}">
+                                    <input class="form-check-input" type="radio" name="selectedAnswer"
+                                           th:value="${answer.id}" th:id="'answer_' + ${answer.id}"
+                                           th:checked="${existingSelectedIds != null && existingSelectedIds.contains(answer.id)}">
+                                    <label class="form-check-label" th:for="'answer_' + ${answer.id}"
+                                           th:text="${answer.answerText}"></label>
+                                </div>
+                            </div>
+
+                            <!-- ===== MULTIPLE_CHOICE ===== -->
+                            <div th:if="${questionType == 'MULTIPLE_CHOICE'}">
+                                <div class="form-check mb-3" th:each="answer : ${answers}">
+                                    <input class="form-check-input" type="checkbox" name="selectedAnswers"
+                                           th:value="${answer.id}" th:id="'answer_' + ${answer.id}"
+                                           th:checked="${existingSelectedIds != null && existingSelectedIds.contains(answer.id)}">
+                                    <label class="form-check-label" th:for="'answer_' + ${answer.id}"
+                                           th:text="${answer.answerText}"></label>
+                                </div>
+                            </div>
+
+                            <!-- ===== SEQUENCE ===== -->
+                            <div th:if="${questionType == 'SEQUENCE'}">
+                                <p class="text-muted small"><i class="bi bi-grip-vertical"></i> Перетащите элементы в правильном порядке</p>
+                                <div id="sequenceSortable">
+                                    <div class="sequence-item" draggable="true"
+                                         th:each="answer, stat : ${answers}"
+                                         th:data-answer-id="${answer.id}">
+                                        <span class="seq-grip"><i class="bi bi-grip-vertical"></i></span>
+                                        <span class="seq-number" th:text="${stat.index + 1}"></span>
+                                        <span th:text="${answer.answerText}"></span>
+                                    </div>
+                                </div>
+                                <input type="hidden" name="sequenceOrder" id="sequenceOrderInput">
+                            </div>
+
+                            <!-- ===== MATCHING ===== -->
+                            <div th:if="${questionType == 'MATCHING'}">
+                                <p class="text-muted small">Установите соответствие для каждого элемента</p>
+                                <div th:each="answer : ${answers}" class="row mb-2 align-items-center">
+                                    <div class="col-5">
+                                        <div class="profile-card p-2 text-center" th:text="${answer.answerText}"></div>
+                                    </div>
+                                    <div class="col-2 text-center">
+                                        <i class="bi bi-arrow-right"></i>
+                                    </div>
+                                    <div class="col-5">
+                                        <select class="form-select" th:name="'match_' + ${answer.id}">
+                                            <option value="">— выберите —</option>
+                                            <option th:each="opt : ${answers}"
+                                                    th:value="${opt.matchTarget}"
+                                                    th:text="${opt.matchTarget}"></option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- ===== OPEN_TEXT ===== -->
+                            <div th:if="${questionType == 'OPEN_TEXT'}">
+                                <textarea name="openAnswer" class="form-control" rows="4"
+                                          placeholder="Введите ваш ответ"
+                                          th:text="${existingAnswerText}"></textarea>
+                            </div>
+
+                        </form>
+                    </div>
+
+                    <!-- Кнопки навигации -->
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <a th:if="${allowBackNavigation && questionIndex > 0}"
+                               th:href="@{/employee/specialist/testing/question/{sid}/{qi}(sid=${sessionId},qi=${questionIndex - 1})}"
+                               class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left"></i> Назад
+                            </a>
+                        </div>
+                        <button type="button" class="btn btn-primary" onclick="submitForm()">
+                            <span th:if="${questionIndex + 1 < totalQuestions}">Ответить <i class="bi bi-arrow-right"></i></span>
+                            <span th:if="${questionIndex + 1 >= totalQuestions}"><i class="bi bi-check-lg"></i> Завершить тест</span>
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+
+        </main>
+        <div th:insert="~{blocks/footer :: footer}"></div>
+    </div>
+</div>
+
+<!-- Скрытая форма для автосабмита по таймеру -->
+<form id="autoSubmitForm"
+      th:action="@{/employee/specialist/testing/submitAnswer/{sid}/{qi}(sid=${sessionId},qi=${questionIndex})}"
+      method="post" class="d-none">
+</form>
+
+<script th:inline="javascript">
+    var endTimeStr = [[${endTime}]];
+    var questionType = [[${questionType}]];
+    var allowBack = [[${allowBackNavigation}]];
+</script>
+<script>
+    // Инициализация таймера
+    if (endTimeStr) {
+        initTimer(endTimeStr);
+    }
+
+    // Инициализация DnD для SEQUENCE
+    if (questionType === 'SEQUENCE') {
+        initSequenceDnD();
+        updateSequenceOrder();
+    }
+
+    function submitForm() {
+        if (!validateAnswerForm(questionType, allowBack)) return;
+        document.getElementById('answerForm').submit();
+    }
+</script>
+</body>
+</html>

@@ -53,7 +53,7 @@
             </a>
         </li>
         <li class="nav-item" sec:authorize="hasAnyRole('ROLE_EMPLOYEE_SPECIALIST','ROLE_EMPLOYEE_OPERATOR')">
-            <a href="#">
+            <a th:href="@{/employee/specialist/testing/availableTests}">
                 <i class="bi bi-pencil-square"></i> <span>Тестирование</span>
             </a>
         </li>

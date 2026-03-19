@@ -13,5 +13,6 @@ public class TestDTO {
     private boolean isActive;
     private Long createdById;
     private String createdByFullName;
+    private boolean allowBackNavigation;
     private int questionCount;
 }

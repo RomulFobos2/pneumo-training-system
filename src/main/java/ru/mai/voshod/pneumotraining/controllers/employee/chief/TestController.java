@@ -46,10 +46,11 @@ public class TestController {
                           @RequestParam Integer inputTimeLimit,
                           @RequestParam Integer inputPassingScore,
                           @RequestParam(required = false, defaultValue = "false") boolean inputIsExam,
+                          @RequestParam(required = false, defaultValue = "false") boolean inputAllowBackNavigation,
                           @AuthenticationPrincipal Employee currentUser,
                           Model model) {
         Optional<Long> result = testService.saveTest(inputTitle, inputDescription,
-                inputTimeLimit, inputPassingScore, inputIsExam, currentUser);
+                inputTimeLimit, inputPassingScore, inputIsExam, inputAllowBackNavigation, currentUser);
         if (result.isEmpty()) {
             model.addAttribute("testError", "Ошибка при сохранении. Возможно, название уже занято.");
             return "employee/chief/tests/addTest";
@@ -89,9 +90,10 @@ public class TestController {
                            @RequestParam Integer inputTimeLimit,
                            @RequestParam Integer inputPassingScore,
                            @RequestParam(required = false, defaultValue = "false") boolean inputIsExam,
+                           @RequestParam(required = false, defaultValue = "false") boolean inputAllowBackNavigation,
                            RedirectAttributes redirectAttributes) {
         Optional<Long> result = testService.editTest(id, inputTitle, inputDescription,
-                inputTimeLimit, inputPassingScore, inputIsExam);
+                inputTimeLimit, inputPassingScore, inputIsExam, inputAllowBackNavigation);
         if (result.isEmpty()) {
             redirectAttributes.addFlashAttribute("testError", "Ошибка при сохранении изменений.");
             return "redirect:/employee/chief/tests/editTest/" + id;
