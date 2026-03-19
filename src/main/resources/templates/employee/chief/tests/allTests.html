@@ -1,0 +1,78 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Тесты | АОС ПИ</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/javascript.js"></script>
+</head>
+<body>
+<div id="wrapper">
+    <div th:insert="~{blocks/header :: sidebar}"></div>
+    <div id="content-wrapper">
+        <div th:insert="~{blocks/header :: topbar}"></div>
+        <div th:insert="~{blocks/header :: overlay}"></div>
+        <main class="container-fluid">
+
+            <div class="profile-card mb-4 d-flex justify-content-between align-items-center">
+                <h1 class="page-title mb-0">Тесты</h1>
+                <a href="/employee/chief/tests/addTest" class="btn btn-success btn-sm">
+                    <i class="bi bi-plus-lg"></i> Создать тест
+                </a>
+            </div>
+
+            <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
+            <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
+
+            <div class="profile-card p-4">
+                <table class="table table-modern">
+                    <thead>
+                    <tr>
+                        <th style="width: 50px">#</th>
+                        <th>Название</th>
+                        <th style="width: 100px">Вопросов</th>
+                        <th style="width: 100px">Время</th>
+                        <th style="width: 100px">Проходной</th>
+                        <th style="width: 80px">Экзамен</th>
+                        <th style="width: 90px">Статус</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="test, index : ${allTests}">
+                        <td class="row-number" th:text="${index.index + 1}"></td>
+                        <td>
+                            <a th:href="@{/employee/chief/tests/detailsTest/{id}(id=${test.id})}"
+                               th:text="${test.title}"></a>
+                        </td>
+                        <td th:text="${test.questionCount}"></td>
+                        <td>
+                            <span th:if="${test.timeLimit > 0}" th:text="${test.timeLimit + ' мин'}"></span>
+                            <span th:if="${test.timeLimit == 0}" class="text-muted">—</span>
+                        </td>
+                        <td th:text="${test.passingScore + '%'}"></td>
+                        <td>
+                            <span th:if="${test.isExam()}" class="badge bg-warning text-dark">Да</span>
+                            <span th:if="${!test.isExam()}" class="text-muted">Нет</span>
+                        </td>
+                        <td>
+                            <span th:if="${test.isActive()}" class="badge bg-success">Активен</span>
+                            <span th:if="${!test.isActive()}" class="badge bg-secondary">Черновик</span>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(allTests)}">
+                        <td colspan="7" class="text-center text-muted">Тесты ещё не созданы</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </main>
+        <div th:insert="~{blocks/footer :: footer}"></div>
+    </div>
+</div>
+</body>
+</html>

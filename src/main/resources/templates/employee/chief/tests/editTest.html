@@ -1,0 +1,82 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Редактировать тест | АОС ПИ</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/javascript.js"></script>
+</head>
+<body>
+<div id="wrapper">
+    <div th:insert="~{blocks/header :: sidebar}"></div>
+    <div id="content-wrapper">
+        <div th:insert="~{blocks/header :: topbar}"></div>
+        <div th:insert="~{blocks/header :: overlay}"></div>
+        <main class="container-fluid">
+
+            <div class="row justify-content-center">
+                <div class="col-12 col-lg-8">
+                    <div class="profile-card p-4">
+
+                        <h1 class="page-title">Редактирование теста</h1>
+
+                        <div th:if="${testError}" class="alert alert-danger" th:text="${testError}"></div>
+
+                        <form th:action="@{/employee/chief/tests/editTest/{id}(id=${testDTO.id})}"
+                              method="post" class="auth-form">
+                            <div class="row g-3 mb-4">
+                                <div class="col-12">
+                                    <label class="form-label">Название *</label>
+                                    <input type="text" name="inputTitle" class="form-control"
+                                           required maxlength="255" th:value="${testDTO.title}">
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Описание</label>
+                                    <textarea name="inputDescription" class="form-control" rows="3"
+                                              th:text="${testDTO.description}"></textarea>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Время (мин) *</label>
+                                    <input type="number" name="inputTimeLimit" class="form-control"
+                                           required min="0" th:value="${testDTO.timeLimit}">
+                                    <div class="form-text text-muted">0 = без ограничения</div>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Проходной балл (%) *</label>
+                                    <input type="number" name="inputPassingScore" class="form-control"
+                                           required min="0" max="100" th:value="${testDTO.passingScore}">
+                                </div>
+                                <div class="col-md-4 d-flex align-items-center">
+                                    <div class="form-check mt-3">
+                                        <input type="checkbox" name="inputIsExam" value="true"
+                                               class="form-check-input" id="examCheck"
+                                               th:checked="${testDTO.isExam()}">
+                                        <label class="form-check-label" for="examCheck">Экзамен</label>
+                                        <div class="form-text text-muted">Отображается в протоколах</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary btn-profile">
+                                <i class="bi bi-check-lg"></i> Сохранить изменения
+                            </button>
+                        </form>
+
+                        <div class="link-section mt-3">
+                            <a th:href="@{/employee/chief/tests/detailsTest/{id}(id=${testDTO.id})}">← К тесту</a>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+        </main>
+        <div th:insert="~{blocks/footer :: footer}"></div>
+    </div>
+</div>
+</body>
+</html>
