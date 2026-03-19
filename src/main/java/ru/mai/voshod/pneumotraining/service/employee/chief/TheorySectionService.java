@@ -131,6 +131,30 @@ public class TheorySectionService {
                 });
     }
 
+    // ========== Перестановка ==========
+
+    @Transactional
+    public boolean reorderSections(List<Long> orderedIds) {
+        log.info("Перестановка разделов: {}", orderedIds);
+        try {
+            for (int i = 0; i < orderedIds.size(); i++) {
+                Optional<TheorySection> sectionOpt = theorySectionRepository.findById(orderedIds.get(i));
+                if (sectionOpt.isEmpty()) {
+                    log.error("Раздел не найден: id={}", orderedIds.get(i));
+                    return false;
+                }
+                sectionOpt.get().setSortOrder(i + 1);
+                theorySectionRepository.save(sectionOpt.get());
+            }
+            log.info("Разделы переупорядочены успешно");
+            return true;
+        } catch (Exception e) {
+            log.error("Ошибка при переупорядочивании разделов: {}", e.getMessage(), e);
+            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+            return false;
+        }
+    }
+
     // ========== Проверки ==========
 
     public boolean checkTitle(String title, Long id) {

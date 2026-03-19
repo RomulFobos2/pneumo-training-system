@@ -750,3 +750,22 @@ footer {
 .sidebar-overlay.active {
     display: block;
 }
+
+/* ===== Drag and Drop ===== */
+.drag-handle {
+    cursor: grab;
+    color: var(--text-secondary);
+    width: 30px;
+    text-align: center;
+    user-select: none;
+}
+.drag-handle:active {
+    cursor: grabbing;
+}
+tr.dragging {
+    opacity: 0.4;
+    background: var(--accent) !important;
+}
+tr.drag-over {
+    border-top: 2px solid var(--accent);
+}

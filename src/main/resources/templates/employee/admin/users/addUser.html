@@ -89,7 +89,9 @@
                                 <div class="col-md-6">
                                     <label class="form-label">Пароль *</label>
                                     <input type="password" id="inputPassword" name="inputPassword" class="form-control"
-                                           required minlength="4" placeholder="Минимум 4 символа">
+                                           required minlength="8" placeholder="Минимум 8 символов">
+                                    <div class="form-text text-muted">Не менее 8 символов, хотя бы одна цифра и одна заглавная буква</div>
+                                    <div id="passwordStrengthFeedback" class="form-text"></div>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Подтверждение пароля *</label>
@@ -126,10 +128,13 @@
     var submitBtn = document.getElementById('submitBtn');
 
     var usernameValid = false;
-    var passwordValid = false;
+    var strengthOk = false;
+    var matchOk = false;
+    var passwordRegex = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
+    var strengthFeedback = document.getElementById('passwordStrengthFeedback');
 
     function validateForm() {
-        submitBtn.disabled = !(usernameValid && passwordValid);
+        submitBtn.disabled = !(usernameValid && strengthOk && matchOk);
     }
 
     // AJAX проверка username
@@ -166,32 +171,59 @@
         }, 400);
     });
 
+    // Проверка силы пароля
+    function checkStrength() {
+        var pass = passwordInput.value;
+        if (pass.length === 0) {
+            strengthFeedback.textContent = '';
+            passwordInput.classList.remove('is-valid', 'is-invalid');
+            strengthOk = false;
+        } else if (passwordRegex.test(pass)) {
+            strengthFeedback.textContent = 'Пароль соответствует требованиям';
+            strengthFeedback.style.color = 'var(--success)';
+            passwordInput.classList.remove('is-invalid');
+            passwordInput.classList.add('is-valid');
+            strengthOk = true;
+        } else {
+            var msg = [];
+            if (pass.length < 8) msg.push('минимум 8 символов');
+            if (!/[A-Z]/.test(pass)) msg.push('заглавная буква');
+            if (!/\d/.test(pass)) msg.push('цифра');
+            strengthFeedback.textContent = 'Не хватает: ' + msg.join(', ');
+            strengthFeedback.style.color = 'var(--danger)';
+            passwordInput.classList.remove('is-valid');
+            passwordInput.classList.add('is-invalid');
+            strengthOk = false;
+        }
+        checkMatch();
+    }
+
     // Проверка совпадения паролей
-    function checkPasswords() {
+    function checkMatch() {
         var pass = passwordInput.value;
         var confirm = passwordConfirmInput.value;
         if (confirm.length === 0) {
             passwordConfirmInput.classList.remove('is-valid', 'is-invalid');
             passwordFeedback.textContent = '';
-            passwordValid = false;
+            matchOk = false;
         } else if (pass === confirm) {
             passwordConfirmInput.classList.remove('is-invalid');
             passwordConfirmInput.classList.add('is-valid');
             passwordFeedback.textContent = 'Пароли совпадают';
             passwordFeedback.style.color = 'var(--success)';
-            passwordValid = true;
+            matchOk = true;
         } else {
             passwordConfirmInput.classList.remove('is-valid');
             passwordConfirmInput.classList.add('is-invalid');
             passwordFeedback.textContent = 'Пароли не совпадают';
             passwordFeedback.style.color = 'var(--danger)';
-            passwordValid = false;
+            matchOk = false;
         }
         validateForm();
     }
 
-    passwordInput.addEventListener('input', checkPasswords);
-    passwordConfirmInput.addEventListener('input', checkPasswords);
+    passwordInput.addEventListener('input', checkStrength);
+    passwordConfirmInput.addEventListener('input', checkMatch);
 </script>
 </body>
 </html>

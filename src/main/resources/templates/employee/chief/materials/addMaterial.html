@@ -27,7 +27,8 @@
 
                         <div th:if="${materialError}" class="alert alert-danger" th:text="${materialError}"></div>
 
-                        <form th:action="@{/employee/chief/materials/addMaterial/{sectionId}(sectionId=${sectionDTO.id})}" method="post" class="auth-form">
+                        <form th:action="@{/employee/chief/materials/addMaterial/{sectionId}(sectionId=${sectionDTO.id})}"
+                              method="post" enctype="multipart/form-data" class="auth-form">
                             <div class="row g-3 mb-4">
                                 <div class="col-md-8">
                                     <label class="form-label">Название *</label>
@@ -53,6 +54,8 @@
                                               required placeholder="HTML-содержимое материала"></textarea>
                                     <input type="url" id="contentUrl" class="form-control d-none"
                                            placeholder="https://" disabled>
+                                    <input type="file" id="contentFile" name="inputFile" class="form-control d-none"
+                                           accept=".pdf" disabled>
                                 </div>
                             </div>
 
@@ -78,33 +81,32 @@
     var typeSelect = document.getElementById('materialTypeSelect');
     var contentTextarea = document.getElementById('contentTextarea');
     var contentUrl = document.getElementById('contentUrl');
+    var contentFile = document.getElementById('contentFile');
     var contentLabel = document.getElementById('contentLabel');
 
     function toggleContentField() {
         var type = typeSelect.value;
+        // Скрыть всё
+        contentTextarea.classList.add('d-none'); contentTextarea.disabled = true; contentTextarea.name = '';
+        contentUrl.classList.add('d-none'); contentUrl.disabled = true; contentUrl.name = '';
+        contentFile.classList.add('d-none'); contentFile.disabled = true;
+
         if (type === 'TEXT') {
             contentTextarea.classList.remove('d-none');
             contentTextarea.disabled = false;
             contentTextarea.name = 'inputContent';
-            contentUrl.classList.add('d-none');
-            contentUrl.disabled = true;
-            contentUrl.name = '';
             contentLabel.textContent = 'Содержимое *';
             contentTextarea.placeholder = 'HTML-содержимое материала';
+        } else if (type === 'PDF') {
+            contentFile.classList.remove('d-none');
+            contentFile.disabled = false;
+            contentLabel.textContent = 'PDF-файл *';
         } else {
-            contentTextarea.classList.add('d-none');
-            contentTextarea.disabled = true;
-            contentTextarea.name = '';
             contentUrl.classList.remove('d-none');
             contentUrl.disabled = false;
             contentUrl.name = 'inputContent';
-            if (type === 'PDF') {
-                contentLabel.textContent = 'Ссылка на PDF *';
-                contentUrl.placeholder = 'https://example.com/document.pdf';
-            } else {
-                contentLabel.textContent = 'Ссылка на видео *';
-                contentUrl.placeholder = 'https://www.youtube.com/watch?v=...';
-            }
+            contentLabel.textContent = 'Ссылка на видео *';
+            contentUrl.placeholder = 'https://www.youtube.com/watch?v=...';
         }
     }
 

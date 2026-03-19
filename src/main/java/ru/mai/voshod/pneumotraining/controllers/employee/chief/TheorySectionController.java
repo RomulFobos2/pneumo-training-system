@@ -5,6 +5,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import ru.mai.voshod.pneumotraining.dto.TheoryMaterialDTO;
 import ru.mai.voshod.pneumotraining.dto.TheorySectionDTO;
@@ -13,6 +14,7 @@ import ru.mai.voshod.pneumotraining.service.employee.chief.TheoryMaterialService
 import ru.mai.voshod.pneumotraining.service.employee.chief.TheorySectionService;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -128,12 +130,17 @@ public class TheorySectionController {
     @PostMapping("/employee/chief/materials/addMaterial/{sectionId}")
     public String addMaterial(@PathVariable(value = "sectionId") long sectionId,
                               @RequestParam String inputTitle,
-                              @RequestParam String inputContent,
+                              @RequestParam(required = false) String inputContent,
                               @RequestParam Integer inputSortOrder,
                               @RequestParam String inputMaterialType,
+                              @RequestParam(required = false) MultipartFile inputFile,
                               Model model) {
-        Optional<Long> result = theoryMaterialService.saveMaterial(
-                sectionId, inputTitle, inputContent, inputSortOrder, inputMaterialType);
+        Optional<Long> result;
+        if ("PDF".equals(inputMaterialType) && inputFile != null && !inputFile.isEmpty()) {
+            result = theoryMaterialService.saveMaterialWithFile(sectionId, inputTitle, inputFile, inputSortOrder);
+        } else {
+            result = theoryMaterialService.saveMaterial(sectionId, inputTitle, inputContent, inputSortOrder, inputMaterialType);
+        }
         if (result.isEmpty()) {
             model.addAttribute("materialError", "Ошибка при сохранении материала.");
             model.addAttribute("sectionDTO", theorySectionService.getSectionById(sectionId).orElse(null));
@@ -157,13 +164,18 @@ public class TheorySectionController {
     @PostMapping("/employee/chief/materials/editMaterial/{id}")
     public String editMaterial(@PathVariable(value = "id") long id,
                                @RequestParam String inputTitle,
-                               @RequestParam String inputContent,
+                               @RequestParam(required = false) String inputContent,
                                @RequestParam Integer inputSortOrder,
                                @RequestParam String inputMaterialType,
+                               @RequestParam(required = false) MultipartFile inputFile,
                                RedirectAttributes redirectAttributes) {
         Optional<Long> sectionIdOpt = theoryMaterialService.getSectionIdByMaterialId(id);
-        Optional<Long> result = theoryMaterialService.editMaterial(
-                id, inputTitle, inputContent, inputSortOrder, inputMaterialType);
+        Optional<Long> result;
+        if ("PDF".equals(inputMaterialType) && inputFile != null && !inputFile.isEmpty()) {
+            result = theoryMaterialService.editMaterialWithFile(id, inputTitle, inputFile, inputSortOrder);
+        } else {
+            result = theoryMaterialService.editMaterial(id, inputTitle, inputContent, inputSortOrder, inputMaterialType);
+        }
         if (result.isEmpty()) {
             redirectAttributes.addFlashAttribute("materialError", "Ошибка при сохранении изменений.");
             return "redirect:/employee/chief/materials/editMaterial/" + id;
@@ -181,5 +193,25 @@ public class TheorySectionController {
             redirectAttributes.addFlashAttribute("errorMessage", "Ошибка при удалении материала.");
         }
         return "redirect:/employee/chief/materials/detailsSection/" + sectionId;
+    }
+
+    // ========== Перестановка (AJAX) ==========
+
+    @PostMapping("/employee/chief/materials/reorderSections")
+    @ResponseBody
+    public ResponseEntity<Map<String, Boolean>> reorderSections(@RequestBody List<Long> orderedIds) {
+        Map<String, Boolean> response = new HashMap<>();
+        response.put("success", theorySectionService.reorderSections(orderedIds));
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/employee/chief/materials/reorderMaterials/{sectionId}")
+    @ResponseBody
+    public ResponseEntity<Map<String, Boolean>> reorderMaterials(
+            @PathVariable(value = "sectionId") long sectionId,
+            @RequestBody List<Long> orderedIds) {
+        Map<String, Boolean> response = new HashMap<>();
+        response.put("success", theoryMaterialService.reorderMaterials(sectionId, orderedIds));
+        return ResponseEntity.ok(response);
     }
 }

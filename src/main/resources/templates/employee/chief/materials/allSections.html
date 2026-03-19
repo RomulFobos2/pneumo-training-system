@@ -30,9 +30,10 @@
             <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
 
             <div class="profile-card p-4">
-                <table class="table table-modern">
+                <table class="table table-modern" id="sectionsTable">
                     <thead>
                     <tr>
+                        <th style="width: 30px"></th>
                         <th style="width: 50px">#</th>
                         <th>Название</th>
                         <th>Описание</th>
@@ -40,9 +41,10 @@
                         <th style="width: 100px">Порядок</th>
                     </tr>
                     </thead>
-                    <tbody>
-                    <tr th:each="section, index : ${allSections}">
-                        <td th:text="${index.index + 1}"></td>
+                    <tbody id="sectionsBody">
+                    <tr th:each="section, index : ${allSections}" th:data-id="${section.id}" draggable="true">
+                        <td class="drag-handle"><i class="bi bi-grip-vertical"></i></td>
+                        <td class="row-number" th:text="${index.index + 1}"></td>
                         <td>
                             <a th:href="@{/employee/chief/materials/detailsSection/{id}(id=${section.id})}"
                                th:text="${section.title}"></a>
@@ -54,10 +56,10 @@
                                   th:text="${section.description} ?: '—'"></span>
                         </td>
                         <td th:text="${section.materialCount}"></td>
-                        <td th:text="${section.sortOrder}"></td>
+                        <td class="sort-order-cell" th:text="${section.sortOrder}"></td>
                     </tr>
                     <tr th:if="${#lists.isEmpty(allSections)}">
-                        <td colspan="5" class="text-center text-muted">Разделы ещё не созданы</td>
+                        <td colspan="6" class="text-center text-muted">Разделы ещё не созданы</td>
                     </tr>
                     </tbody>
                 </table>
@@ -67,5 +69,82 @@
         <div th:insert="~{blocks/footer :: footer}"></div>
     </div>
 </div>
+
+<script>
+    (function () {
+        var tbody = document.getElementById('sectionsBody');
+        if (!tbody || tbody.rows.length === 0) return;
+
+        var dragRow = null;
+
+        tbody.addEventListener('dragstart', function (e) {
+            var tr = e.target.closest('tr');
+            if (!tr || !tr.dataset.id) return;
+            dragRow = tr;
+            tr.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', tr.dataset.id);
+        });
+
+        tbody.addEventListener('dragover', function (e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            var tr = e.target.closest('tr');
+            if (!tr || tr === dragRow || !tr.dataset.id) return;
+            var rows = Array.from(tbody.querySelectorAll('tr[data-id]'));
+            rows.forEach(function (r) { r.classList.remove('drag-over'); });
+            tr.classList.add('drag-over');
+        });
+
+        tbody.addEventListener('dragleave', function (e) {
+            var tr = e.target.closest('tr');
+            if (tr) tr.classList.remove('drag-over');
+        });
+
+        tbody.addEventListener('drop', function (e) {
+            e.preventDefault();
+            var targetTr = e.target.closest('tr');
+            if (!targetTr || !dragRow || targetTr === dragRow || !targetTr.dataset.id) return;
+            var rows = Array.from(tbody.querySelectorAll('tr[data-id]'));
+            rows.forEach(function (r) { r.classList.remove('drag-over'); });
+
+            var rect = targetTr.getBoundingClientRect();
+            var midY = rect.top + rect.height / 2;
+            if (e.clientY < midY) {
+                tbody.insertBefore(dragRow, targetTr);
+            } else {
+                tbody.insertBefore(dragRow, targetTr.nextSibling);
+            }
+
+            updateNumbersAndSave();
+        });
+
+        tbody.addEventListener('dragend', function () {
+            if (dragRow) dragRow.classList.remove('dragging');
+            var rows = Array.from(tbody.querySelectorAll('tr[data-id]'));
+            rows.forEach(function (r) { r.classList.remove('drag-over'); });
+            dragRow = null;
+        });
+
+        function updateNumbersAndSave() {
+            var rows = Array.from(tbody.querySelectorAll('tr[data-id]'));
+            var orderedIds = [];
+            rows.forEach(function (r, i) {
+                r.querySelector('.row-number').textContent = i + 1;
+                r.querySelector('.sort-order-cell').textContent = i + 1;
+                orderedIds.push(parseInt(r.dataset.id));
+            });
+
+            fetch('/employee/chief/materials/reorderSections', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(orderedIds)
+            }).then(function (r) { return r.json(); })
+              .then(function (data) {
+                  if (!data.success) location.reload();
+              }).catch(function () { location.reload(); });
+        }
+    })();
+</script>
 </body>
 </html>

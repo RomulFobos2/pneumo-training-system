@@ -64,6 +64,11 @@ public class EmployeeService implements UserDetailsService {
             return Optional.empty();
         }
 
+        if (!isPasswordValid(password)) {
+            log.error("Пароль не соответствует требованиям безопасности");
+            return Optional.empty();
+        }
+
         Optional<Role> roleOptional = roleRepository.findByName(roleName);
         if (roleOptional.isEmpty()) {
             log.error("Роль {} не найдена", roleName);
@@ -182,6 +187,11 @@ public class EmployeeService implements UserDetailsService {
     public boolean resetPassword(Long id, String newPassword) {
         log.info("Сброс пароля для пользователя: id={}", id);
 
+        if (!isPasswordValid(newPassword)) {
+            log.error("Пароль не соответствует требованиям безопасности");
+            return false;
+        }
+
         Optional<Employee> employeeOptional = employeeRepository.findById(id);
         if (employeeOptional.isEmpty()) {
             log.error("Пользователь не найден: id={}", id);
@@ -202,6 +212,13 @@ public class EmployeeService implements UserDetailsService {
         }
     }
 
+    // ========== Валидация пароля ==========
+
+    private boolean isPasswordValid(String password) {
+        if (password == null || password.length() < 8) return false;
+        return password.matches(".*[A-Z].*") && password.matches(".*\\d.*");
+    }
+
     // ========== Смена собственного пароля ==========
 
     @Transactional
@@ -213,6 +230,11 @@ public class EmployeeService implements UserDetailsService {
         }
 
         log.info("Смена пароля пользователем: id={}, username={}", currentEmployee.getId(), currentEmployee.getUsername());
+
+        if (!isPasswordValid(newPassword)) {
+            log.error("Пароль не соответствует требованиям безопасности");
+            return false;
+        }
 
         try {
             currentEmployee.setPassword(bCryptPasswordEncoder.encode(newPassword));
