@@ -23,7 +23,7 @@
             <div class="sidebar-heading">Управление</div>
         </li>
         <li class="nav-item" sec:authorize="hasRole('ROLE_EMPLOYEE_CHIEF')">
-            <a href="#">
+            <a th:href="@{/employee/chief/materials/allSections}">
                 <i class="bi bi-journal-text"></i> <span>Материалы</span>
             </a>
         </li>
@@ -48,7 +48,7 @@
             <div class="sidebar-heading">Обучение</div>
         </li>
         <li class="nav-item" sec:authorize="hasAnyRole('ROLE_EMPLOYEE_SPECIALIST','ROLE_EMPLOYEE_OPERATOR')">
-            <a href="#">
+            <a th:href="@{/employee/specialist/theory/allSections}">
                 <i class="bi bi-book"></i> <span>Теория</span>
             </a>
         </li>

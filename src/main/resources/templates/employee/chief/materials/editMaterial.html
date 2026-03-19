@@ -1,0 +1,114 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Редактировать материал | АОС ПИ</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/javascript.js"></script>
+</head>
+<body>
+<div id="wrapper">
+    <div th:insert="~{blocks/header :: sidebar}"></div>
+    <div id="content-wrapper">
+        <div th:insert="~{blocks/header :: topbar}"></div>
+        <div th:insert="~{blocks/header :: overlay}"></div>
+        <main class="container-fluid">
+
+            <div class="row justify-content-center">
+                <div class="col-12 col-lg-8">
+                    <div class="profile-card p-4">
+
+                        <h1 class="page-title">Редактировать материал</h1>
+                        <p class="page-subtitle" th:text="${materialDTO.title}"></p>
+
+                        <div th:if="${materialError}" class="alert alert-danger" th:text="${materialError}"></div>
+
+                        <form th:action="@{/employee/chief/materials/editMaterial/{id}(id=${materialDTO.id})}" method="post" class="auth-form">
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-8">
+                                    <label class="form-label">Название *</label>
+                                    <input type="text" name="inputTitle" class="form-control"
+                                           required maxlength="255" th:value="${materialDTO.title}">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Порядок сортировки *</label>
+                                    <input type="number" name="inputSortOrder" class="form-control"
+                                           required min="1" th:value="${materialDTO.sortOrder}">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Тип материала *</label>
+                                    <select id="materialTypeSelect" name="inputMaterialType" class="form-select" required>
+                                        <option th:each="type : ${allMaterialTypes}"
+                                                th:value="${type.name()}"
+                                                th:text="${type.displayName}"
+                                                th:selected="${type.name() == materialDTO.materialTypeName}"></option>
+                                    </select>
+                                </div>
+                                <div class="col-12" id="contentFieldWrapper">
+                                    <label class="form-label" id="contentLabel">Содержимое *</label>
+                                    <textarea id="contentTextarea" name="inputContent" class="form-control" rows="10"
+                                              required th:text="${materialDTO.content}"></textarea>
+                                    <input type="url" id="contentUrl" class="form-control d-none"
+                                           th:value="${materialDTO.content}" disabled>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-success btn-profile">
+                                <i class="bi bi-check-lg"></i> Сохранить изменения
+                            </button>
+                        </form>
+
+                        <div class="link-section mt-3">
+                            <a th:href="@{/employee/chief/materials/detailsSection/{id}(id=${materialDTO.sectionId})}">← К разделу</a>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+        </main>
+        <div th:insert="~{blocks/footer :: footer}"></div>
+    </div>
+</div>
+
+<script th:inline="javascript">
+    var currentType = [[${materialDTO.materialTypeName}]];
+    var typeSelect = document.getElementById('materialTypeSelect');
+    var contentTextarea = document.getElementById('contentTextarea');
+    var contentUrl = document.getElementById('contentUrl');
+    var contentLabel = document.getElementById('contentLabel');
+
+    function toggleContentField() {
+        var type = typeSelect.value;
+        if (type === 'TEXT') {
+            contentTextarea.classList.remove('d-none');
+            contentTextarea.disabled = false;
+            contentTextarea.name = 'inputContent';
+            contentUrl.classList.add('d-none');
+            contentUrl.disabled = true;
+            contentUrl.name = '';
+            contentLabel.textContent = 'Содержимое *';
+        } else {
+            contentTextarea.classList.add('d-none');
+            contentTextarea.disabled = true;
+            contentTextarea.name = '';
+            contentUrl.classList.remove('d-none');
+            contentUrl.disabled = false;
+            contentUrl.name = 'inputContent';
+            if (type === 'PDF') {
+                contentLabel.textContent = 'Ссылка на PDF *';
+            } else {
+                contentLabel.textContent = 'Ссылка на видео *';
+            }
+        }
+    }
+
+    typeSelect.addEventListener('change', toggleContentField);
+    toggleContentField();
+</script>
+</body>
+</html>
