@@ -8,8 +8,8 @@
 
 | Этап | Название | Статус |
 |---|---|---|
-| 0 | Фундамент (Security, Employee, UI-блоки) | 🔲 Не начат |
-| 1 | Управление пользователями (Admin) | 🔲 Не начат |
+| 0 | Фундамент (Security, Employee, UI-блоки) | ✅ Выполнен |
+| 1 | Управление пользователями (Admin) | ✅ Выполнен |
 | 2 | Учебные материалы (Chief + Specialist) | 🔲 Не начат |
 | 3 | Конструктор тестов (Chief) | 🔲 Не начат |
 | 4 | Прохождение тестирования (Specialist) | 🔲 Не начат |
@@ -19,66 +19,73 @@
 
 ---
 
-## ЭТАП 0: Фундамент
+## ЭТАП 0: Фундамент ✅
 
 **Цель:** скелет приложения — безопасность, начальные данные, UI-блоки.
 
 ### 0.1 Инициализация Maven-проекта
-- [ ] Spring Initializr: Java 21, Spring Boot, Security, JPA, Thymeleaf, MySQL, Lombok, MapStruct, POI
-- [ ] Настроить `application.properties`: datasource, JPA DDL, Thymeleaf
-- [ ] Создать структуру пакетов (см. CLAUDE.md → Структура проекта)
+- [x] Spring Initializr: Java 21, Spring Boot 3.5.11, Security, JPA, Thymeleaf, MySQL, Lombok, MapStruct, POI
+- [x] Настроить `application.properties`: datasource, JPA DDL, Thymeleaf
+- [x] Создать структуру пакетов (см. CLAUDE.md → Структура проекта)
 
 ### 0.2 Сущность Employee + Security
-Файлы:
-- `models/Employee.java` — lastName, firstName, middleName, birthDate, subdivision, position, username, password, role (EmployeeRole), isActive
-- `enumeration/EmployeeRole.java` — ADMIN, CHIEF, SPECIALIST, OPERATOR с displayName
-- `repo/EmployeeRepository.java` — existsByUsername, findByUsername
-- `dto/EmployeeDTO.java`
-- `mapper/EmployeeMapper.java`
-- `security/SecurityConfig.java` — настройка URL и ролей
-- `security/CustomUserDetailsService.java` — реализует UserDetailsService, проверяет isActive
-- `component/DataInitializer.java` — создаёт роли и admin при первом старте
+Реализовано:
+- `models/Employee.java` — реализует UserDetails, поля: lastName, firstName, middleName, birthDate, subdivision, position, username, password, role, isActive, needChangePassword
+- `models/Role.java` — реализует GrantedAuthority (вместо enum)
+- `repo/EmployeeRepository.java`, `repo/RoleRepository.java`
+- `dto/EmployeeDTO.java`, `dto/RoleDTO.java`
+- `mapper/EmployeeMapper.java`, `mapper/RoleMapper.java`
+- `security/SecurityConfigEmployee.java` — настройка URL и ролей
+- `security/PasswordEncoderConfig.java` — BCrypt
+- `security/AuthenticationLoggingSuccessHandler.java`, `AuthenticationLoggingFailureHandler.java`
+- `component/DataInitializer.java` — создаёт 4 роли и admin при первом старте
 
 ### 0.3 UI-блоки
-- [ ] `templates/blocks/header.html` — навигация с `th:if` по ролям
-- [ ] `templates/blocks/footer.html`
-- [ ] `static/css/style.css` — полный файл стилей (profile-card, table-modern, auth-form, page-title и т.д.)
-- [ ] `templates/general/login.html`
-- [ ] `templates/general/index.html` — dashboard с блоками по роли
-- [ ] `templates/general/error.html`
-- [ ] `controllers/general/MainController.java` — `/` → redirect по роли, `/login`
+- [x] `templates/blocks/header.html` — навигация с `th:if` по ролям
+- [x] `templates/blocks/footer.html`
+- [x] `static/css/style.css` — полный файл стилей
+- [x] `templates/employee/general/login.html`
+- [x] `templates/general/home.html` — главная страница
+- [x] `templates/errors/` — 403, 404, 405, error
+- [x] `controllers/general/MainController.java`, `CustomErrorController.java`
 
 ### Проверка этапа 0
-- [ ] Логин/логаут работают
-- [ ] Каждая роль видит только свои разделы в меню
-- [ ] 403 при попытке зайти не в свой раздел
-- [ ] Admin создаётся при первом запуске
+- [x] Логин/логаут работают
+- [x] Каждая роль видит только свои разделы в меню
+- [x] 403 при попытке зайти не в свой раздел
+- [x] Admin создаётся при первом запуске
 
 ---
 
-## ЭТАП 1: Управление пользователями (Admin)
+## ЭТАП 1: Управление пользователями (Admin) ✅
 
 **Цель:** администратор управляет учётными записями.
 
-### Особенности
+### Особенности (реализовано)
 - Удаление = деактивация (`isActive = false`), кнопка «Деактивировать»
 - Сброс пароля — отдельная операция на отдельной странице
 - AJAX-проверка уникальности username
+- Принудительная смена пароля при первом входе (`needChangePassword`)
+- Профиль пользователя и смена пароля (`profile.html`, `change-password.html`)
 
-### Файлы
+### Файлы (реализовано)
 ```
-service/employee/admin/UserService.java
+service/employee/EmployeeService.java
 controllers/employee/admin/UserController.java
+controllers/employee/general/MainEmployeeController.java
 templates/employee/admin/users/
     allUsers.html       — таблица + фильтр по роли
     addUser.html        — ФИО, дата рождения, подразделение, должность, роль, логин
     editUser.html       — без смены пароля
     detailsUser.html    — карточка + кнопки Редактировать / Деактивировать / Сбросить пароль
     resetPassword.html  — форма сброса пароля
+templates/employee/general/
+    profile.html        — профиль текущего пользователя
+    change-password.html — смена собственного пароля
 ```
 
-### Методы UserService
-- `checkUsername(username, id)` — уникальность логина
+### Методы EmployeeService
+- `checkUserName(username)` / `checkUserNameExcluding(username, id)` — уникальность логина
 - `saveUser(user, rawPassword)` — BCrypt при создании
 - `editUser(id, ...)` — данные без пароля
 - `resetPassword(id, newRawPassword)` — отдельная операция
@@ -271,32 +278,124 @@ templates/employee/chief/analytics/dashboard.html
 
 > **Ожидание материалов от заказчика.** Не начинать до получения всего списка ниже.
 
+### Справка: как эмулятор был реализован в старом дипломе (Delphi)
+
+Старый проект содержал интерактивный тренажёр пневматической системы (Unit119.pas, ~2300 строк).
+Ключевые архитектурные решения, которые стоит учесть:
+
+**Элементы мнемосхемы:**
+| Тип | Обозначения | Кол-во | Назначение |
+|-----|-------------|--------|------------|
+| Пневмораспределители | VP1–VP48 | 48 | Открытие/закрытие подачи воздуха |
+| Клапаны | V1–V17, VФ3–VФ9 | 24 | Управление потоками |
+| Насосы/нагнетатели | N1–N4 | 4 | Подача давления |
+| Выключатели | WS1–WS6 | 6 | Включение/отключение узлов |
+| Нагреватели/реле | NR1–NR8, NL5–NL6 | 10 | Нагревательные элементы |
+| Датчики температуры | TT16–TT23, T16–T23 | 16 | Показания температуры |
+| Датчики давления | P1–P18, PT1–PT13 | 31 | Показания давления |
+| Блокировки | BH21, BH31, ZB1, ZB2, ZD11 | 5 | Защитные механизмы |
+
+**Механика прохождения:**
+- Пошаговый сценарий из **24 команд** (процедура запуска/останова пневмосистемы)
+- На каждом шаге пользователю показывается текстовая инструкция ("Включить WS1", "Открыть VP7, VP21-VP23" и т.д.)
+- Пользователь выполняет действие на мнемосхеме (кликает на элементы)
+- Нажимает "Проверить" → система валидирует состояние **всех** элементов (не только текущего шага, но и предыдущих)
+- Ошибка на любом шаге → аттестация провалена (строгий режим)
+- **2 варианта сценария** выбираются случайно (отличаются деталями: какие именно вентили, наличие ошибки на NR1)
+- Таймер: **20 минут** на прохождение
+- Датчики температуры/давления обновляются динамически (таймер + случайное приращение)
+
+**Состояния элементов:**
+- Каждый элемент — бинарный: включён/открыт (Tag=1) или выключен/закрыт (Tag=0)
+- Визуально: переключение между изображениями `{name}on.bmp` / `{name}off.bmp`
+- Вентили управляются через отдельную форму с кнопками "Открыть"/"Закрыть"
+
+**Оценивание:**
+- Успешно пройден → `Sim_score = "Сдана"`, итоговая оценка = `ceil((Score_test + 5) / 2) + 1`
+- Не пройден → `Sim_score = "Не сдана"`, итоговая оценка = 2 (неудовлетворительно)
+- Итоговая оценка учитывает и тестовую часть, и результат эмулятора
+
+**Известный баг в старом проекте:** переменная `mo` (результат) нигде не устанавливалась в 1 при успешном прохождении → эмулятор всегда возвращал "не сдана". Нужно учесть при реализации.
+
+---
+
 ### Что нужно получить от заказчика
 - [ ] Полная схема пневмосистемы ДУ РКН (чертёж или схема)
-- [ ] Перечень всех элементов: клапаны VP1–VP48, насосы NR1–NR8, датчики PT1–PT12, блоки NK1–NK3
-- [ ] Таблица допустимых состояний (конфигурация клапанов → показания датчиков)
-- [ ] Перечень учебных сценариев (нормальное прохождение + внештатные ситуации)
+- [ ] Перечень всех элементов с указанием типов (клапаны, насосы, датчики, блокировки)
+- [ ] Таблица допустимых состояний (конфигурация элементов → показания датчиков)
+- [ ] Перечень учебных сценариев (пошаговые команды для нормального прохождения + внештатные ситуации)
 - [ ] SVG-схема или чертёж для отрисовки мнемосхемы
 
 ### Технический подход (после получения материалов)
+
+**Архитектура (на основе анализа старого проекта, адаптация под Spring Boot):**
+
+**Модель данных:**
+- `SimulationScenario` — сценарий прохождения (название, описание, лимит времени, isActive)
+- `SimulationStep` — шаг сценария (scenarioId, stepNumber, instructionText, expectedState JSON)
+- `SimulationElement` — элемент мнемосхемы (svgId, type [VALVE/PUMP/SWITCH/SENSOR/HEATER/LOCK], displayName)
+- `SimulationSession` — сессия прохождения (employeeId, scenarioId, startTime, endTime, status, currentStep, score)
+
+**Логика (аналог старого проекта, но без багов):**
+1. Specialist выбирает сценарий → создаётся `SimulationSession`
+2. На каждом шаге отображается инструкция (аналог `komands_message()`)
+3. Пользователь кликает на элементы SVG → `fetch POST` меняет состояние в сессии
+4. Кнопка "Проверить шаг" → сервер валидирует:
+   - Текущий шаг: нужные элементы в правильном состоянии
+   - Все предыдущие шаги: элементы не были сброшены (кумулятивная проверка, как в старом проекте)
+5. Если шаг пройден → `currentStep++`, показать следующую инструкцию
+6. Если ошибка → сессия завершается со статусом FAILED
+7. Если все шаги пройдены → статус COMPLETED, расчёт итоговой оценки
+
+**Датчики (динамика показаний):**
+- JS-таймер обновляет значения датчиков на клиенте (как Timer3 в старом проекте)
+- Значения зависят от состояния связанных элементов (открытый клапан → давление растёт)
+- Формула: `newValue = currentValue + baseIncrement + random()/divisor` (из `pokazchange()`)
+
+**SVG-мнемосхема:**
 - SVG встраивается в Thymeleaf-страницу
-- Каждый клапан: `id="vp-1"` в SVG
-- Клик → `fetch POST /mnemo/toggleElement/{sessionId}` → JSON с новым состоянием
-- JS обновляет SVG: цвет трубопровода, значения датчиков, иконки
-- Состояние симуляции — в `HttpSession` (не в БД, сессия эфемерна)
+- Каждый элемент: `id="vp-1"`, `data-type="VALVE"`, `data-state="off"`
+- Клик → `fetch POST /employee/specialist/mnemo/toggleElement/{sessionId}` → JSON с новым состоянием
+- JS обновляет SVG: цвет/изображение элемента, значения датчиков
+- Состояние симуляции — в БД (`SimulationSession`), не в `HttpSession`
 
 ### Файлы (отложено)
 ```
 models/SimulationScenario.java
-models/SimulationState.java
+models/SimulationStep.java
 models/SimulationElement.java
+models/SimulationSession.java
+enumeration/SimulationStatus.java      — NOT_STARTED, IN_PROGRESS, COMPLETED, FAILED, EXPIRED
+enumeration/ElementType.java           — VALVE, PUMP, SWITCH, SENSOR_TEMP, SENSOR_PRESSURE, HEATER, LOCK
 
-service/employee/specialist/MnemoService.java
-service/employee/specialist/SimulationEngine.java
-controllers/employee/specialist/MnemoController.java
+repo/SimulationScenarioRepository.java
+repo/SimulationStepRepository.java
+repo/SimulationElementRepository.java
+repo/SimulationSessionRepository.java
+
+dto/SimulationScenarioDTO.java
+dto/SimulationSessionDTO.java
+mapper/SimulationScenarioMapper.java
+mapper/SimulationSessionMapper.java
+
+service/employee/chief/ScenarioService.java          — CRUD сценариев и шагов
+service/employee/specialist/SimulationEngine.java     — логика проверки шагов, расчёт оценки
+service/employee/specialist/MnemoService.java         — управление сессиями симуляции
+
+controllers/employee/chief/ScenarioController.java    — управление сценариями
+controllers/employee/specialist/MnemoController.java  — прохождение симуляции
+
+templates/employee/chief/scenarios/
+    allScenarios.html       — список сценариев
+    addScenario.html        — создание сценария + шаги
+    editScenario.html
+    detailsScenario.html    — просмотр шагов сценария
+
 templates/employee/specialist/mnemo/
-    scenarios.html
-    view.html          — SVG-мнемосхема + JS-интерактив
-    result.html
+    scenarios.html          — доступные сценарии
+    view.html               — SVG-мнемосхема + JS-интерактив + таймер + инструкция текущего шага
+    result.html             — итог: пройден/не пройден, оценка
+
 static/svg/pneumo-scheme.svg
+static/js/mnemo.js          — логика взаимодействия с SVG, таймер, fetch-запросы
 ```

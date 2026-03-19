@@ -1,0 +1,104 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Добавить раздел | АОС ПИ</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/javascript.js"></script>
+</head>
+<body>
+<div id="wrapper">
+    <div th:insert="~{blocks/header :: sidebar}"></div>
+    <div id="content-wrapper">
+        <div th:insert="~{blocks/header :: topbar}"></div>
+        <div th:insert="~{blocks/header :: overlay}"></div>
+        <main class="container-fluid">
+
+            <div class="row justify-content-center">
+                <div class="col-12 col-lg-8">
+                    <div class="profile-card p-4">
+
+                        <h1 class="page-title">Новый раздел теории</h1>
+
+                        <div th:if="${sectionError}" class="alert alert-danger" th:text="${sectionError}"></div>
+
+                        <form th:action="@{/employee/chief/materials/addSection}" method="post" class="auth-form">
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-8">
+                                    <label class="form-label">Название *</label>
+                                    <input type="text" id="inputTitle" name="inputTitle" class="form-control"
+                                           required maxlength="255" placeholder="Название раздела">
+                                    <div id="titleFeedback" class="form-text"></div>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Порядок сортировки *</label>
+                                    <input type="number" name="inputSortOrder" class="form-control"
+                                           required min="1" value="1">
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Описание</label>
+                                    <textarea name="inputDescription" class="form-control" rows="4"
+                                              placeholder="Описание раздела (необязательно)"></textarea>
+                                </div>
+                            </div>
+
+                            <button type="submit" id="submitBtn" class="btn btn-success btn-profile">
+                                <i class="bi bi-plus-lg"></i> Создать раздел
+                            </button>
+                        </form>
+
+                        <div class="link-section mt-3">
+                            <a th:href="@{/employee/chief/materials/allSections}">← К списку разделов</a>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+        </main>
+        <div th:insert="~{blocks/footer :: footer}"></div>
+    </div>
+</div>
+
+<script>
+    var titleInput = document.getElementById('inputTitle');
+    var titleFeedback = document.getElementById('titleFeedback');
+    var submitBtn = document.getElementById('submitBtn');
+    var titleValid = true;
+    var titleTimer;
+
+    titleInput.addEventListener('input', function () {
+        clearTimeout(titleTimer);
+        var value = titleInput.value.trim();
+        if (value.length === 0) {
+            titleInput.classList.remove('is-valid', 'is-invalid');
+            titleFeedback.textContent = '';
+            titleValid = true;
+            return;
+        }
+        titleTimer = setTimeout(function () {
+            fetch('/employee/chief/materials/check-title?title=' + encodeURIComponent(value))
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (data.exists) {
+                        titleInput.classList.remove('is-valid');
+                        titleInput.classList.add('is-invalid');
+                        titleFeedback.textContent = 'Раздел с таким названием уже существует';
+                        titleFeedback.style.color = 'var(--danger)';
+                        submitBtn.disabled = true;
+                    } else {
+                        titleInput.classList.remove('is-invalid');
+                        titleInput.classList.add('is-valid');
+                        titleFeedback.textContent = '';
+                        submitBtn.disabled = false;
+                    }
+                });
+        }, 400);
+    });
+</script>
+</body>
+</html>

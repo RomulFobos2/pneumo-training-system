@@ -1,0 +1,71 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Разделы теории | АОС ПИ</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/javascript.js"></script>
+</head>
+<body>
+<div id="wrapper">
+    <div th:insert="~{blocks/header :: sidebar}"></div>
+    <div id="content-wrapper">
+        <div th:insert="~{blocks/header :: topbar}"></div>
+        <div th:insert="~{blocks/header :: overlay}"></div>
+        <main class="container-fluid">
+
+            <div class="profile-card mb-4">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <h1 class="page-title mb-0">Разделы теории</h1>
+                    <a th:href="@{/employee/chief/materials/addSection}" class="btn btn-success">
+                        <i class="bi bi-plus-lg"></i> Добавить раздел
+                    </a>
+                </div>
+            </div>
+
+            <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
+
+            <div class="profile-card p-4">
+                <table class="table table-modern">
+                    <thead>
+                    <tr>
+                        <th style="width: 50px">#</th>
+                        <th>Название</th>
+                        <th>Описание</th>
+                        <th style="width: 120px">Материалов</th>
+                        <th style="width: 100px">Порядок</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="section, index : ${allSections}">
+                        <td th:text="${index.index + 1}"></td>
+                        <td>
+                            <a th:href="@{/employee/chief/materials/detailsSection/{id}(id=${section.id})}"
+                               th:text="${section.title}"></a>
+                        </td>
+                        <td>
+                            <span th:if="${section.description != null and section.description.length() > 100}"
+                                  th:text="${section.description.substring(0, 100) + '...'}"></span>
+                            <span th:if="${section.description == null or section.description.length() <= 100}"
+                                  th:text="${section.description} ?: '—'"></span>
+                        </td>
+                        <td th:text="${section.materialCount}"></td>
+                        <td th:text="${section.sortOrder}"></td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(allSections)}">
+                        <td colspan="5" class="text-center text-muted">Разделы ещё не созданы</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </main>
+        <div th:insert="~{blocks/footer :: footer}"></div>
+    </div>
+</div>
+</body>
+</html>

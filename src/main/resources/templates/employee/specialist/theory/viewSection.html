@@ -1,0 +1,66 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Раздел теории | АОС ПИ</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/javascript.js"></script>
+</head>
+<body>
+<div id="wrapper">
+    <div th:insert="~{blocks/header :: sidebar}"></div>
+    <div id="content-wrapper">
+        <div th:insert="~{blocks/header :: topbar}"></div>
+        <div th:insert="~{blocks/header :: overlay}"></div>
+        <main class="container-fluid">
+
+            <div class="row justify-content-center">
+                <div class="col-12 col-lg-10">
+                    <div class="profile-card p-4 mb-4">
+                        <h1 class="page-title" th:text="${sectionDTO.title}"></h1>
+                        <p class="page-subtitle" th:if="${sectionDTO.description}" th:text="${sectionDTO.description}"></p>
+                    </div>
+
+                    <div class="profile-card p-4">
+                        <h5 class="mb-3">Материалы</h5>
+
+                        <table class="table table-modern">
+                            <thead>
+                            <tr>
+                                <th style="width: 50px">#</th>
+                                <th>Название</th>
+                                <th style="width: 140px">Тип</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="material, index : ${allMaterials}">
+                                <td th:text="${index.index + 1}"></td>
+                                <td>
+                                    <a th:href="@{/employee/specialist/theory/viewMaterial/{id}(id=${material.id})}"
+                                       th:text="${material.title}"></a>
+                                </td>
+                                <td th:text="${material.materialTypeDisplayName}"></td>
+                            </tr>
+                            <tr th:if="${#lists.isEmpty(allMaterials)}">
+                                <td colspan="3" class="text-center text-muted">Материалы ещё не добавлены</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="link-section mt-3">
+                        <a th:href="@{/employee/specialist/theory/allSections}">← К списку разделов</a>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+        <div th:insert="~{blocks/footer :: footer}"></div>
+    </div>
+</div>
+</body>
+</html>
