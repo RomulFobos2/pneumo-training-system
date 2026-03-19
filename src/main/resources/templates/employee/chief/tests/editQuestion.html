@@ -1,0 +1,329 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Редактировать вопрос | АОС ПИ</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/javascript.js"></script>
+</head>
+<body>
+<div id="wrapper">
+    <div th:insert="~{blocks/header :: sidebar}"></div>
+    <div id="content-wrapper">
+        <div th:insert="~{blocks/header :: topbar}"></div>
+        <div th:insert="~{blocks/header :: overlay}"></div>
+        <main class="container-fluid">
+
+            <div class="row justify-content-center">
+                <div class="col-12 col-lg-10">
+                    <div class="profile-card p-4">
+
+                        <h1 class="page-title">Редактирование вопроса</h1>
+                        <p class="page-subtitle">Тест: <span th:text="${questionDTO.testTitle}"></span></p>
+
+                        <div th:if="${questionError}" class="alert alert-danger" th:text="${questionError}"></div>
+
+                        <form th:action="@{/employee/chief/tests/editQuestion/{id}(id=${questionDTO.id})}"
+                              method="post" class="auth-form" onsubmit="return validateForm()">
+
+                            <div class="row g-3 mb-4">
+                                <div class="col-12">
+                                    <label class="form-label">Текст вопроса *</label>
+                                    <textarea name="inputQuestionText" class="form-control" rows="3"
+                                              required th:text="${questionDTO.questionText}"></textarea>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Тип вопроса *</label>
+                                    <select id="questionTypeSelect" name="inputQuestionType" class="form-select" required>
+                                        <option th:each="type : ${allQuestionTypes}"
+                                                th:value="${type.name()}"
+                                                th:text="${type.displayName}"
+                                                th:selected="${type.name() == questionDTO.questionTypeName}"></option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Порядок сортировки *</label>
+                                    <input type="number" name="inputSortOrder" class="form-control"
+                                           required min="1" th:value="${questionDTO.sortOrder}">
+                                </div>
+                            </div>
+
+                            <!-- Блок вариантов ответа -->
+                            <div id="answersSection" class="mb-4">
+                                <h5 class="mb-3">Варианты ответа</h5>
+
+                                <!-- SINGLE_CHOICE / MULTIPLE_CHOICE -->
+                                <div id="choiceAnswers">
+                                    <div class="mb-2 text-muted" id="choiceHint"></div>
+                                    <div id="choiceList"></div>
+                                    <button type="button" class="btn btn-sm btn-outline-primary mt-2"
+                                            onclick="addChoiceRow()">
+                                        <i class="bi bi-plus-lg"></i> Добавить вариант
+                                    </button>
+                                </div>
+
+                                <!-- SEQUENCE -->
+                                <div id="sequenceAnswers" class="d-none">
+                                    <div class="mb-2 text-muted">
+                                        Укажите элементы последовательности. Номер определяет правильный порядок.
+                                    </div>
+                                    <div id="sequenceList"></div>
+                                    <button type="button" class="btn btn-sm btn-outline-primary mt-2"
+                                            onclick="addSequenceRow()">
+                                        <i class="bi bi-plus-lg"></i> Добавить элемент
+                                    </button>
+                                </div>
+
+                                <!-- MATCHING -->
+                                <div id="matchingAnswers" class="d-none">
+                                    <div class="mb-2 text-muted">
+                                        Укажите пары соответствия (левый элемент — правый элемент)
+                                    </div>
+                                    <div id="matchingList"></div>
+                                    <button type="button" class="btn btn-sm btn-outline-primary mt-2"
+                                            onclick="addMatchingRow()">
+                                        <i class="bi bi-plus-lg"></i> Добавить пару
+                                    </button>
+                                </div>
+
+                                <!-- OPEN_TEXT -->
+                                <div id="openTextAnswers" class="d-none">
+                                    <div class="mb-2 text-muted">
+                                        Введите эталонный ответ (используется при автоматической проверке)
+                                    </div>
+                                    <div id="openTextList">
+                                        <input type="text" name="answerText" class="form-control"
+                                               placeholder="Эталонный ответ">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary btn-profile">
+                                <i class="bi bi-check-lg"></i> Сохранить изменения
+                            </button>
+                        </form>
+
+                        <div class="link-section mt-3">
+                            <a th:href="@{/employee/chief/tests/detailsTest/{id}(id=${questionDTO.testId})}">← К тесту</a>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+        </main>
+        <div th:insert="~{blocks/footer :: footer}"></div>
+    </div>
+</div>
+
+<!-- Передаём существующие ответы в JS -->
+<script th:inline="javascript">
+    var existingAnswers = [[${questionDTO.answers}]];
+    var existingType = [[${questionDTO.questionTypeName}]];
+</script>
+<script>
+    var typeSelect = document.getElementById('questionTypeSelect');
+    var choiceAnswers = document.getElementById('choiceAnswers');
+    var sequenceAnswers = document.getElementById('sequenceAnswers');
+    var matchingAnswers = document.getElementById('matchingAnswers');
+    var openTextAnswers = document.getElementById('openTextAnswers');
+    var choiceHint = document.getElementById('choiceHint');
+    var choiceCounter = 0;
+    var sequenceCounter = 0;
+    var matchingCounter = 0;
+
+    function hideAll() {
+        choiceAnswers.classList.add('d-none');
+        sequenceAnswers.classList.add('d-none');
+        matchingAnswers.classList.add('d-none');
+        openTextAnswers.classList.add('d-none');
+    }
+
+    function toggleType() {
+        var type = typeSelect.value;
+        hideAll();
+        switch (type) {
+            case 'SINGLE_CHOICE':
+                choiceAnswers.classList.remove('d-none');
+                choiceHint.textContent = 'Отметьте один правильный вариант';
+                updateChoiceInputType('radio');
+                break;
+            case 'MULTIPLE_CHOICE':
+                choiceAnswers.classList.remove('d-none');
+                choiceHint.textContent = 'Отметьте все правильные варианты';
+                updateChoiceInputType('checkbox');
+                break;
+            case 'SEQUENCE':
+                sequenceAnswers.classList.remove('d-none');
+                break;
+            case 'MATCHING':
+                matchingAnswers.classList.remove('d-none');
+                break;
+            case 'OPEN_TEXT':
+                openTextAnswers.classList.remove('d-none');
+                break;
+        }
+    }
+
+    function updateChoiceInputType(inputType) {
+        var list = document.getElementById('choiceList');
+        list.querySelectorAll('.choice-check').forEach(function (input) {
+            input.type = inputType;
+        });
+    }
+
+    function addChoiceRow(text, isCorrect) {
+        var type = typeSelect.value;
+        var inputType = (type === 'SINGLE_CHOICE') ? 'radio' : 'checkbox';
+        var idx = choiceCounter++;
+        var div = document.createElement('div');
+        div.className = 'input-group mb-2';
+        div.innerHTML =
+            '<div class="input-group-text">' +
+            '  <input type="' + inputType + '" class="choice-check form-check-input mt-0" ' +
+            '         name="answerCorrect" value="' + idx + '"' + (isCorrect ? ' checked' : '') + '>' +
+            '</div>' +
+            '<input type="text" name="answerText" class="form-control" placeholder="Вариант ответа" required' +
+            (text ? ' value="' + text.replace(/"/g, '&quot;') + '"' : '') + '>' +
+            '<button type="button" class="btn btn-outline-danger" onclick="this.parentElement.remove()">' +
+            '  <i class="bi bi-x-lg"></i>' +
+            '</button>';
+        document.getElementById('choiceList').appendChild(div);
+    }
+
+    function addSequenceRow(text, order) {
+        var idx = sequenceCounter++;
+        var div = document.createElement('div');
+        div.className = 'input-group mb-2';
+        div.innerHTML =
+            '<span class="input-group-text" style="width: 60px;">' +
+            '  <input type="number" name="answerSortOrder" class="form-control form-control-sm p-0 text-center" ' +
+            '         value="' + (order || (idx + 1)) + '" min="1" style="border: none; background: transparent;" required>' +
+            '</span>' +
+            '<input type="text" name="answerText" class="form-control" placeholder="Элемент последовательности" required' +
+            (text ? ' value="' + text.replace(/"/g, '&quot;') + '"' : '') + '>' +
+            '<button type="button" class="btn btn-outline-danger" onclick="this.parentElement.remove()">' +
+            '  <i class="bi bi-x-lg"></i>' +
+            '</button>';
+        document.getElementById('sequenceList').appendChild(div);
+    }
+
+    function addMatchingRow(text, target) {
+        matchingCounter++;
+        var div = document.createElement('div');
+        div.className = 'input-group mb-2';
+        div.innerHTML =
+            '<input type="text" name="answerText" class="form-control" placeholder="Левый элемент" required' +
+            (text ? ' value="' + text.replace(/"/g, '&quot;') + '"' : '') + '>' +
+            '<span class="input-group-text"><i class="bi bi-arrow-right"></i></span>' +
+            '<input type="text" name="answerMatchTarget" class="form-control" placeholder="Правый элемент" required' +
+            (target ? ' value="' + target.replace(/"/g, '&quot;') + '"' : '') + '>' +
+            '<button type="button" class="btn btn-outline-danger" onclick="this.parentElement.remove()">' +
+            '  <i class="bi bi-x-lg"></i>' +
+            '</button>';
+        document.getElementById('matchingList').appendChild(div);
+    }
+
+    // Загрузка существующих ответов
+    function loadExistingAnswers() {
+        if (!existingAnswers || existingAnswers.length === 0) {
+            toggleType();
+            return;
+        }
+
+        var type = existingType;
+        toggleType();
+
+        switch (type) {
+            case 'SINGLE_CHOICE':
+            case 'MULTIPLE_CHOICE':
+                existingAnswers.forEach(function (a) {
+                    addChoiceRow(a.answerText, a.correct);
+                });
+                break;
+            case 'SEQUENCE':
+                existingAnswers.forEach(function (a) {
+                    addSequenceRow(a.answerText, a.sortOrder);
+                });
+                break;
+            case 'MATCHING':
+                existingAnswers.forEach(function (a) {
+                    addMatchingRow(a.answerText, a.matchTarget);
+                });
+                break;
+            case 'OPEN_TEXT':
+                if (existingAnswers.length > 0) {
+                    document.querySelector('#openTextList input').value = existingAnswers[0].answerText || '';
+                }
+                break;
+        }
+    }
+
+    typeSelect.addEventListener('change', function () {
+        document.getElementById('choiceList').innerHTML = '';
+        document.getElementById('sequenceList').innerHTML = '';
+        document.getElementById('matchingList').innerHTML = '';
+        choiceCounter = 0; sequenceCounter = 0; matchingCounter = 0;
+        toggleType();
+        // Добавляем минимальные строки при смене типа
+        var type = typeSelect.value;
+        if (type === 'SINGLE_CHOICE' || type === 'MULTIPLE_CHOICE') {
+            if (document.getElementById('choiceList').children.length === 0) {
+                addChoiceRow(); addChoiceRow();
+            }
+        } else if (type === 'SEQUENCE') {
+            if (document.getElementById('sequenceList').children.length === 0) {
+                addSequenceRow(); addSequenceRow();
+            }
+        } else if (type === 'MATCHING') {
+            if (document.getElementById('matchingList').children.length === 0) {
+                addMatchingRow(); addMatchingRow();
+            }
+        }
+    });
+
+    // Инициализация с существующими данными
+    loadExistingAnswers();
+
+    function validateForm() {
+        var type = typeSelect.value;
+        switch (type) {
+            case 'SINGLE_CHOICE': {
+                var rows = document.querySelectorAll('#choiceList .input-group');
+                if (rows.length < 2) { alert('Необходимо минимум 2 варианта ответа'); return false; }
+                var checked = document.querySelectorAll('#choiceList .choice-check:checked');
+                if (checked.length !== 1) { alert('Отметьте ровно один правильный вариант'); return false; }
+                break;
+            }
+            case 'MULTIPLE_CHOICE': {
+                var rows = document.querySelectorAll('#choiceList .input-group');
+                if (rows.length < 2) { alert('Необходимо минимум 2 варианта ответа'); return false; }
+                var checked = document.querySelectorAll('#choiceList .choice-check:checked');
+                if (checked.length < 1) { alert('Отметьте хотя бы один правильный вариант'); return false; }
+                break;
+            }
+            case 'SEQUENCE': {
+                var rows = document.querySelectorAll('#sequenceList .input-group');
+                if (rows.length < 2) { alert('Необходимо минимум 2 элемента последовательности'); return false; }
+                break;
+            }
+            case 'MATCHING': {
+                var rows = document.querySelectorAll('#matchingList .input-group');
+                if (rows.length < 2) { alert('Необходимо минимум 2 пары соответствия'); return false; }
+                break;
+            }
+            case 'OPEN_TEXT': {
+                var input = document.querySelector('#openTextList input');
+                if (!input || !input.value.trim()) { alert('Введите эталонный ответ'); return false; }
+                break;
+            }
+        }
+        return true;
+    }
+</script>
+</body>
+</html>

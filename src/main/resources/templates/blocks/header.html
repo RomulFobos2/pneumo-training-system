@@ -28,7 +28,7 @@
             </a>
         </li>
         <li class="nav-item" sec:authorize="hasRole('ROLE_EMPLOYEE_CHIEF')">
-            <a href="#">
+            <a th:href="@{/employee/chief/tests/allTests}">
                 <i class="bi bi-list-check"></i> <span>Тесты</span>
             </a>
         </li>
@@ -65,6 +65,15 @@
         <li class="nav-item" sec:authorize="hasAnyRole('ROLE_EMPLOYEE_SPECIALIST','ROLE_EMPLOYEE_OPERATOR')">
             <a href="#">
                 <i class="bi bi-diagram-3"></i> <span>Мнемосхема</span>
+            </a>
+        </li>
+        <!-- ========== ОБЩЕЕ ========== -->
+        <li sec:authorize="isAuthenticated()">
+            <div class="sidebar-heading">Личное</div>
+        </li>
+        <li class="nav-item" sec:authorize="isAuthenticated()">
+            <a th:href="@{/employee/profile}">
+                <i class="bi bi-person-circle"></i> <span>Профиль</span>
             </a>
         </li>
     </ul>
