@@ -33,7 +33,8 @@ public class TestService {
 
     @Transactional
     public Optional<Long> saveTest(String title, String description, Integer timeLimit,
-                                    Integer passingScore, boolean isExam, Employee createdBy) {
+                                    Integer passingScore, boolean isExam, boolean allowBackNavigation,
+                                    Employee createdBy) {
         log.info("Создание теста: title={}", title);
 
         if (testRepository.existsByTitle(title)) {
@@ -48,6 +49,7 @@ public class TestService {
             test.setTimeLimit(timeLimit != null ? timeLimit : 0);
             test.setPassingScore(passingScore != null ? passingScore : 60);
             test.setExam(isExam);
+            test.setAllowBackNavigation(allowBackNavigation);
             test.setActive(false);
             test.setCreatedBy(createdBy);
             testRepository.save(test);
@@ -62,7 +64,7 @@ public class TestService {
 
     @Transactional
     public Optional<Long> editTest(Long id, String title, String description, Integer timeLimit,
-                                    Integer passingScore, boolean isExam) {
+                                    Integer passingScore, boolean isExam, boolean allowBackNavigation) {
         log.info("Редактирование теста: id={}", id);
 
         Optional<Test> testOptional = testRepository.findById(id);
@@ -83,6 +85,7 @@ public class TestService {
             test.setTimeLimit(timeLimit != null ? timeLimit : 0);
             test.setPassingScore(passingScore != null ? passingScore : 60);
             test.setExam(isExam);
+            test.setAllowBackNavigation(allowBackNavigation);
             testRepository.save(test);
             log.info("Тест обновлён: id={}", id);
             return Optional.of(id);

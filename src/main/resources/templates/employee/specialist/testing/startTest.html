@@ -1,0 +1,90 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Начать тест | АОС ПИ</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/javascript.js"></script>
+</head>
+<body>
+<div id="wrapper">
+    <div th:insert="~{blocks/header :: sidebar}"></div>
+    <div id="content-wrapper">
+        <div th:insert="~{blocks/header :: topbar}"></div>
+        <div th:insert="~{blocks/header :: overlay}"></div>
+        <main class="container-fluid">
+
+            <div class="row justify-content-center">
+                <div class="col-12 col-lg-8">
+                    <div class="profile-card p-4">
+
+                        <h1 class="page-title" th:text="${testDTO.title}"></h1>
+                        <p class="text-muted" th:if="${testDTO.description}" th:text="${testDTO.description}"></p>
+
+                        <div class="row g-3 mb-4 mt-2">
+                            <div class="col-auto">
+                                <div class="profile-card p-3 text-center">
+                                    <div class="text-muted small">Вопросов</div>
+                                    <div class="fs-4 fw-bold" th:text="${testDTO.questionCount}"></div>
+                                </div>
+                            </div>
+                            <div class="col-auto">
+                                <div class="profile-card p-3 text-center">
+                                    <div class="text-muted small">Время</div>
+                                    <div class="fs-4 fw-bold">
+                                        <span th:if="${testDTO.timeLimit > 0}" th:text="${testDTO.timeLimit + ' мин'}"></span>
+                                        <span th:if="${testDTO.timeLimit == 0}">∞</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-auto">
+                                <div class="profile-card p-3 text-center">
+                                    <div class="text-muted small">Проходной балл</div>
+                                    <div class="fs-4 fw-bold" th:text="${testDTO.passingScore + '%'}"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-info">
+                            <h6><i class="bi bi-info-circle"></i> Правила прохождения</h6>
+                            <ul class="mb-0">
+                                <li th:if="${testDTO.timeLimit > 0}">
+                                    Время ограничено: <strong th:text="${testDTO.timeLimit + ' минут'}"></strong>.
+                                    По истечении времени тест завершится автоматически.
+                                </li>
+                                <li th:if="${testDTO.timeLimit == 0}">Время не ограничено.</li>
+                                <li th:if="${!testDTO.isAllowBackNavigation()}">
+                                    Навигация только вперёд — вернуться к предыдущему вопросу <strong>нельзя</strong>.
+                                </li>
+                                <li th:if="${testDTO.isAllowBackNavigation()}">
+                                    Вы можете возвращаться к предыдущим вопросам и менять ответы.
+                                </li>
+                                <li>Для успешного прохождения необходимо набрать не менее <strong th:text="${testDTO.passingScore + '%'}"></strong> баллов.</li>
+                            </ul>
+                        </div>
+
+                        <form th:action="@{/employee/specialist/testing/startTest/{id}(id=${testDTO.id})}"
+                              method="post">
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="bi bi-play-fill"></i> Начать тест
+                            </button>
+                        </form>
+
+                        <div class="link-section mt-3">
+                            <a href="/employee/specialist/testing/availableTests">← К списку тестов</a>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+        </main>
+        <div th:insert="~{blocks/footer :: footer}"></div>
+    </div>
+</div>
+</body>
+</html>

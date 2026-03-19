@@ -51,12 +51,21 @@
                                            required min="0" max="100" th:value="${testDTO.passingScore}">
                                 </div>
                                 <div class="col-md-4 d-flex align-items-center">
-                                    <div class="form-check mt-3">
-                                        <input type="checkbox" name="inputIsExam" value="true"
-                                               class="form-check-input" id="examCheck"
-                                               th:checked="${testDTO.isExam()}">
-                                        <label class="form-check-label" for="examCheck">Экзамен</label>
-                                        <div class="form-text text-muted">Отображается в протоколах</div>
+                                    <div>
+                                        <div class="form-check mt-3">
+                                            <input type="checkbox" name="inputIsExam" value="true"
+                                                   class="form-check-input" id="examCheck"
+                                                   th:checked="${testDTO.isExam()}">
+                                            <label class="form-check-label" for="examCheck">Экзамен</label>
+                                            <div class="form-text text-muted">Отображается в протоколах</div>
+                                        </div>
+                                        <div class="form-check mt-2">
+                                            <input type="checkbox" name="inputAllowBackNavigation" value="true"
+                                                   class="form-check-input" id="backNavCheck"
+                                                   th:checked="${testDTO.isAllowBackNavigation()}">
+                                            <label class="form-check-label" for="backNavCheck">Навигация назад</label>
+                                            <div class="form-text text-muted">Разрешить возврат к предыдущим вопросам</div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

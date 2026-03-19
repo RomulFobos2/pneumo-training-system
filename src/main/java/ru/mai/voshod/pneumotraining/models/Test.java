@@ -58,6 +58,10 @@ public class Test {
     @Column(nullable = false)
     private boolean isActive = false;
 
+    /** Разрешена ли навигация назад при прохождении теста */
+    @Column(nullable = false)
+    private boolean allowBackNavigation = false;
+
     /** Создатель теста */
     @ManyToOne
     @JoinColumn(name = "created_by_id")
