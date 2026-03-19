@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find C:UsersRomulDesktopDiplom_2_26pneumo-training-systemsrcmainjava -name *.java -type f)",
+      "mcp__plugin_context-mode_context-mode__execute_file",
+      "mcp__plugin_context-mode_context-mode__batch_execute",
+      "Bash(git checkout:*)",
+      "Bash(./mvnw.cmd clean:*)",
+      "Bash(jar tf:*)",
+      "Read(//c/Users/Romul/.m2/repository/org/springframework/boot/spring-boot/**)",
+      "Bash(gh pr:*)",
+      "Bash(find C:UsersRomulDesktopDiplom_2_26pneumo-training-system -type f -name *Theory* -o -name *Material* -o -name *Section*)",
+      "Bash(mv controllers/employee/manager controllers/employee/chief)",
+      "Bash(mv service/employee/manager service/employee/chief)",
+      "Bash(mkdir -p controllers/employee/specialist)",
+      "Bash(mkdir -p \"../../resources/templates/employee/chief/materials\")",
+      "Bash(mkdir -p \"../../resources/templates/employee/specialist/theory\")",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
+    ]
+  }
+}

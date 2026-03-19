@@ -114,12 +114,21 @@ public class TheorySectionService {
 
     public List<TheorySectionDTO> getAllSections() {
         List<TheorySection> sections = theorySectionRepository.findAllByOrderBySortOrderAsc();
-        return TheorySectionMapper.INSTANCE.toDTOList(sections);
+        return sections.stream().map(section -> {
+            TheorySectionDTO dto = TheorySectionMapper.INSTANCE.toDTO(section);
+            dto.setMaterialCount((int) theoryMaterialRepository.countBySectionId(section.getId()));
+            return dto;
+        }).toList();
     }
 
+    @Transactional(readOnly = true)
     public Optional<TheorySectionDTO> getSectionById(Long id) {
         return theorySectionRepository.findById(id)
-                .map(TheorySectionMapper.INSTANCE::toDTO);
+                .map(section -> {
+                    TheorySectionDTO dto = TheorySectionMapper.INSTANCE.toDTO(section);
+                    dto.setMaterialCount((int) theoryMaterialRepository.countBySectionId(section.getId()));
+                    return dto;
+                });
     }
 
     // ========== Проверки ==========
