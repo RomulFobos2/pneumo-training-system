@@ -345,7 +345,34 @@ public class TestingService {
             dto.setCorrect(sa.isCorrect());
             dto.setTestQuestionId(sa.getTestQuestion().getId());
             dto.setQuestionText(sa.getTestQuestion().getQuestionText());
-            dto.setQuestionTypeName(sa.getTestQuestion().getQuestionType().name());
+            dto.setQuestionTypeName(sa.getTestQuestion().getQuestionType().getDisplayName());
+
+            // Человекочитаемый answerText для SEQUENCE и MATCHING
+            QuestionType qType = sa.getTestQuestion().getQuestionType();
+            if (qType == QuestionType.SEQUENCE && sa.getAnswerText() != null && !sa.getAnswerText().isBlank()) {
+                try {
+                    String readable = Arrays.stream(sa.getAnswerText().split(","))
+                            .map(String::trim)
+                            .map(Long::parseLong)
+                            .map(id -> testAnswerRepository.findById(id)
+                                    .map(TestAnswer::getAnswerText).orElse("?"))
+                            .collect(Collectors.joining(", "));
+                    dto.setAnswerText(readable);
+                } catch (NumberFormatException ignored) {}
+            } else if (qType == QuestionType.MATCHING && sa.getAnswerText() != null && !sa.getAnswerText().isBlank()) {
+                String readable = Arrays.stream(sa.getAnswerText().split("\\|\\|\\|"))
+                        .map(pair -> {
+                            String[] parts = pair.split("=", 2);
+                            if (parts.length == 2) {
+                                String left = testAnswerRepository.findById(Long.parseLong(parts[0].trim()))
+                                        .map(TestAnswer::getAnswerText).orElse("?");
+                                return left + " → " + parts[1].trim();
+                            }
+                            return pair;
+                        })
+                        .collect(Collectors.joining(", "));
+                dto.setAnswerText(readable);
+            }
 
             // Выбранные ответы
             dto.setSelectedAnswers(TestAnswerMapper.INSTANCE.toDTOList(sa.getSelectedAnswers()));
@@ -502,8 +529,11 @@ public class TestingService {
                 return true;
             }
             case OPEN_TEXT: {
-                // Ручная проверка начальником — всегда false при автоскоринге
-                return false;
+                if (sa.getAnswerText() == null || sa.getAnswerText().isBlank()) return false;
+                List<TestAnswer> correct = correctAnswers.stream()
+                        .filter(TestAnswer::isCorrect).toList();
+                if (correct.isEmpty()) return false;
+                return correct.get(0).getAnswerText().equalsIgnoreCase(sa.getAnswerText().trim());
             }
             default:
                 return false;
