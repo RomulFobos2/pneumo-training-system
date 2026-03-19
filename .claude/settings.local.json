@@ -17,7 +17,9 @@
       "Bash(mkdir -p \"../../resources/templates/employee/specialist/theory\")",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(git pull:*)",
+      "Bash(git branch:*)"
     ]
   }
 }
