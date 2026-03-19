@@ -36,10 +36,10 @@ public class SecurityConfigEmployee {
     @Bean
     public SecurityFilterChain employeeSecurityFilterChain(HttpSecurity http, AccessDeniedHandler accessDeniedHandler) throws Exception {
         http
-                .securityMatcher("/employee/**", "/static/**", "/css/**", "/js/**", "/", "/logout")
+                .securityMatcher("/employee/**", "/static/**", "/css/**", "/js/**", "/", "/logout", "/files/**")
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/static/**", "/css/**", "/js/**", "/").permitAll()
+                        .requestMatchers("/static/**", "/css/**", "/js/**", "/", "/files/**").permitAll()
                         .requestMatchers("/employee/admin/**").hasRole("EMPLOYEE_ADMIN")
                         .requestMatchers("/employee/chief/**").hasRole("EMPLOYEE_CHIEF")
                         .requestMatchers("/employee/specialist/**").hasAnyRole("EMPLOYEE_SPECIALIST", "EMPLOYEE_OPERATOR")

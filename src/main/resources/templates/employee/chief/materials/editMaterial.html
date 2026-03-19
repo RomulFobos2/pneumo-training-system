@@ -27,7 +27,8 @@
 
                         <div th:if="${materialError}" class="alert alert-danger" th:text="${materialError}"></div>
 
-                        <form th:action="@{/employee/chief/materials/editMaterial/{id}(id=${materialDTO.id})}" method="post" class="auth-form">
+                        <form th:action="@{/employee/chief/materials/editMaterial/{id}(id=${materialDTO.id})}"
+                              method="post" enctype="multipart/form-data" class="auth-form">
                             <div class="row g-3 mb-4">
                                 <div class="col-md-8">
                                     <label class="form-label">Название *</label>
@@ -54,6 +55,9 @@
                                               required th:text="${materialDTO.content}"></textarea>
                                     <input type="url" id="contentUrl" class="form-control d-none"
                                            th:value="${materialDTO.content}" disabled>
+                                    <input type="file" id="contentFile" name="inputFile" class="form-control d-none"
+                                           accept=".pdf" disabled>
+                                    <div id="currentFileInfo" class="form-text d-none"></div>
                                 </div>
                             </div>
 
@@ -77,33 +81,40 @@
 
 <script th:inline="javascript">
     var currentType = [[${materialDTO.materialTypeName}]];
+    var currentContent = [[${materialDTO.content}]];
     var typeSelect = document.getElementById('materialTypeSelect');
     var contentTextarea = document.getElementById('contentTextarea');
     var contentUrl = document.getElementById('contentUrl');
+    var contentFile = document.getElementById('contentFile');
     var contentLabel = document.getElementById('contentLabel');
+    var currentFileInfo = document.getElementById('currentFileInfo');
 
     function toggleContentField() {
         var type = typeSelect.value;
+        // Скрыть всё
+        contentTextarea.classList.add('d-none'); contentTextarea.disabled = true; contentTextarea.name = '';
+        contentUrl.classList.add('d-none'); contentUrl.disabled = true; contentUrl.name = '';
+        contentFile.classList.add('d-none'); contentFile.disabled = true;
+        currentFileInfo.classList.add('d-none');
+
         if (type === 'TEXT') {
             contentTextarea.classList.remove('d-none');
             contentTextarea.disabled = false;
             contentTextarea.name = 'inputContent';
-            contentUrl.classList.add('d-none');
-            contentUrl.disabled = true;
-            contentUrl.name = '';
             contentLabel.textContent = 'Содержимое *';
+        } else if (type === 'PDF') {
+            contentFile.classList.remove('d-none');
+            contentFile.disabled = false;
+            contentLabel.textContent = 'PDF-файл';
+            if (currentType === 'PDF' && currentContent) {
+                currentFileInfo.textContent = 'Текущий файл: ' + currentContent + '. Выберите новый файл для замены.';
+                currentFileInfo.classList.remove('d-none');
+            }
         } else {
-            contentTextarea.classList.add('d-none');
-            contentTextarea.disabled = true;
-            contentTextarea.name = '';
             contentUrl.classList.remove('d-none');
             contentUrl.disabled = false;
             contentUrl.name = 'inputContent';
-            if (type === 'PDF') {
-                contentLabel.textContent = 'Ссылка на PDF *';
-            } else {
-                contentLabel.textContent = 'Ссылка на видео *';
-            }
+            contentLabel.textContent = 'Ссылка на видео *';
         }
     }
 
