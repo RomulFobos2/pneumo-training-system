@@ -33,7 +33,7 @@
             </a>
         </li>
         <li class="nav-item" sec:authorize="hasRole('ROLE_EMPLOYEE_CHIEF')">
-            <a href="#">
+            <a th:href="@{/employee/chief/results/allResults}">
                 <i class="bi bi-clipboard-data"></i> <span>Результаты</span>
             </a>
         </li>
@@ -58,7 +58,7 @@
             </a>
         </li>
         <li class="nav-item" sec:authorize="hasAnyRole('ROLE_EMPLOYEE_SPECIALIST','ROLE_EMPLOYEE_OPERATOR')">
-            <a href="#">
+            <a th:href="@{/employee/specialist/results/myResults}">
                 <i class="bi bi-trophy"></i> <span>Результаты</span>
             </a>
         </li>

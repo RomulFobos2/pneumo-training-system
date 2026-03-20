@@ -14,4 +14,7 @@ public interface TestSessionRepository extends JpaRepository<TestSession, Long> 
     List<TestSession> findByEmployeeIdAndTestIdAndSessionStatus(Long employeeId, Long testId, TestSessionStatus status);
 
     Optional<TestSession> findByIdAndEmployeeId(Long id, Long employeeId);
+
+    /** Все сессии кроме указанного статуса (для Chief — исключить IN_PROGRESS) */
+    List<TestSession> findAllBySessionStatusNotOrderByStartedAtDesc(TestSessionStatus status);
 }

@@ -1,0 +1,75 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Мои результаты | АОС ПИ</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/javascript.js"></script>
+</head>
+<body>
+<div id="wrapper">
+    <div th:insert="~{blocks/header :: sidebar}"></div>
+    <div id="content-wrapper">
+        <div th:insert="~{blocks/header :: topbar}"></div>
+        <div th:insert="~{blocks/header :: overlay}"></div>
+        <main class="container-fluid">
+
+            <div class="profile-card mb-4">
+                <h1 class="page-title mb-0">Мои результаты</h1>
+            </div>
+
+            <div class="profile-card p-4">
+                <table class="table table-modern">
+                    <thead>
+                    <tr>
+                        <th style="width: 50px">#</th>
+                        <th>Тест</th>
+                        <th style="width: 90px">Тип</th>
+                        <th style="width: 140px">Дата</th>
+                        <th style="width: 100px">Баллы</th>
+                        <th style="width: 80px">%</th>
+                        <th style="width: 120px">Статус</th>
+                        <th style="width: 120px">Результат</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="s, index : ${sessions}">
+                        <td class="row-number" th:text="${index.index + 1}"></td>
+                        <td>
+                            <a th:href="@{/employee/specialist/results/detailsResult/{id}(id=${s.id})}"
+                               th:text="${s.testTitle}"></a>
+                        </td>
+                        <td>
+                            <span th:if="${s.testIsExam}" class="badge bg-warning text-dark">Экзамен</span>
+                            <span th:if="${!s.testIsExam}" class="text-muted">Тест</span>
+                        </td>
+                        <td th:text="${#temporals.format(s.startedAt, 'dd.MM.yyyy HH:mm')}"></td>
+                        <td th:text="${s.score + ' / ' + s.totalScore}"></td>
+                        <td th:text="${#numbers.formatDecimal(s.scorePercent, 1, 1) + '%'}"></td>
+                        <td>
+                            <span class="badge"
+                                  th:classappend="${s.sessionStatusName == 'COMPLETED' ? 'bg-success' : 'bg-secondary'}"
+                                  th:text="${s.sessionStatusDisplayName}"></span>
+                        </td>
+                        <td>
+                            <span th:if="${s.isPassed}" class="badge bg-success">Пройден</span>
+                            <span th:if="${!s.isPassed}" class="badge bg-danger">Не пройден</span>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(sessions)}">
+                        <td colspan="8" class="text-center text-muted">У вас пока нет результатов</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </main>
+        <div th:insert="~{blocks/footer :: footer}"></div>
+    </div>
+</div>
+</body>
+</html>
