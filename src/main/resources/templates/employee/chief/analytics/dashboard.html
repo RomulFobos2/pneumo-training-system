@@ -22,6 +22,49 @@
                 <h1 class="page-title mb-0">Аналитика</h1>
             </div>
 
+            <!-- Фильтры -->
+            <div class="profile-card p-4 mb-4">
+                <h5 class="mb-3"><i class="bi bi-funnel"></i> Фильтры</h5>
+                <form method="get" th:action="@{/employee/chief/analytics/dashboard}">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-3 col-sm-6">
+                            <label class="form-label">Дата с</label>
+                            <input type="date" class="form-control" name="dateFrom"
+                                   th:value="${dateFrom}"/>
+                        </div>
+                        <div class="col-md-3 col-sm-6">
+                            <label class="form-label">Дата по</label>
+                            <input type="date" class="form-control" name="dateTo"
+                                   th:value="${dateTo}"/>
+                        </div>
+                        <div class="col-md-3 col-sm-6">
+                            <label class="form-label">Тест</label>
+                            <select class="form-select" name="testId">
+                                <option value="">— Все тесты —</option>
+                                <option th:each="t : ${allTests}" th:value="${t.id}" th:text="${t.title}"
+                                        th:selected="${selectedTestId != null and selectedTestId == t.id}"></option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 col-sm-6">
+                            <label class="form-label">Сотрудник</label>
+                            <select class="form-select" name="employeeId">
+                                <option value="">— Все сотрудники —</option>
+                                <option th:each="e : ${allEmployees}" th:value="${e.id}" th:text="${e.fullName}"
+                                        th:selected="${selectedEmployeeId != null and selectedEmployeeId == e.id}"></option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mt-3 d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-search"></i> Применить
+                        </button>
+                        <a th:href="@{/employee/chief/analytics/dashboard}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-circle"></i> Сбросить
+                        </a>
+                    </div>
+                </form>
+            </div>
+
             <!-- Карточки метрик -->
             <div class="row g-3 mb-4">
                 <div class="col-md-3 col-sm-6">
@@ -47,14 +90,14 @@
                 <div class="col-md-3 col-sm-6">
                     <div class="profile-card p-3 text-center">
                         <i class="bi bi-clock-history fs-3" style="color: var(--warning)"></i>
-                        <div class="fs-3 fw-bold mt-1" th:text="${sessionsLast30Days}"></div>
-                        <div class="text-muted small">Сессий за 30 дней</div>
+                        <div class="fs-3 fw-bold mt-1" th:text="${sessionsCount}"></div>
+                        <div class="text-muted small">Сессий за период</div>
                     </div>
                 </div>
                 <div class="col-md-3 col-sm-6">
                     <div class="profile-card p-3 text-center">
                         <i class="bi bi-graph-up-arrow fs-3" style="color: var(--success)"></i>
-                        <div class="fs-3 fw-bold mt-1" th:text="${passRateLast30Days + '%'}"></div>
+                        <div class="fs-3 fw-bold mt-1" th:text="${passRate + '%'}"></div>
                         <div class="text-muted small">Общий % прохождения</div>
                     </div>
                 </div>
@@ -62,7 +105,13 @@
 
             <!-- График активности -->
             <div class="profile-card p-4 mb-4">
-                <h5 class="mb-3"><i class="bi bi-bar-chart-line"></i> Активность за 30 дней</h5>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0"><i class="bi bi-bar-chart-line"></i> Активность за период</h5>
+                    <div class="d-flex gap-3 small">
+                        <span><span style="display:inline-block;width:12px;height:12px;background:#10b981;border-radius:2px;vertical-align:middle;margin-right:4px;"></span>Пройдены</span>
+                        <span><span style="display:inline-block;width:12px;height:12px;background:#ef4444;border-radius:2px;vertical-align:middle;margin-right:4px;"></span>Не пройдены</span>
+                    </div>
+                </div>
                 <canvas id="activityChart" height="200"></canvas>
             </div>
 
@@ -159,6 +208,20 @@
                 </div>
             </div>
 
+            <!-- Экспорт -->
+            <div class="profile-card p-4 mb-4">
+                <h5 class="mb-3"><i class="bi bi-file-earmark-word"></i> Экспорт отчёта</h5>
+                <form method="post" th:action="@{/employee/chief/analytics/exportDocx}">
+                    <input type="hidden" name="dateFrom" th:value="${dateFrom}"/>
+                    <input type="hidden" name="dateTo" th:value="${dateTo}"/>
+                    <input type="hidden" name="testId" th:value="${selectedTestId}"/>
+                    <input type="hidden" name="employeeId" th:value="${selectedEmployeeId}"/>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-download"></i> Скачать DOCX-отчёт
+                    </button>
+                </form>
+            </div>
+
         </main>
         <div th:insert="~{blocks/footer :: footer}"></div>
     </div>
@@ -189,7 +252,6 @@
         var chartW = W - padLeft - padRight;
         var chartH = H - padTop - padBottom;
 
-        // Максимум
         var maxVal = 1;
         for (var i = 0; i < dailyActivity.length; i++) {
             if (dailyActivity[i].total > maxVal) maxVal = dailyActivity[i].total;
@@ -222,39 +284,23 @@
             var x = padLeft + i * barW + gap / 2;
             var bw = barW - gap;
 
-            // Пройдены (зелёные)
             var passedH = (d.passed / maxVal) * chartH;
             ctx.fillStyle = '#10b981';
             ctx.fillRect(x, padTop + chartH - passedH, bw, passedH);
 
-            // Не пройдены (красные, поверх)
             var failedH = (d.failed / maxVal) * chartH;
             ctx.fillStyle = '#ef4444';
             ctx.fillRect(x, padTop + chartH - passedH - failedH, bw, failedH);
 
-            // Подпись даты (каждый 3-й)
-            if (i % 3 === 0 || i === dailyActivity.length - 1) {
+            // Подпись даты
+            var labelEvery = dailyActivity.length > 60 ? 7 : (dailyActivity.length > 14 ? 3 : 1);
+            if (i % labelEvery === 0 || i === dailyActivity.length - 1) {
                 ctx.fillStyle = '#6b7280';
                 ctx.textAlign = 'center';
                 ctx.font = '10px sans-serif';
                 ctx.fillText(d.date, x + bw / 2, H - 5);
             }
         }
-
-        // Легенда
-        ctx.font = '11px sans-serif';
-        var legX = padLeft + 5;
-        var legY = padTop + 5;
-        ctx.fillStyle = '#10b981';
-        ctx.fillRect(legX, legY, 12, 12);
-        ctx.fillStyle = '#374151';
-        ctx.textAlign = 'left';
-        ctx.fillText('Пройдены', legX + 16, legY + 10);
-
-        ctx.fillStyle = '#ef4444';
-        ctx.fillRect(legX + 90, legY, 12, 12);
-        ctx.fillStyle = '#374151';
-        ctx.fillText('Не пройдены', legX + 106, legY + 10);
     })();
     /*]]>*/
 </script>
