@@ -1,0 +1,262 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Аналитика | АОС ПИ</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/javascript.js"></script>
+</head>
+<body>
+<div id="wrapper">
+    <div th:insert="~{blocks/header :: sidebar}"></div>
+    <div id="content-wrapper">
+        <div th:insert="~{blocks/header :: topbar}"></div>
+        <div th:insert="~{blocks/header :: overlay}"></div>
+        <main class="container-fluid">
+
+            <div class="profile-card mb-4">
+                <h1 class="page-title mb-0">Аналитика</h1>
+            </div>
+
+            <!-- Карточки метрик -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-3 col-sm-6">
+                    <div class="profile-card p-3 text-center">
+                        <i class="bi bi-people fs-3" style="color: var(--accent)"></i>
+                        <div class="fs-3 fw-bold mt-1" th:text="${activeEmployees}"></div>
+                        <div class="text-muted small">
+                            Активных сотрудников
+                            <span class="text-secondary" th:text="'из ' + ${totalEmployees}"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6">
+                    <div class="profile-card p-3 text-center">
+                        <i class="bi bi-list-check fs-3" style="color: var(--primary)"></i>
+                        <div class="fs-3 fw-bold mt-1" th:text="${activeTests}"></div>
+                        <div class="text-muted small">
+                            Активных тестов
+                            <span class="text-secondary" th:text="'из ' + ${totalTests}"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6">
+                    <div class="profile-card p-3 text-center">
+                        <i class="bi bi-clock-history fs-3" style="color: var(--warning)"></i>
+                        <div class="fs-3 fw-bold mt-1" th:text="${sessionsLast30Days}"></div>
+                        <div class="text-muted small">Сессий за 30 дней</div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6">
+                    <div class="profile-card p-3 text-center">
+                        <i class="bi bi-graph-up-arrow fs-3" style="color: var(--success)"></i>
+                        <div class="fs-3 fw-bold mt-1" th:text="${passRateLast30Days + '%'}"></div>
+                        <div class="text-muted small">Общий % прохождения</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- График активности -->
+            <div class="profile-card p-4 mb-4">
+                <h5 class="mb-3"><i class="bi bi-bar-chart-line"></i> Активность за 30 дней</h5>
+                <canvas id="activityChart" height="200"></canvas>
+            </div>
+
+            <!-- Статистика тестов -->
+            <div class="profile-card p-4 mb-4">
+                <h5 class="mb-3"><i class="bi bi-list-check"></i> Статистика по тестам</h5>
+                <table class="table table-modern">
+                    <thead>
+                    <tr>
+                        <th>Тест</th>
+                        <th style="width: 120px">Прохождений</th>
+                        <th style="width: 110px">Успешных</th>
+                        <th style="width: 100px">% прохождения</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="stat : ${testStats}">
+                        <td th:text="${stat.title}"></td>
+                        <td th:text="${stat.total}"></td>
+                        <td th:text="${stat.passed}"></td>
+                        <td>
+                            <span class="badge"
+                                  th:classappend="${stat.passRate >= 70 ? 'bg-success' : (stat.passRate >= 50 ? 'bg-warning text-dark' : 'bg-danger')}"
+                                  th:text="${stat.passRate + '%'}"></span>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(testStats)}">
+                        <td colspan="4" class="text-center text-muted">Нет данных</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Два столбца: топ сотрудников + сложные вопросы -->
+            <div class="row g-3 mb-4">
+                <div class="col-lg-6">
+                    <div class="profile-card p-4 h-100">
+                        <h5 class="mb-3"><i class="bi bi-trophy"></i> Топ-5 сотрудников</h5>
+                        <table class="table table-modern">
+                            <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>ФИО</th>
+                                <th style="width: 70px">Тестов</th>
+                                <th style="width: 90px">Средний %</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="p, idx : ${topPerformers}">
+                                <td class="row-number" th:text="${idx.index + 1}"></td>
+                                <td th:text="${p.fullName}"></td>
+                                <td th:text="${p.testCount}"></td>
+                                <td>
+                                    <span class="badge bg-success" th:text="${p.avgScore + '%'}"></span>
+                                </td>
+                            </tr>
+                            <tr th:if="${#lists.isEmpty(topPerformers)}">
+                                <td colspan="4" class="text-center text-muted">Нет данных</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="profile-card p-4 h-100">
+                        <h5 class="mb-3"><i class="bi bi-exclamation-triangle"></i> Топ-5 сложных вопросов</h5>
+                        <table class="table table-modern">
+                            <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Вопрос</th>
+                                <th style="width: 80px">Ответов</th>
+                                <th style="width: 90px">% ошибок</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="q, idx : ${hardestQuestions}">
+                                <td class="row-number" th:text="${idx.index + 1}"></td>
+                                <td>
+                                    <div th:text="${q.questionText}" style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></div>
+                                    <small class="text-muted" th:text="${q.testTitle}"></small>
+                                </td>
+                                <td th:text="${q.totalAnswers}"></td>
+                                <td>
+                                    <span class="badge bg-danger" th:text="${q.wrongPercent + '%'}"></span>
+                                </td>
+                            </tr>
+                            <tr th:if="${#lists.isEmpty(hardestQuestions)}">
+                                <td colspan="4" class="text-center text-muted">Нет данных</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+        <div th:insert="~{blocks/footer :: footer}"></div>
+    </div>
+</div>
+
+<script th:inline="javascript">
+    /*<![CDATA[*/
+    (function() {
+        var dailyActivity = /*[[${dailyActivity}]]*/ [];
+        var canvas = document.getElementById('activityChart');
+        if (!canvas || dailyActivity.length === 0) return;
+
+        var ctx = canvas.getContext('2d');
+        var dpr = window.devicePixelRatio || 1;
+        var rect = canvas.parentElement.getBoundingClientRect();
+        canvas.width = rect.width * dpr;
+        canvas.height = 200 * dpr;
+        canvas.style.width = rect.width + 'px';
+        canvas.style.height = '200px';
+        ctx.scale(dpr, dpr);
+
+        var W = rect.width;
+        var H = 200;
+        var padLeft = 40;
+        var padBottom = 30;
+        var padTop = 10;
+        var padRight = 10;
+        var chartW = W - padLeft - padRight;
+        var chartH = H - padTop - padBottom;
+
+        // Максимум
+        var maxVal = 1;
+        for (var i = 0; i < dailyActivity.length; i++) {
+            if (dailyActivity[i].total > maxVal) maxVal = dailyActivity[i].total;
+        }
+        maxVal = Math.ceil(maxVal * 1.2) || 1;
+
+        var barW = chartW / dailyActivity.length;
+        var gap = Math.max(1, barW * 0.2);
+
+        // Сетка Y
+        ctx.strokeStyle = '#e5e7eb';
+        ctx.lineWidth = 1;
+        ctx.font = '11px sans-serif';
+        ctx.fillStyle = '#6b7280';
+        ctx.textAlign = 'right';
+        var steps = Math.min(maxVal, 5);
+        for (var s = 0; s <= steps; s++) {
+            var val = Math.round(maxVal * s / steps);
+            var y = padTop + chartH - (chartH * val / maxVal);
+            ctx.beginPath();
+            ctx.moveTo(padLeft, y);
+            ctx.lineTo(W - padRight, y);
+            ctx.stroke();
+            ctx.fillText(val, padLeft - 5, y + 4);
+        }
+
+        // Столбцы
+        for (var i = 0; i < dailyActivity.length; i++) {
+            var d = dailyActivity[i];
+            var x = padLeft + i * barW + gap / 2;
+            var bw = barW - gap;
+
+            // Пройдены (зелёные)
+            var passedH = (d.passed / maxVal) * chartH;
+            ctx.fillStyle = '#10b981';
+            ctx.fillRect(x, padTop + chartH - passedH, bw, passedH);
+
+            // Не пройдены (красные, поверх)
+            var failedH = (d.failed / maxVal) * chartH;
+            ctx.fillStyle = '#ef4444';
+            ctx.fillRect(x, padTop + chartH - passedH - failedH, bw, failedH);
+
+            // Подпись даты (каждый 3-й)
+            if (i % 3 === 0 || i === dailyActivity.length - 1) {
+                ctx.fillStyle = '#6b7280';
+                ctx.textAlign = 'center';
+                ctx.font = '10px sans-serif';
+                ctx.fillText(d.date, x + bw / 2, H - 5);
+            }
+        }
+
+        // Легенда
+        ctx.font = '11px sans-serif';
+        var legX = padLeft + 5;
+        var legY = padTop + 5;
+        ctx.fillStyle = '#10b981';
+        ctx.fillRect(legX, legY, 12, 12);
+        ctx.fillStyle = '#374151';
+        ctx.textAlign = 'left';
+        ctx.fillText('Пройдены', legX + 16, legY + 10);
+
+        ctx.fillStyle = '#ef4444';
+        ctx.fillRect(legX + 90, legY, 12, 12);
+        ctx.fillStyle = '#374151';
+        ctx.fillText('Не пройдены', legX + 106, legY + 10);
+    })();
+    /*]]>*/
+</script>
+</body>
+</html>
