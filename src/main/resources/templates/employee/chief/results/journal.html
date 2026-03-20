@@ -1,0 +1,73 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Электронный журнал | АОС ПИ</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/javascript.js"></script>
+</head>
+<body>
+<div id="wrapper">
+    <div th:insert="~{blocks/header :: sidebar}"></div>
+    <div id="content-wrapper">
+        <div th:insert="~{blocks/header :: topbar}"></div>
+        <div th:insert="~{blocks/header :: overlay}"></div>
+        <main class="container-fluid">
+
+            <div class="profile-card mb-4 d-flex justify-content-between align-items-center">
+                <h1 class="page-title mb-0">Электронный журнал</h1>
+                <div>
+                    <form method="post" th:action="@{/employee/chief/results/exportJournal}" class="d-inline">
+                        <button type="submit" class="btn btn-success btn-sm">
+                            <i class="bi bi-file-earmark-excel"></i> Экспорт в Excel
+                        </button>
+                    </form>
+                    <a th:href="@{/employee/chief/results/allResults}" class="btn btn-outline-secondary btn-sm ms-1">
+                        <i class="bi bi-arrow-left"></i> Результаты
+                    </a>
+                </div>
+            </div>
+
+            <div class="profile-card p-4">
+                <div class="table-responsive">
+                    <table class="table table-modern table-bordered">
+                        <thead>
+                        <tr>
+                            <th style="min-width: 200px">ФИО</th>
+                            <th th:each="test : ${journalData.tests}"
+                                th:text="${test.title}"
+                                class="text-center" style="min-width: 120px"></th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="emp : ${journalData.employees}">
+                            <td th:text="${emp.fullName}"></td>
+                            <td th:each="test : ${journalData.tests}" class="text-center">
+                                <th:block th:with="key=${emp.id + '_' + test.id}, score=${journalData.scores[key]}, passing=${journalData.passingScores['' + test.id]}">
+                                    <span th:if="${score != null}"
+                                          class="badge"
+                                          th:classappend="${passing != null && score >= passing ? 'bg-success' : 'bg-danger'}"
+                                          th:text="${#numbers.formatDecimal(score, 1, 1) + '%'}"></span>
+                                    <span th:if="${score == null}" class="text-muted">—</span>
+                                </th:block>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(journalData.employees)}">
+                            <td th:colspan="${#lists.size(journalData.tests) + 1}"
+                                class="text-center text-muted">Нет данных</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </main>
+        <div th:insert="~{blocks/footer :: footer}"></div>
+    </div>
+</div>
+</body>
+</html>
