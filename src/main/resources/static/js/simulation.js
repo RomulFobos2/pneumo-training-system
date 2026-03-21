@@ -126,6 +126,22 @@ var Simulation = (function () {
         return val;
     }
 
+    /** Укоротить линию: отступить от начала на padStart и от конца на padEnd */
+    function shortenLine(x1, y1, x2, y2, padStart, padEnd) {
+        var dx = x2 - x1;
+        var dy = y2 - y1;
+        var len = Math.sqrt(dx * dx + dy * dy);
+        if (len < padStart + padEnd) return { x1: x1, y1: y1, x2: x2, y2: y2 };
+        var ux = dx / len;
+        var uy = dy / len;
+        return {
+            x1: x1 + ux * padStart,
+            y1: y1 + uy * padStart,
+            x2: x2 - ux * padEnd,
+            y2: y2 - uy * padEnd
+        };
+    }
+
     function isSensorType(type) {
         return type === 'SENSOR_PRESSURE' || type === 'SENSOR_TEMPERATURE';
     }
@@ -198,19 +214,24 @@ var Simulation = (function () {
             var tgt = elementsById[conn.targetElementId];
             if (!src || !tgt) return;
 
-            var x1 = src.posX + (src.width || 60) / 2;
-            var y1 = src.posY + (src.height || 60) / 2;
-            var x2 = tgt.posX + (tgt.width || 60) / 2;
-            var y2 = tgt.posY + (tgt.height || 60) / 2;
+            // Центры элементов
+            var cx1 = src.posX + (src.width || 60) / 2;
+            var cy1 = src.posY + (src.height || 60) / 2;
+            var cx2 = tgt.posX + (tgt.width || 60) / 2;
+            var cy2 = tgt.posY + (tgt.height || 60) / 2;
+
+            // Укоротить линию — от края source до края target (не от центра)
+            var pts = shortenLine(cx1, cy1, cx2, cy2,
+                (src.width || 60) / 2 + 4, (tgt.width || 60) / 2 + 12);
 
             var line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-            line.setAttribute('x1', x1);
-            line.setAttribute('y1', y1);
-            line.setAttribute('x2', x2);
-            line.setAttribute('y2', y2);
+            line.setAttribute('x1', pts.x1);
+            line.setAttribute('y1', pts.y1);
+            line.setAttribute('x2', pts.x2);
+            line.setAttribute('y2', pts.y2);
             line.setAttribute('class', 'connection-line');
-            line.setAttribute('stroke-width', '3');
-            line.setAttribute('fill', 'none');
+            line.style.stroke = '#adb5bd';
+            line.style.strokeWidth = '3';
             svgEl.appendChild(line);
 
             connectionLines.push({ line: line, src: src, tgt: tgt });
@@ -319,12 +340,12 @@ var Simulation = (function () {
             var active = srcActive && tgtActive;
 
             if (active) {
-                conn.line.setAttribute('stroke', '#27ae60');
-                conn.line.setAttribute('stroke-width', '4');
+                conn.line.style.stroke = '#27ae60';
+                conn.line.style.strokeWidth = '4';
                 conn.line.setAttribute('marker-end', 'url(#arrow-active)');
             } else {
-                conn.line.setAttribute('stroke', '#adb5bd');
-                conn.line.setAttribute('stroke-width', '3');
+                conn.line.style.stroke = '#adb5bd';
+                conn.line.style.strokeWidth = '3';
                 conn.line.setAttribute('marker-end', 'url(#arrow-inactive)');
             }
         });
