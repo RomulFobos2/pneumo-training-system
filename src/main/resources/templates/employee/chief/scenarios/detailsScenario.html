@@ -1,0 +1,107 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Просмотр сценария | АОС ПИ</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/javascript.js"></script>
+</head>
+<body>
+<div id="wrapper">
+    <div th:insert="~{blocks/header :: sidebar}"></div>
+    <div id="content-wrapper">
+        <div th:insert="~{blocks/header :: topbar}"></div>
+        <div th:insert="~{blocks/header :: overlay}"></div>
+        <main class="container-fluid">
+
+            <div class="profile-card p-4 mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h1 class="page-title mb-0" th:text="${scenario.title}"></h1>
+                    <div class="d-flex gap-2">
+                        <a th:href="@{/employee/chief/scenarios/editScenario/{id}(id=${scenario.id})}"
+                           class="btn btn-warning btn-sm">
+                            <i class="bi bi-pencil-square"></i> Редактировать
+                        </a>
+                        <a th:href="@{/employee/chief/scenarios/deleteScenario/{id}(id=${scenario.id})}"
+                           class="btn btn-outline-danger btn-sm"
+                           onclick="return confirm('Удалить сценарий?')">
+                            <i class="bi bi-trash"></i> Удалить
+                        </a>
+                        <a href="/employee/chief/scenarios/allScenarios" class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-arrow-left"></i> К списку
+                        </a>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <p class="mb-1"><strong>Описание:</strong></p>
+                        <p class="text-muted" th:text="${scenario.description ?: 'Не указано'}"></p>
+                    </div>
+                    <div class="col-md-2">
+                        <p class="mb-1"><strong>Схема:</strong></p>
+                        <p>
+                            <a th:href="@{/employee/chief/schemas/detailsSchema/{id}(id=${scenario.schemaId})}"
+                               th:text="${scenario.schemaTitle}"></a>
+                        </p>
+                    </div>
+                    <div class="col-md-2">
+                        <p class="mb-1"><strong>Время:</strong></p>
+                        <p>
+                            <span th:if="${scenario.timeLimit != null and scenario.timeLimit > 0}"
+                                  th:text="${scenario.timeLimit + ' мин'}"></span>
+                            <span th:if="${scenario.timeLimit == null or scenario.timeLimit == 0}" class="text-muted">Без ограничения</span>
+                        </p>
+                    </div>
+                    <div class="col-md-2">
+                        <p class="mb-1"><strong>Статус:</strong></p>
+                        <span th:if="${scenario.isActive()}" class="badge bg-success">Активен</span>
+                        <span th:if="${!scenario.isActive()}" class="badge bg-secondary">Неактивен</span>
+                    </div>
+                </div>
+
+                <div th:if="${scenario.allowedDepartments != null and !scenario.allowedDepartments.isEmpty()}">
+                    <p class="mb-1"><strong>Подразделения:</strong></p>
+                    <div class="d-flex flex-wrap gap-1 mb-2">
+                        <span th:each="dept : ${scenario.allowedDepartments}"
+                              class="badge bg-info" th:text="${dept.name}"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Шаги -->
+            <div class="profile-card p-4">
+                <h5 class="mb-3"><i class="bi bi-list-ol"></i> Шаги сценария
+                    <span class="badge bg-primary" th:text="${#lists.size(steps)}"></span>
+                </h5>
+
+                <div th:if="${#lists.isEmpty(steps)}" class="text-center text-muted py-4">
+                    Шаги не заданы
+                </div>
+
+                <div th:each="step : ${steps}" class="border rounded p-3 mb-2">
+                    <div class="d-flex align-items-start gap-3">
+                        <span class="d-inline-flex align-items-center justify-content-center rounded-circle bg-primary text-white"
+                              style="width:28px;height:28px;font-size:0.85rem;font-weight:600;flex-shrink:0;"
+                              th:text="${step.stepNumber}"></span>
+                        <div class="flex-grow-1">
+                            <p class="mb-1" th:text="${step.instructionText}"></p>
+                            <div th:if="${step.expectedState != null and step.expectedState != '' and step.expectedState != '{}'}">
+                                <small class="text-muted">Ожидаемое состояние:</small>
+                                <code th:text="${step.expectedState}" style="font-size:0.75rem;"></code>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+        <div th:insert="~{blocks/footer :: footer}"></div>
+    </div>
+</div>
+</body>
+</html>

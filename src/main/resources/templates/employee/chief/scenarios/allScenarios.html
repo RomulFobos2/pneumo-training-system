@@ -1,0 +1,93 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Сценарии | АОС ПИ</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/javascript.js"></script>
+</head>
+<body>
+<div id="wrapper">
+    <div th:insert="~{blocks/header :: sidebar}"></div>
+    <div id="content-wrapper">
+        <div th:insert="~{blocks/header :: topbar}"></div>
+        <div th:insert="~{blocks/header :: overlay}"></div>
+        <main class="container-fluid">
+
+            <div class="profile-card mb-4 d-flex justify-content-between align-items-center">
+                <h1 class="page-title mb-0">Сценарии симуляции</h1>
+                <a href="/employee/chief/scenarios/addScenario" class="btn btn-success btn-sm">
+                    <i class="bi bi-plus-lg"></i> Создать сценарий
+                </a>
+            </div>
+
+            <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
+            <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
+
+            <div class="profile-card">
+                <div class="table-responsive">
+                    <table class="table table-modern mb-0">
+                        <thead>
+                        <tr>
+                            <th style="width: 50px">#</th>
+                            <th>Название</th>
+                            <th>Схема</th>
+                            <th style="width: 90px">Шагов</th>
+                            <th style="width: 100px">Время</th>
+                            <th style="width: 100px">Статус</th>
+                            <th style="width: 150px">Действия</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="s, index : ${allScenarios}">
+                            <td class="row-number" th:text="${index.index + 1}"></td>
+                            <td>
+                                <a th:href="@{/employee/chief/scenarios/detailsScenario/{id}(id=${s.id})}"
+                                   th:text="${s.title}"></a>
+                            </td>
+                            <td th:text="${s.schemaTitle}"></td>
+                            <td th:text="${s.stepCount}"></td>
+                            <td>
+                                <span th:if="${s.timeLimit != null and s.timeLimit > 0}" th:text="${s.timeLimit + ' мин'}"></span>
+                                <span th:if="${s.timeLimit == null or s.timeLimit == 0}" class="text-muted">&mdash;</span>
+                            </td>
+                            <td>
+                                <span th:if="${s.isActive()}" class="badge bg-success">Активен</span>
+                                <span th:if="${!s.isActive()}" class="badge bg-secondary">Неактивен</span>
+                            </td>
+                            <td>
+                                <div class="action-buttons">
+                                    <a th:href="@{/employee/chief/scenarios/detailsScenario/{id}(id=${s.id})}"
+                                       class="btn btn-sm btn-outline-primary" title="Просмотр">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <a th:href="@{/employee/chief/scenarios/editScenario/{id}(id=${s.id})}"
+                                       class="btn btn-sm btn-outline-warning" title="Редактировать">
+                                        <i class="bi bi-pencil-square"></i>
+                                    </a>
+                                    <a th:href="@{/employee/chief/scenarios/deleteScenario/{id}(id=${s.id})}"
+                                       class="btn btn-sm btn-outline-danger" title="Удалить"
+                                       onclick="return confirm('Удалить сценарий?')">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(allScenarios)}">
+                            <td colspan="7" class="text-center text-muted py-4">Нет созданных сценариев</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </main>
+        <div th:insert="~{blocks/footer :: footer}"></div>
+    </div>
+</div>
+</body>
+</html>

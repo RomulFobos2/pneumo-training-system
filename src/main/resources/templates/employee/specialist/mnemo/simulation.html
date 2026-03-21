@@ -1,0 +1,98 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Симуляция | АОС ПИ</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/javascript.js"></script>
+    <style>
+        .sim-header { background: #fff; border-bottom: 1px solid #dee2e6; padding: 10px 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+        .sim-timer { font-size: 1.3rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+        .sim-timer.warning { color: #dc3545; }
+        .sim-progress { display: flex; align-items: center; gap: 8px; }
+        .sim-step-badge { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px;
+            border-radius: 50%; font-size: 0.8rem; font-weight: 600; }
+        .sim-step-badge.done { background: #198754; color: #fff; }
+        .sim-step-badge.current { background: #0d6efd; color: #fff; }
+        .sim-step-badge.pending { background: #e9ecef; color: #6c757d; }
+        .sim-instruction { background: #e8f4fd; border: 1px solid #b6d4fe; border-radius: 8px; padding: 12px 18px; margin: 10px 20px; font-size: 0.95rem; }
+        .sim-canvas { flex: 1; overflow: auto; background: #f0f2f5; padding: 10px; }
+        .sim-canvas svg .element-group { cursor: pointer; }
+        .sim-canvas svg .element-group:hover .element-border { stroke: #0ea5e9; stroke-width: 2; }
+        .sim-canvas svg .element-group.toggled .element-border { stroke: #ffc107; stroke-width: 2; }
+        .sim-canvas svg .connection-line { stroke: #6c757d; stroke-width: 3; fill: none; }
+        .sim-footer { background: #fff; border-top: 1px solid #dee2e6; padding: 10px 20px; display: flex; justify-content: center; gap: 12px; }
+        .sim-wrapper { display: flex; flex-direction: column; height: calc(100vh - 60px); }
+        .sim-feedback { padding: 8px 20px; font-size: 0.9rem; display: none; }
+        .sim-feedback.show { display: block; }
+        .sim-feedback.success { background: #d1e7dd; color: #0f5132; }
+        .sim-feedback.error { background: #f8d7da; color: #842029; }
+    </style>
+</head>
+<body>
+<div id="wrapper">
+    <div th:insert="~{blocks/header :: sidebar}"></div>
+    <div id="content-wrapper">
+        <div th:insert="~{blocks/header :: topbar}"></div>
+        <div th:insert="~{blocks/header :: overlay}"></div>
+        <main class="p-0">
+
+            <div class="sim-wrapper">
+                <!-- Header: timer + progress -->
+                <div class="sim-header">
+                    <div>
+                        <strong th:text="${session.scenarioTitle}" style="font-size:1rem;"></strong>
+                    </div>
+                    <div class="sim-progress" id="stepProgress">
+                        <!-- Rendered by JS -->
+                    </div>
+                    <div>
+                        <span th:if="${session.endTime != null}" class="sim-timer" id="simTimer"
+                              th:attr="data-end-time=${session.endTime}">--:--</span>
+                        <span th:if="${session.endTime == null}" class="text-muted">Без ограничения</span>
+                    </div>
+                </div>
+
+                <!-- Instruction -->
+                <div class="sim-instruction" id="simInstruction">
+                    <i class="bi bi-arrow-right-circle"></i>
+                    <strong>Шаг <span id="currentStepNum" th:text="${session.currentStep}"></span>:</strong>
+                    <span id="instructionText" th:text="${session.currentInstruction ?: 'Следуйте инструкции'}"></span>
+                </div>
+
+                <!-- Feedback -->
+                <div class="sim-feedback" id="simFeedback"></div>
+
+                <!-- SVG Canvas -->
+                <div class="sim-canvas">
+                    <svg id="simSvg" xmlns="http://www.w3.org/2000/svg"></svg>
+                </div>
+
+                <!-- Footer: check step button -->
+                <div class="sim-footer">
+                    <button class="btn btn-success" id="btnCheckStep">
+                        <i class="bi bi-check-circle"></i> Проверить шаг
+                    </button>
+                </div>
+            </div>
+
+        </main>
+    </div>
+</div>
+
+<script th:inline="javascript">
+    var simSessionId = [[${session.id}]];
+    var simCurrentStep = [[${session.currentStep}]];
+    var simTotalSteps = [[${session.totalSteps}]];
+    var simCompletedSteps = [[${session.completedSteps}]];
+    var simCurrentState = [[${session.currentState}]];
+    var simSchemaData = [[${schemaData}]];
+</script>
+<script src="/js/schemaEditor.js"></script>
+<script src="/js/simulation.js"></script>
+</body>
+</html>

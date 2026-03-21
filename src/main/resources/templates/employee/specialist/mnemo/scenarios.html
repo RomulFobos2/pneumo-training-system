@@ -1,0 +1,66 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Сценарии симуляции | АОС ПИ</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/javascript.js"></script>
+</head>
+<body>
+<div id="wrapper">
+    <div th:insert="~{blocks/header :: sidebar}"></div>
+    <div id="content-wrapper">
+        <div th:insert="~{blocks/header :: topbar}"></div>
+        <div th:insert="~{blocks/header :: overlay}"></div>
+        <main class="container-fluid">
+
+            <div class="profile-card mb-4">
+                <h1 class="page-title">Симуляция мнемосхемы</h1>
+                <p class="text-muted">Выберите сценарий для прохождения</p>
+            </div>
+
+            <div th:if="${#lists.isEmpty(scenarios)}" class="profile-card p-4 text-center text-muted">
+                Нет доступных сценариев
+            </div>
+
+            <div class="row g-3">
+                <div th:each="s : ${scenarios}" class="col-12 col-md-6 col-lg-4">
+                    <div class="profile-card p-4 h-100 d-flex flex-column">
+                        <h5 class="mb-2" th:text="${s.title}"></h5>
+                        <p class="text-muted flex-grow-1" style="font-size: 0.9rem;"
+                           th:if="${s.description != null}"
+                           th:text="${s.description.length() > 120 ? s.description.substring(0, 120) + '...' : s.description}"></p>
+
+                        <div class="d-flex flex-wrap gap-2 mb-3">
+                            <span class="badge bg-primary">
+                                <i class="bi bi-list-ol"></i>
+                                <span th:text="${s.stepCount + ' шагов'}"></span>
+                            </span>
+                            <span th:if="${s.timeLimit != null and s.timeLimit > 0}" class="badge bg-warning text-dark">
+                                <i class="bi bi-clock"></i>
+                                <span th:text="${s.timeLimit + ' мин'}"></span>
+                            </span>
+                            <span th:if="${s.timeLimit == null or s.timeLimit == 0}" class="badge bg-secondary">
+                                <i class="bi bi-infinity"></i> Без ограничения
+                            </span>
+                            <span class="badge bg-info" th:text="${s.schemaTitle}"></span>
+                        </div>
+
+                        <a th:href="@{/employee/specialist/mnemo/start/{id}(id=${s.id})}"
+                           class="btn btn-auth btn-sm mt-auto">
+                            <i class="bi bi-play-fill"></i> Начать
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+        <div th:insert="~{blocks/footer :: footer}"></div>
+    </div>
+</div>
+</body>
+</html>

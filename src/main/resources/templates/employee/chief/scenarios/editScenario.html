@@ -1,0 +1,172 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Редактирование сценария | АОС ПИ</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/javascript.js"></script>
+    <style>
+        .step-card { border: 1px solid #dee2e6; border-radius: 8px; padding: 15px; margin-bottom: 10px; background: #fff; position: relative; }
+        .step-card.active { border-color: #0d6efd; box-shadow: 0 0 0 2px rgba(13,110,253,.15); }
+        .step-number { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px;
+            border-radius: 50%; background: #0d6efd; color: #fff; font-size: 0.85rem; font-weight: 600; }
+        .step-actions { position: absolute; top: 10px; right: 10px; display: flex; gap: 4px; }
+        .step-actions button { padding: 2px 6px; font-size: 0.75rem; }
+        .state-editor-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1050; display: none; }
+        .state-editor-overlay.show { display: flex; align-items: center; justify-content: center; }
+        .state-editor-panel { background: #fff; border-radius: 12px; width: 90vw; max-width: 1000px; max-height: 85vh; overflow: hidden; display: flex; flex-direction: column; }
+        .state-editor-header { padding: 15px 20px; border-bottom: 1px solid #dee2e6; display: flex; justify-content: space-between; align-items: center; }
+        .state-editor-body { flex: 1; overflow: auto; padding: 15px; background: #f8f9fa; }
+        .state-editor-footer { padding: 12px 20px; border-top: 1px solid #dee2e6; display: flex; justify-content: flex-end; gap: 8px; }
+        .state-editor-body svg .element-group { cursor: pointer; }
+        .state-editor-body svg .element-group:hover .element-border { stroke: #0ea5e9; stroke-width: 2; }
+        .state-editor-body svg .element-group.state-on .element-border { stroke: #198754; stroke-width: 2.5; }
+        .state-editor-body svg .connection-line { stroke: #6c757d; stroke-width: 3; fill: none; }
+        .step-state-badges .badge { font-size: 0.75rem; margin-right: 4px; margin-bottom: 2px; }
+        .drag-handle { cursor: grab; color: #adb5bd; margin-right: 8px; }
+        .drag-handle:hover { color: #6c757d; }
+        .step-card.dragging { opacity: 0.5; }
+        .step-card.drag-over { border-top: 3px solid #0d6efd; }
+    </style>
+</head>
+<body>
+<div id="wrapper">
+    <div th:insert="~{blocks/header :: sidebar}"></div>
+    <div id="content-wrapper">
+        <div th:insert="~{blocks/header :: topbar}"></div>
+        <div th:insert="~{blocks/header :: overlay}"></div>
+        <main class="container-fluid">
+
+            <!-- Настройки сценария -->
+            <div class="profile-card p-4 mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h1 class="page-title mb-0">Редактирование сценария</h1>
+                    <a href="/employee/chief/scenarios/allScenarios" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-arrow-left"></i> К списку
+                    </a>
+                </div>
+
+                <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
+                <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
+
+                <form method="post" th:action="@{/employee/chief/scenarios/editScenario/{id}(id=${scenario.id})}">
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Название <span class="text-danger">*</span></label>
+                            <input type="text" name="inputTitle" class="form-control" required maxlength="255"
+                                   th:value="${scenario.title}"/>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Мнемосхема <span class="text-danger">*</span></label>
+                            <select name="inputSchemaId" class="form-select" required id="schemaSelect">
+                                <option th:each="schema : ${allSchemas}"
+                                        th:value="${schema.id}"
+                                        th:text="${schema.title}"
+                                        th:selected="${schema.id == scenario.schemaId}"></option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Время (мин)</label>
+                            <input type="number" name="inputTimeLimit" class="form-control"
+                                   min="0" max="999" th:value="${scenario.timeLimit}"/>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Описание</label>
+                        <textarea name="inputDescription" class="form-control" rows="2"
+                                  th:text="${scenario.description}"></textarea>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-8">
+                            <label class="form-label">Подразделения</label>
+                            <div class="border rounded p-2" style="max-height: 150px; overflow-y: auto;">
+                                <div th:each="dept : ${allDepartments}" class="form-check">
+                                    <input type="checkbox" class="form-check-input"
+                                           name="inputDepartmentIds"
+                                           th:value="${dept.id}"
+                                           th:id="'dept_' + ${dept.id}"
+                                           th:checked="${scenario.departmentIds != null and scenario.departmentIds.contains(dept.id)}"/>
+                                    <label class="form-check-label" th:for="'dept_' + ${dept.id}"
+                                           th:text="${'— '.repeat(dept.level) + dept.name}"></label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <div class="form-check form-switch mb-2">
+                                <input type="checkbox" class="form-check-input" name="inputIsActive"
+                                       id="inputIsActive" value="true" th:checked="${scenario.isActive()}"/>
+                                <label class="form-check-label" for="inputIsActive">Активен</label>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-auth btn-sm">
+                        <i class="bi bi-check-lg"></i> Сохранить настройки
+                    </button>
+                </form>
+            </div>
+
+            <!-- Редактор шагов -->
+            <div class="profile-card p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0"><i class="bi bi-list-ol"></i> Шаги сценария</h5>
+                    <div class="d-flex gap-2 align-items-center">
+                        <span id="stepsSaveIndicator" class="text-muted" style="font-size:0.8rem;"></span>
+                        <button type="button" class="btn btn-outline-primary btn-sm" id="btnAddStep">
+                            <i class="bi bi-plus-lg"></i> Добавить шаг
+                        </button>
+                        <button type="button" class="btn btn-success btn-sm" id="btnSaveSteps">
+                            <i class="bi bi-save"></i> Сохранить шаги
+                        </button>
+                    </div>
+                </div>
+
+                <div id="stepsContainer">
+                    <!-- Steps rendered by JS -->
+                </div>
+                <div id="noStepsMessage" class="text-center text-muted py-4" style="display:none;">
+                    Нет шагов. Нажмите «Добавить шаг» для начала.
+                </div>
+            </div>
+
+            <!-- State Editor Overlay -->
+            <div class="state-editor-overlay" id="stateEditorOverlay">
+                <div class="state-editor-panel">
+                    <div class="state-editor-header">
+                        <h5 class="mb-0">Ожидаемое состояние — Шаг <span id="stateEditorStepNum"></span></h5>
+                        <button type="button" class="btn-close" id="stateEditorClose"></button>
+                    </div>
+                    <div class="state-editor-body">
+                        <p class="text-muted mb-2" style="font-size:0.85rem;">
+                            Кликните по элементам, чтобы задать их ожидаемое состояние (вкл/выкл).
+                            Зелёная рамка = элемент должен быть включён.
+                        </p>
+                        <div id="stateEditorSvgContainer" style="overflow:auto; border:1px solid #dee2e6; border-radius:8px; background:#f0f2f5;">
+                            <svg id="stateEditorSvg" xmlns="http://www.w3.org/2000/svg"></svg>
+                        </div>
+                    </div>
+                    <div class="state-editor-footer">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="stateEditorCancel">Отмена</button>
+                        <button type="button" class="btn btn-primary btn-sm" id="stateEditorApply">
+                            <i class="bi bi-check-lg"></i> Применить
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+        <div th:insert="~{blocks/footer :: footer}"></div>
+    </div>
+</div>
+
+<script th:inline="javascript">
+    var scenarioId = [[${scenario.id}]];
+    var currentSchemaId = [[${scenario.schemaId}]];
+</script>
+<script src="/js/schemaEditor.js"></script>
+<script src="/js/scenarioEditor.js"></script>
+</body>
+</html>

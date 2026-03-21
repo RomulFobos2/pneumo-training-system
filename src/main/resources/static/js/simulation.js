@@ -1,0 +1,260 @@
+/**
+ * Simulation — клиентский движок симуляции мнемосхемы.
+ * Таймер, переключение элементов, проверка шагов.
+ */
+var Simulation = (function () {
+
+    var svgEl;
+    var elementState = {};   // {name: true/false}
+    var elementGroups = {};  // {name: SVG group}
+    var timerInterval = null;
+
+    function init() {
+        svgEl = document.getElementById('simSvg');
+        if (!svgEl || typeof simSchemaData === 'undefined') return;
+
+        // Парсить текущее состояние
+        if (typeof simCurrentState === 'string') {
+            try { elementState = JSON.parse(simCurrentState); } catch (e) { elementState = {}; }
+        } else if (typeof simCurrentState === 'object' && simCurrentState !== null) {
+            elementState = simCurrentState;
+        }
+
+        renderSchema();
+        renderStepProgress();
+        startTimer();
+
+        document.getElementById('btnCheckStep').addEventListener('click', checkStep);
+    }
+
+    // ========== Рендер схемы ==========
+
+    function renderSchema() {
+        var data = simSchemaData;
+        var w = data.width || 1200;
+        var h = data.height || 800;
+
+        svgEl.setAttribute('width', w);
+        svgEl.setAttribute('height', h);
+        svgEl.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
+
+        var defsHtml = '';
+        if (typeof SchemaEditor !== 'undefined' && SchemaEditor.getSymbolDefs) {
+            defsHtml = SchemaEditor.getSymbolDefs();
+        }
+
+        svgEl.innerHTML = defsHtml +
+            '<rect width="' + w + '" height="' + h + '" fill="#f8f9fa"/>';
+
+        // Соединения
+        (data.connections || []).forEach(function (conn) {
+            var src = (data.elements || []).find(function (e) { return e.id === conn.sourceElementId; });
+            var tgt = (data.elements || []).find(function (e) { return e.id === conn.targetElementId; });
+            if (!src || !tgt) return;
+
+            var line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            line.setAttribute('x1', src.posX + (src.width || 60) / 2);
+            line.setAttribute('y1', src.posY + (src.height || 60) / 2);
+            line.setAttribute('x2', tgt.posX + (tgt.width || 60) / 2);
+            line.setAttribute('y2', tgt.posY + (tgt.height || 60) / 2);
+            line.setAttribute('class', 'connection-line');
+            svgEl.appendChild(line);
+        });
+
+        // Элементы
+        (data.elements || []).forEach(function (el) {
+            var isOn = elementState.hasOwnProperty(el.name) ? elementState[el.name] : el.initialState;
+            var state = isOn ? 'on' : 'off';
+
+            var group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            group.setAttribute('class', 'element-group');
+            group.setAttribute('transform', 'translate(' + el.posX + ',' + el.posY + ')' +
+                (el.rotation ? ' rotate(' + el.rotation + ',' + ((el.width || 60) / 2) + ',' + ((el.height || 60) / 2) + ')' : ''));
+
+            var border = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            border.setAttribute('class', 'element-border');
+            border.setAttribute('width', el.width || 60);
+            border.setAttribute('height', el.height || 60);
+            border.setAttribute('fill', 'transparent');
+            border.setAttribute('stroke', '#dee2e6');
+            border.setAttribute('stroke-width', '1');
+            border.setAttribute('rx', '4');
+            group.appendChild(border);
+
+            var use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+            use.setAttribute('href', '#symbol-' + el.elementType + '-' + state);
+            use.setAttribute('width', el.width || 60);
+            use.setAttribute('height', el.height || 60);
+            group.appendChild(use);
+
+            var label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            label.setAttribute('x', (el.width || 60) / 2);
+            label.setAttribute('y', (el.height || 60) + 14);
+            label.setAttribute('text-anchor', 'middle');
+            label.setAttribute('font-size', '11');
+            label.setAttribute('fill', '#333');
+            label.textContent = el.name || '';
+            group.appendChild(label);
+
+            group.addEventListener('click', function () {
+                toggleElement(el.name, group, use, el);
+            });
+
+            svgEl.appendChild(group);
+            elementGroups[el.name] = { group: group, use: use, el: el };
+        });
+    }
+
+    // ========== Переключение элемента ==========
+
+    function toggleElement(name, group, use, el) {
+        showFeedback('', '');
+
+        fetch('/employee/specialist/mnemo/toggleElement/' + simSessionId, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ elementName: name })
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            if (data.expired) {
+                window.location.href = '/employee/specialist/mnemo/result/' + simSessionId;
+                return;
+            }
+            elementState[name] = data.newState;
+            var state = data.newState ? 'on' : 'off';
+            use.setAttribute('href', '#symbol-' + el.elementType + '-' + state);
+
+            // Visual feedback
+            group.classList.add('toggled');
+            setTimeout(function () { group.classList.remove('toggled'); }, 300);
+        })
+        .catch(function () {
+            showFeedback('Ошибка связи с сервером', 'error');
+        });
+    }
+
+    // ========== Проверка шага ==========
+
+    function checkStep() {
+        var btn = document.getElementById('btnCheckStep');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Проверка...';
+
+        fetch('/employee/specialist/mnemo/checkStep/' + simSessionId, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-check-circle"></i> Проверить шаг';
+
+            if (data.status === 'completed') {
+                showFeedback('Симуляция успешно завершена!', 'success');
+                setTimeout(function () {
+                    window.location.href = '/employee/specialist/mnemo/result/' + simSessionId;
+                }, 1500);
+            } else if (data.status === 'advance') {
+                simCurrentStep = data.nextStep;
+                simCompletedSteps = data.nextStep - 1;
+                document.getElementById('currentStepNum').textContent = data.nextStep;
+                document.getElementById('instructionText').textContent = data.nextInstruction || '';
+                renderStepProgress();
+                showFeedback('Шаг пройден! Переход к шагу ' + data.nextStep, 'success');
+            } else if (data.status === 'wrong') {
+                showFeedback('Ошибка: элемент «' + data.failedElement + '» — ожидалось ' +
+                    (data.expected ? 'ВКЛ' : 'ВЫКЛ') + ', текущее ' +
+                    (data.actual ? 'ВКЛ' : 'ВЫКЛ'), 'error');
+            } else if (data.status === 'expired') {
+                window.location.href = '/employee/specialist/mnemo/result/' + simSessionId;
+            }
+        })
+        .catch(function () {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-check-circle"></i> Проверить шаг';
+            showFeedback('Ошибка связи с сервером', 'error');
+        });
+    }
+
+    // ========== Прогресс шагов ==========
+
+    function renderStepProgress() {
+        var container = document.getElementById('stepProgress');
+        container.innerHTML = '';
+        for (var i = 1; i <= simTotalSteps; i++) {
+            var badge = document.createElement('span');
+            badge.className = 'sim-step-badge';
+            badge.textContent = i;
+            if (i < simCurrentStep) {
+                badge.classList.add('done');
+            } else if (i === simCurrentStep) {
+                badge.classList.add('current');
+            } else {
+                badge.classList.add('pending');
+            }
+            container.appendChild(badge);
+        }
+    }
+
+    // ========== Таймер ==========
+
+    function startTimer() {
+        var timerEl = document.getElementById('simTimer');
+        if (!timerEl) return;
+
+        var endTimeStr = timerEl.getAttribute('data-end-time');
+        if (!endTimeStr) return;
+
+        var endTime = new Date(endTimeStr).getTime();
+
+        function update() {
+            var now = Date.now();
+            var diff = endTime - now;
+
+            if (diff <= 0) {
+                timerEl.textContent = '00:00';
+                timerEl.classList.add('warning');
+                clearInterval(timerInterval);
+                window.location.href = '/employee/specialist/mnemo/result/' + simSessionId;
+                return;
+            }
+
+            var minutes = Math.floor(diff / 60000);
+            var seconds = Math.floor((diff % 60000) / 1000);
+            timerEl.textContent = pad(minutes) + ':' + pad(seconds);
+
+            if (diff < 60000) {
+                timerEl.classList.add('warning');
+            }
+        }
+
+        update();
+        timerInterval = setInterval(update, 1000);
+    }
+
+    function pad(n) { return n < 10 ? '0' + n : '' + n; }
+
+    // ========== Feedback ==========
+
+    function showFeedback(msg, type) {
+        var el = document.getElementById('simFeedback');
+        if (!msg) {
+            el.classList.remove('show', 'success', 'error');
+            return;
+        }
+        el.textContent = msg;
+        el.className = 'sim-feedback show ' + type;
+        if (type === 'success') {
+            setTimeout(function () { el.classList.remove('show'); }, 4000);
+        }
+    }
+
+    return { init: init };
+})();
+
+document.addEventListener('DOMContentLoaded', function () {
+    if (typeof simSessionId !== 'undefined') {
+        Simulation.init();
+    }
+});

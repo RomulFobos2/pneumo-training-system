@@ -14,6 +14,7 @@ import ru.mai.voshod.pneumotraining.dto.TestSessionAnswerDTO;
 import ru.mai.voshod.pneumotraining.dto.TestSessionDTO;
 import ru.mai.voshod.pneumotraining.models.Employee;
 import ru.mai.voshod.pneumotraining.service.employee.specialist.ResultService;
+import ru.mai.voshod.pneumotraining.service.employee.specialist.SimulationService;
 
 import java.util.List;
 import java.util.Optional;
@@ -24,14 +25,17 @@ import java.util.Optional;
 public class ResultController {
 
     private final ResultService resultService;
+    private final SimulationService simulationService;
 
-    public ResultController(ResultService resultService) {
+    public ResultController(ResultService resultService, SimulationService simulationService) {
         this.resultService = resultService;
+        this.simulationService = simulationService;
     }
 
     @GetMapping("/myResults")
     public String myResults(Model model, @AuthenticationPrincipal Employee currentUser) {
         model.addAttribute("sessions", resultService.getMyResults(currentUser));
+        model.addAttribute("simSessions", simulationService.getMyResults(currentUser));
         return "employee/specialist/results/myResults";
     }
 

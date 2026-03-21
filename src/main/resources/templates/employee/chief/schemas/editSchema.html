@@ -1,0 +1,298 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Редактор мнемосхемы | АОС ПИ</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/javascript.js"></script>
+    <style>
+        .editor-wrapper { display: flex; height: calc(100vh - 120px); gap: 0; }
+        .editor-palette { width: 200px; min-width: 200px; background: #fff; border-right: 1px solid #dee2e6; overflow-y: auto; padding: 10px; }
+        .editor-canvas-wrapper { flex: 1; overflow: hidden; position: relative; background: #f0f2f5; }
+        .editor-properties { width: 260px; min-width: 260px; background: #fff; border-left: 1px solid #dee2e6; overflow-y: auto; padding: 15px; }
+        .editor-toolbar { background: #fff; border-bottom: 1px solid #dee2e6; padding: 8px 15px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .palette-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; margin-bottom: 4px; border: 1px solid #dee2e6;
+            border-radius: 6px; cursor: grab; background: #fff; transition: all 0.15s; font-size: 0.85rem; }
+        .palette-item:hover { border-color: var(--accent, #0ea5e9); background: #f0f8ff; }
+        .palette-item:active { cursor: grabbing; }
+        .palette-icon { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; }
+        .palette-icon svg { width: 28px; height: 28px; }
+        #editorSvg { cursor: default; }
+        #editorSvg .element-group { cursor: pointer; }
+        #editorSvg .element-group:hover .element-border { stroke: #0ea5e9; stroke-width: 2; }
+        #editorSvg .element-group.selected .element-border { stroke: #0d6efd; stroke-width: 2.5; stroke-dasharray: 5,3; }
+        #editorSvg .connection-line { stroke: #6c757d; stroke-width: 3; fill: none; cursor: pointer; }
+        #editorSvg .connection-line:hover { stroke: #0ea5e9; stroke-width: 4; }
+        #editorSvg .connection-line.selected { stroke: #0d6efd; stroke-width: 4; stroke-dasharray: 8,4; }
+        #editorSvg .temp-line { stroke: #0ea5e9; stroke-width: 2; stroke-dasharray: 5,5; fill: none; pointer-events: none; }
+        .tool-btn { padding: 4px 10px; border: 1px solid #dee2e6; border-radius: 4px; background: #fff; cursor: pointer; font-size: 0.85rem; }
+        .tool-btn:hover { background: #e9ecef; }
+        .tool-btn.active { background: #0d6efd; color: #fff; border-color: #0d6efd; }
+        .prop-section { margin-bottom: 12px; }
+        .prop-section label { font-size: 0.8rem; color: #6c757d; margin-bottom: 2px; display: block; }
+        .prop-section input, .prop-section select { font-size: 0.85rem; }
+        .save-indicator { font-size: 0.8rem; color: #6c757d; }
+        .save-indicator.saving { color: #ffc107; }
+        .save-indicator.saved { color: #198754; }
+        .save-indicator.error { color: #dc3545; }
+    </style>
+</head>
+<body>
+<div id="wrapper">
+    <div th:insert="~{blocks/header :: sidebar}"></div>
+    <div id="content-wrapper">
+        <div th:insert="~{blocks/header :: topbar}"></div>
+        <div th:insert="~{blocks/header :: overlay}"></div>
+        <main class="container-fluid p-0">
+
+            <div th:if="${successMessage}" class="alert alert-success m-2 mb-0" th:text="${successMessage}"></div>
+            <div th:if="${errorMessage}" class="alert alert-danger m-2 mb-0" th:text="${errorMessage}"></div>
+
+            <!-- Toolbar -->
+            <div class="editor-toolbar">
+                <a th:href="@{/employee/chief/schemas/allSchemas}" class="tool-btn" title="К списку">
+                    <i class="bi bi-arrow-left"></i>
+                </a>
+                <span class="fw-bold me-2" th:text="${schema.title}" style="font-size:0.95rem"></span>
+                <div class="vr mx-1"></div>
+                <button type="button" class="tool-btn" id="btnSelect" onclick="SchemaEditor.setMode('select')" title="Выбор (V)">
+                    <i class="bi bi-cursor"></i> Выбор
+                </button>
+                <button type="button" class="tool-btn" id="btnConnect" onclick="SchemaEditor.setMode('connect')" title="Соединение (C)">
+                    <i class="bi bi-bezier2"></i> Труба
+                </button>
+                <div class="vr mx-1"></div>
+                <button type="button" class="tool-btn" onclick="SchemaEditor.deleteSelected()" title="Удалить (Del)">
+                    <i class="bi bi-trash"></i>
+                </button>
+                <div class="vr mx-1"></div>
+                <button type="button" class="tool-btn" onclick="SchemaEditor.save()" title="Сохранить (Ctrl+S)">
+                    <i class="bi bi-floppy"></i> Сохранить
+                </button>
+                <span id="saveIndicator" class="save-indicator ms-2"></span>
+                <div class="ms-auto d-flex align-items-center gap-2">
+                    <span class="text-muted" style="font-size:0.8rem">Zoom:</span>
+                    <button type="button" class="tool-btn" onclick="SchemaEditor.zoomIn()" title="Увеличить">+</button>
+                    <span id="zoomLevel" style="font-size:0.8rem; min-width:40px; text-align:center">100%</span>
+                    <button type="button" class="tool-btn" onclick="SchemaEditor.zoomOut()" title="Уменьшить">-</button>
+                    <button type="button" class="tool-btn" onclick="SchemaEditor.zoomReset()" title="Сбросить">1:1</button>
+                </div>
+            </div>
+
+            <div class="editor-wrapper">
+                <!-- Palette -->
+                <div class="editor-palette">
+                    <div class="fw-bold mb-2" style="font-size:0.85rem">Элементы</div>
+                    <div class="palette-item" draggable="true" data-type="VALVE">
+                        <div class="palette-icon"><svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="16" fill="#e74c3c" opacity="0.2" stroke="#e74c3c" stroke-width="2"/><path d="M10 20 L30 20 M20 10 L20 30" stroke="#e74c3c" stroke-width="2.5"/></svg></div>
+                        <span>Клапан</span>
+                    </div>
+                    <div class="palette-item" draggable="true" data-type="PUMP">
+                        <div class="palette-icon"><svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="16" fill="#3498db" opacity="0.2" stroke="#3498db" stroke-width="2"/><path d="M12 20 L20 12 L28 20 L20 28 Z" fill="none" stroke="#3498db" stroke-width="2"/></svg></div>
+                        <span>Насос</span>
+                    </div>
+                    <div class="palette-item" draggable="true" data-type="SWITCH">
+                        <div class="palette-icon"><svg viewBox="0 0 40 40"><rect x="6" y="12" width="28" height="16" rx="4" fill="#2ecc71" opacity="0.2" stroke="#2ecc71" stroke-width="2"/><circle cx="15" cy="20" r="5" fill="#2ecc71"/></svg></div>
+                        <span>Переключатель</span>
+                    </div>
+                    <div class="palette-item" draggable="true" data-type="SENSOR_PRESSURE">
+                        <div class="palette-icon"><svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="16" fill="#9b59b6" opacity="0.2" stroke="#9b59b6" stroke-width="2"/><text x="20" y="25" text-anchor="middle" font-size="16" font-weight="bold" fill="#9b59b6">P</text></svg></div>
+                        <span>Датчик P</span>
+                    </div>
+                    <div class="palette-item" draggable="true" data-type="SENSOR_TEMPERATURE">
+                        <div class="palette-icon"><svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="16" fill="#e67e22" opacity="0.2" stroke="#e67e22" stroke-width="2"/><text x="20" y="25" text-anchor="middle" font-size="16" font-weight="bold" fill="#e67e22">T</text></svg></div>
+                        <span>Датчик T</span>
+                    </div>
+                    <div class="palette-item" draggable="true" data-type="HEATER">
+                        <div class="palette-icon"><svg viewBox="0 0 40 40"><rect x="6" y="8" width="28" height="24" rx="4" fill="#e74c3c" opacity="0.15" stroke="#e74c3c" stroke-width="2"/><path d="M12 16 Q16 13 20 16 Q24 19 28 16" stroke="#e74c3c" stroke-width="2" fill="none"/><path d="M12 24 Q16 21 20 24 Q24 27 28 24" stroke="#e74c3c" stroke-width="2" fill="none"/></svg></div>
+                        <span>Нагреватель</span>
+                    </div>
+                    <div class="palette-item" draggable="true" data-type="LOCK">
+                        <div class="palette-icon"><svg viewBox="0 0 40 40"><rect x="10" y="18" width="20" height="16" rx="3" fill="#e74c3c" opacity="0.2" stroke="#e74c3c" stroke-width="2"/><path d="M14 18 V13 Q14 6 20 6 Q26 6 26 13 V18" fill="none" stroke="#e74c3c" stroke-width="2.5"/></svg></div>
+                        <span>Блокировка</span>
+                    </div>
+                </div>
+
+                <!-- Canvas -->
+                <div class="editor-canvas-wrapper" id="canvasWrapper">
+                    <svg id="editorSvg" xmlns="http://www.w3.org/2000/svg"
+                         th:attr="data-schema-id=${schema.id}, data-width=${schema.width}, data-height=${schema.height}"
+                         style="display:block;">
+                        <defs>
+                            <!-- VALVE off (red) -->
+                            <symbol id="symbol-VALVE-off" viewBox="0 0 60 60">
+                                <circle cx="30" cy="30" r="25" fill="#fde8e8" stroke="#e74c3c" stroke-width="2.5"/>
+                                <path d="M15 30 L45 30 M30 15 L30 45" stroke="#e74c3c" stroke-width="3"/>
+                            </symbol>
+                            <!-- VALVE on (green) -->
+                            <symbol id="symbol-VALVE-on" viewBox="0 0 60 60">
+                                <circle cx="30" cy="30" r="25" fill="#d4edda" stroke="#27ae60" stroke-width="2.5"/>
+                                <path d="M15 30 L45 30" stroke="#27ae60" stroke-width="3"/>
+                                <circle cx="30" cy="30" r="5" fill="#27ae60"/>
+                            </symbol>
+                            <!-- PUMP off -->
+                            <symbol id="symbol-PUMP-off" viewBox="0 0 60 60">
+                                <circle cx="30" cy="30" r="25" fill="#eef2f7" stroke="#95a5a6" stroke-width="2.5"/>
+                                <path d="M18 30 L30 18 L42 30 L30 42 Z" fill="none" stroke="#95a5a6" stroke-width="2.5"/>
+                            </symbol>
+                            <!-- PUMP on -->
+                            <symbol id="symbol-PUMP-on" viewBox="0 0 60 60">
+                                <circle cx="30" cy="30" r="25" fill="#d4edda" stroke="#27ae60" stroke-width="2.5"/>
+                                <path d="M18 30 L30 18 L42 30 L30 42 Z" fill="#27ae60" fill-opacity="0.3" stroke="#27ae60" stroke-width="2.5"/>
+                                <circle cx="30" cy="30" r="4" fill="#27ae60"/>
+                            </symbol>
+                            <!-- SWITCH off -->
+                            <symbol id="symbol-SWITCH-off" viewBox="0 0 60 60">
+                                <rect x="5" y="15" width="50" height="30" rx="6" fill="#eef2f7" stroke="#95a5a6" stroke-width="2.5"/>
+                                <circle cx="22" cy="30" r="9" fill="#95a5a6"/>
+                            </symbol>
+                            <!-- SWITCH on -->
+                            <symbol id="symbol-SWITCH-on" viewBox="0 0 60 60">
+                                <rect x="5" y="15" width="50" height="30" rx="6" fill="#d4edda" stroke="#27ae60" stroke-width="2.5"/>
+                                <circle cx="38" cy="30" r="9" fill="#27ae60"/>
+                            </symbol>
+                            <!-- SENSOR_PRESSURE -->
+                            <symbol id="symbol-SENSOR_PRESSURE-off" viewBox="0 0 60 60">
+                                <circle cx="30" cy="30" r="25" fill="#f3e8ff" stroke="#9b59b6" stroke-width="2.5"/>
+                                <text x="30" y="36" text-anchor="middle" font-size="22" font-weight="bold" fill="#9b59b6">P</text>
+                            </symbol>
+                            <symbol id="symbol-SENSOR_PRESSURE-on" viewBox="0 0 60 60">
+                                <circle cx="30" cy="30" r="25" fill="#e8d5f5" stroke="#8e44ad" stroke-width="2.5"/>
+                                <text x="30" y="36" text-anchor="middle" font-size="22" font-weight="bold" fill="#8e44ad">P</text>
+                            </symbol>
+                            <!-- SENSOR_TEMPERATURE -->
+                            <symbol id="symbol-SENSOR_TEMPERATURE-off" viewBox="0 0 60 60">
+                                <circle cx="30" cy="30" r="25" fill="#fef3e2" stroke="#e67e22" stroke-width="2.5"/>
+                                <text x="30" y="36" text-anchor="middle" font-size="22" font-weight="bold" fill="#e67e22">T</text>
+                            </symbol>
+                            <symbol id="symbol-SENSOR_TEMPERATURE-on" viewBox="0 0 60 60">
+                                <circle cx="30" cy="30" r="25" fill="#fde3c8" stroke="#d35400" stroke-width="2.5"/>
+                                <text x="30" y="36" text-anchor="middle" font-size="22" font-weight="bold" fill="#d35400">T</text>
+                            </symbol>
+                            <!-- HEATER off -->
+                            <symbol id="symbol-HEATER-off" viewBox="0 0 60 60">
+                                <rect x="5" y="8" width="50" height="44" rx="6" fill="#eef2f7" stroke="#95a5a6" stroke-width="2.5"/>
+                                <path d="M14 22 Q22 17 30 22 Q38 27 46 22" stroke="#95a5a6" stroke-width="2.5" fill="none"/>
+                                <path d="M14 35 Q22 30 30 35 Q38 40 46 35" stroke="#95a5a6" stroke-width="2.5" fill="none"/>
+                            </symbol>
+                            <!-- HEATER on -->
+                            <symbol id="symbol-HEATER-on" viewBox="0 0 60 60">
+                                <rect x="5" y="8" width="50" height="44" rx="6" fill="#fde8e8" stroke="#e74c3c" stroke-width="2.5"/>
+                                <path d="M14 22 Q22 17 30 22 Q38 27 46 22" stroke="#e74c3c" stroke-width="2.5" fill="none"/>
+                                <path d="M14 35 Q22 30 30 35 Q38 40 46 35" stroke="#e74c3c" stroke-width="2.5" fill="none"/>
+                            </symbol>
+                            <!-- LOCK off (locked) -->
+                            <symbol id="symbol-LOCK-off" viewBox="0 0 60 60">
+                                <rect x="13" y="28" width="34" height="26" rx="5" fill="#fde8e8" stroke="#e74c3c" stroke-width="2.5"/>
+                                <path d="M20 28 V20 Q20 8 30 8 Q40 8 40 20 V28" fill="none" stroke="#e74c3c" stroke-width="3"/>
+                                <circle cx="30" cy="40" r="3" fill="#e74c3c"/>
+                            </symbol>
+                            <!-- LOCK on (unlocked) -->
+                            <symbol id="symbol-LOCK-on" viewBox="0 0 60 60">
+                                <rect x="13" y="28" width="34" height="26" rx="5" fill="#d4edda" stroke="#27ae60" stroke-width="2.5"/>
+                                <path d="M20 28 V20 Q20 8 30 8 Q40 8 40 20" fill="none" stroke="#27ae60" stroke-width="3"/>
+                                <circle cx="30" cy="40" r="3" fill="#27ae60"/>
+                            </symbol>
+                        </defs>
+                        <!-- Grid -->
+                        <defs>
+                            <pattern id="gridSmall" width="20" height="20" patternUnits="userSpaceOnUse">
+                                <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#e2e8f0" stroke-width="0.5"/>
+                            </pattern>
+                            <pattern id="gridLarge" width="100" height="100" patternUnits="userSpaceOnUse">
+                                <rect width="100" height="100" fill="url(#gridSmall)"/>
+                                <path d="M 100 0 L 0 0 0 100" fill="none" stroke="#cbd5e1" stroke-width="1"/>
+                            </pattern>
+                        </defs>
+                        <rect id="gridRect" width="100%" height="100%" fill="url(#gridLarge)"/>
+                        <!-- Connections layer -->
+                        <g id="connectionsLayer"></g>
+                        <!-- Elements layer -->
+                        <g id="elementsLayer"></g>
+                        <!-- Temp line for connection drawing -->
+                        <line id="tempLine" class="temp-line" style="display:none"/>
+                    </svg>
+                </div>
+
+                <!-- Properties panel -->
+                <div class="editor-properties" id="propertiesPanel">
+                    <div class="fw-bold mb-2" style="font-size:0.85rem">Свойства</div>
+                    <div id="noSelection" class="text-muted" style="font-size:0.85rem">
+                        Выберите элемент для редактирования свойств
+                    </div>
+                    <div id="elementProps" style="display:none">
+                        <div class="prop-section">
+                            <label>Название</label>
+                            <input type="text" id="propName" class="form-control form-control-sm" onchange="SchemaEditor.updateProperty('name', this.value)"/>
+                        </div>
+                        <div class="prop-section">
+                            <label>Тип</label>
+                            <input type="text" id="propType" class="form-control form-control-sm" disabled/>
+                        </div>
+                        <div class="prop-section">
+                            <label>Координата X</label>
+                            <input type="number" id="propX" class="form-control form-control-sm" onchange="SchemaEditor.updateProperty('posX', parseFloat(this.value))"/>
+                        </div>
+                        <div class="prop-section">
+                            <label>Координата Y</label>
+                            <input type="number" id="propY" class="form-control form-control-sm" onchange="SchemaEditor.updateProperty('posY', parseFloat(this.value))"/>
+                        </div>
+                        <div class="prop-section">
+                            <label>Ширина</label>
+                            <input type="number" id="propWidth" class="form-control form-control-sm" min="20" max="200" onchange="SchemaEditor.updateProperty('width', parseFloat(this.value))"/>
+                        </div>
+                        <div class="prop-section">
+                            <label>Высота</label>
+                            <input type="number" id="propHeight" class="form-control form-control-sm" min="20" max="200" onchange="SchemaEditor.updateProperty('height', parseFloat(this.value))"/>
+                        </div>
+                        <div class="prop-section">
+                            <label>Поворот</label>
+                            <select id="propRotation" class="form-select form-select-sm" onchange="SchemaEditor.updateProperty('rotation', parseInt(this.value))">
+                                <option value="0">0°</option>
+                                <option value="90">90°</option>
+                                <option value="180">180°</option>
+                                <option value="270">270°</option>
+                            </select>
+                        </div>
+                        <div class="prop-section">
+                            <div class="form-check">
+                                <input type="checkbox" id="propInitialState" class="form-check-input"
+                                       onchange="SchemaEditor.updateProperty('initialState', this.checked)"/>
+                                <label class="form-check-label" for="propInitialState" style="font-size:0.85rem">Начальное состояние: ВКЛ</label>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-outline-danger btn-sm w-100 mt-2" onclick="SchemaEditor.deleteSelected()">
+                            <i class="bi bi-trash"></i> Удалить элемент
+                        </button>
+                    </div>
+                    <div id="connectionProps" style="display:none">
+                        <div class="prop-section">
+                            <label>Соединение</label>
+                            <p style="font-size:0.85rem" id="connInfo"></p>
+                        </div>
+                        <button type="button" class="btn btn-outline-danger btn-sm w-100" onclick="SchemaEditor.deleteSelected()">
+                            <i class="bi bi-trash"></i> Удалить соединение
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+</div>
+
+<script th:inline="javascript">
+    var schemaId = [[${schema.id}]];
+</script>
+<script src="/js/schemaEditor.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        SchemaEditor.init(schemaId);
+    });
+</script>
+</body>
+</html>

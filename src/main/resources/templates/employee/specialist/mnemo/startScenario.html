@@ -1,0 +1,86 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Начать симуляцию | АОС ПИ</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/javascript.js"></script>
+</head>
+<body>
+<div id="wrapper">
+    <div th:insert="~{blocks/header :: sidebar}"></div>
+    <div id="content-wrapper">
+        <div th:insert="~{blocks/header :: topbar}"></div>
+        <div th:insert="~{blocks/header :: overlay}"></div>
+        <main class="container-fluid">
+
+            <div class="row justify-content-center">
+                <div class="col-12 col-lg-8">
+                    <div class="profile-card p-4">
+                        <h1 class="page-title" th:text="${scenario.title}"></h1>
+
+                        <p th:if="${scenario.description != null}" class="text-muted mb-4"
+                           th:text="${scenario.description}"></p>
+
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-4">
+                                <div class="border rounded p-3 text-center">
+                                    <div class="text-muted mb-1" style="font-size:0.8rem;">Шагов</div>
+                                    <div class="fw-bold fs-5" th:text="${scenario.stepCount}"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="border rounded p-3 text-center">
+                                    <div class="text-muted mb-1" style="font-size:0.8rem;">Время</div>
+                                    <div class="fw-bold fs-5">
+                                        <span th:if="${scenario.timeLimit != null and scenario.timeLimit > 0}"
+                                              th:text="${scenario.timeLimit + ' мин'}"></span>
+                                        <span th:if="${scenario.timeLimit == null or scenario.timeLimit == 0}">&#8734;</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="border rounded p-3 text-center">
+                                    <div class="text-muted mb-1" style="font-size:0.8rem;">Схема</div>
+                                    <div class="fw-bold" style="font-size:0.95rem;" th:text="${scenario.schemaTitle}"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-info mb-4">
+                            <h6 class="alert-heading"><i class="bi bi-info-circle"></i> Правила</h6>
+                            <ul class="mb-0">
+                                <li>Переключайте элементы на схеме, кликая по ним</li>
+                                <li>Следуйте инструкциям на каждом шаге</li>
+                                <li>Нажмите «Проверить шаг» для перехода к следующему</li>
+                                <li>Проверка кумулятивная: все предыдущие шаги должны оставаться верными</li>
+                                <li th:if="${scenario.timeLimit != null and scenario.timeLimit > 0}">
+                                    <strong>Внимание:</strong> на выполнение отведено
+                                    <strong th:text="${scenario.timeLimit + ' мин'}"></strong>.
+                                    По истечении — автоматическое завершение.
+                                </li>
+                            </ul>
+                        </div>
+
+                        <form method="post" th:action="@{/employee/specialist/mnemo/start/{id}(id=${scenario.id})}">
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-auth">
+                                    <i class="bi bi-play-fill"></i> Начать симуляцию
+                                </button>
+                                <a href="/employee/specialist/mnemo/scenarios" class="btn btn-outline-secondary">Назад</a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+        <div th:insert="~{blocks/footer :: footer}"></div>
+    </div>
+</div>
+</body>
+</html>
