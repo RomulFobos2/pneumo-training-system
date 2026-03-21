@@ -158,6 +158,15 @@ public class TestService {
         }).toList();
     }
 
+    public List<TestDTO> getAllActiveTests() {
+        List<Test> tests = testRepository.findByIsActiveTrueOrderByTitleAsc();
+        return tests.stream().map(test -> {
+            TestDTO dto = TestMapper.INSTANCE.toDTO(test);
+            dto.setQuestionCount((int) testQuestionRepository.countByTestId(test.getId()));
+            return dto;
+        }).toList();
+    }
+
     @Transactional(readOnly = true)
     public Optional<TestDTO> getTestById(Long id) {
         return testRepository.findById(id)

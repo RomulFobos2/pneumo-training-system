@@ -1,0 +1,108 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Назначение | АОС ПИ</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/javascript.js"></script>
+</head>
+<body>
+<div id="wrapper">
+    <div th:insert="~{blocks/header :: sidebar}"></div>
+    <div id="content-wrapper">
+        <div th:insert="~{blocks/header :: topbar}"></div>
+        <div th:insert="~{blocks/header :: overlay}"></div>
+        <main class="container-fluid">
+
+            <div class="profile-card p-4 mb-4">
+                <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                    <div>
+                        <h1 class="page-title mb-2" th:text="'Назначение: ' + ${assignment.testTitle}"></h1>
+                        <div class="d-flex gap-2 flex-wrap">
+                            <span class="badge bg-primary">
+                                <i class="bi bi-calendar-event"></i>
+                                Дедлайн: <span th:text="${#temporals.format(assignment.deadline, 'dd.MM.yyyy')}"></span>
+                            </span>
+                            <span class="badge bg-secondary">
+                                Автор: <span th:text="${assignment.createdByFullName}"></span>
+                            </span>
+                            <span class="badge bg-info text-dark">
+                                Создано: <span th:text="${#temporals.format(assignment.createdAt, 'dd.MM.yyyy HH:mm')}"></span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <a th:href="@{/employee/chief/assignments/allAssignments}" class="btn btn-outline-secondary btn-profile">
+                            <i class="bi bi-arrow-left"></i> Назад
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Прогресс -->
+            <div class="profile-card p-4 mb-4">
+                <h5 class="mb-3">Прогресс</h5>
+                <div class="row g-3 text-center">
+                    <div class="col-md-4">
+                        <div class="fs-3 fw-bold text-primary" th:text="${assignment.totalAssigned}"></div>
+                        <div class="text-muted small">Назначено</div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="fs-3 fw-bold text-success" th:text="${assignment.completedCount}"></div>
+                        <div class="text-muted small">Выполнено</div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="fs-3 fw-bold text-danger" th:text="${assignment.overdueCount}"></div>
+                        <div class="text-muted small">Просрочено</div>
+                    </div>
+                </div>
+                <div class="progress mt-3" style="height: 8px;" th:if="${assignment.totalAssigned > 0}">
+                    <div class="progress-bar bg-success" role="progressbar"
+                         th:style="'width: ' + ${(assignment.completedCount * 100) / assignment.totalAssigned} + '%'"></div>
+                </div>
+            </div>
+
+            <!-- Список сотрудников -->
+            <div class="profile-card p-4 mb-4">
+                <h5 class="mb-3">Сотрудники</h5>
+                <table class="table table-modern">
+                    <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>ФИО</th>
+                        <th>Статус</th>
+                        <th>Результат</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="ae, index : ${assignmentEmployees}">
+                        <td th:text="${index.index + 1}"></td>
+                        <td th:text="${ae.employeeFullName}"></td>
+                        <td>
+                            <span class="badge"
+                                  th:classappend="${ae.statusName == 'COMPLETED' ? 'bg-success' : (ae.statusName == 'OVERDUE' ? 'bg-danger' : 'bg-warning text-dark')}"
+                                  th:text="${ae.statusDisplayName}"></span>
+                        </td>
+                        <td>
+                            <a th:if="${ae.completedSessionId != null}"
+                               th:href="@{/employee/chief/results/detailsResult/{id}(id=${ae.completedSessionId})}"
+                               class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-eye"></i> Просмотр
+                            </a>
+                            <span th:if="${ae.completedSessionId == null}" class="text-muted">—</span>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </main>
+        <div th:insert="~{blocks/footer :: footer}"></div>
+    </div>
+</div>
+</body>
+</html>

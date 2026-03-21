@@ -16,6 +16,7 @@ import ru.mai.voshod.pneumotraining.mapper.TestMapper;
 import ru.mai.voshod.pneumotraining.mapper.TestSessionMapper;
 import ru.mai.voshod.pneumotraining.models.*;
 import ru.mai.voshod.pneumotraining.repo.*;
+import ru.mai.voshod.pneumotraining.service.employee.chief.TestAssignmentService;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -31,18 +32,21 @@ public class TestingService {
     private final TestAnswerRepository testAnswerRepository;
     private final TestSessionRepository testSessionRepository;
     private final TestSessionAnswerRepository testSessionAnswerRepository;
+    private final TestAssignmentService testAssignmentService;
     private final ObjectMapper objectMapper;
 
     public TestingService(TestRepository testRepository,
                           TestQuestionRepository testQuestionRepository,
                           TestAnswerRepository testAnswerRepository,
                           TestSessionRepository testSessionRepository,
-                          TestSessionAnswerRepository testSessionAnswerRepository) {
+                          TestSessionAnswerRepository testSessionAnswerRepository,
+                          TestAssignmentService testAssignmentService) {
         this.testRepository = testRepository;
         this.testQuestionRepository = testQuestionRepository;
         this.testAnswerRepository = testAnswerRepository;
         this.testSessionRepository = testSessionRepository;
         this.testSessionAnswerRepository = testSessionAnswerRepository;
+        this.testAssignmentService = testAssignmentService;
         this.objectMapper = new ObjectMapper();
     }
 
@@ -305,6 +309,12 @@ public class TestingService {
             session.setFinishedAt(LocalDateTime.now());
             session.setSessionStatus(status);
             testSessionRepository.save(session);
+
+            // Если тест пройден — пометить назначение как выполненное
+            if (session.getIsPassed()) {
+                testAssignmentService.markAssignmentCompleted(
+                        employee.getId(), session.getTest().getId(), session);
+            }
 
             log.info("Сессия завершена: id={}, score={}/{}, %={}, passed={}",
                     sessionId, score, totalScore, String.format("%.1f", scorePercent), session.getIsPassed());

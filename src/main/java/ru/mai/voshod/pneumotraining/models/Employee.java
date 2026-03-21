@@ -54,8 +54,10 @@ public class Employee implements UserDetails {
     private LocalDate birthDate;
 
     /** Подразделение */
-    @Column(length = 200)
-    private String subdivision;
+    @ManyToOne
+    @JoinColumn(name = "department_id")
+    @ToString.Exclude
+    private Department department;
 
     /** Должность */
     @Column(length = 200)

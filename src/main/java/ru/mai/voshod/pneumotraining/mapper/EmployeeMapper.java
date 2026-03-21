@@ -18,6 +18,8 @@ public interface EmployeeMapper {
     @Mapping(source = "enabled", target = "active")
     @Mapping(source = "employee", target = "fullName", qualifiedByName = "fullNameMapper")
     @Mapping(source = "needChangePassword", target = "needChangePassword")
+    @Mapping(source = "department.id", target = "departmentId")
+    @Mapping(source = "department.name", target = "departmentName")
     EmployeeDTO toDTO(Employee employee);
 
     List<EmployeeDTO> toDTOList(List<Employee> employees);

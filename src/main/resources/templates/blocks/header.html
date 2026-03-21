@@ -17,6 +17,11 @@
                 <i class="bi bi-people"></i> <span>Пользователи</span>
             </a>
         </li>
+        <li class="nav-item" sec:authorize="hasRole('ROLE_EMPLOYEE_ADMIN')">
+            <a th:href="@{/employee/admin/departments/allDepartments}">
+                <i class="bi bi-building"></i> <span>Подразделения</span>
+            </a>
+        </li>
 
         <!-- ========== CHIEF ========== -->
         <li sec:authorize="hasRole('ROLE_EMPLOYEE_CHIEF')">
@@ -30,6 +35,11 @@
         <li class="nav-item" sec:authorize="hasRole('ROLE_EMPLOYEE_CHIEF')">
             <a th:href="@{/employee/chief/tests/allTests}">
                 <i class="bi bi-list-check"></i> <span>Тесты</span>
+            </a>
+        </li>
+        <li class="nav-item" sec:authorize="hasRole('ROLE_EMPLOYEE_CHIEF')">
+            <a th:href="@{/employee/chief/assignments/allAssignments}">
+                <i class="bi bi-clipboard-check"></i> <span>Назначения</span>
             </a>
         </li>
         <li class="nav-item" sec:authorize="hasRole('ROLE_EMPLOYEE_CHIEF')">
@@ -68,6 +78,15 @@
             </a>
         </li>
         <!-- ========== ОБЩЕЕ ========== -->
+        <li class="nav-item" sec:authorize="isAuthenticated()">
+            <a th:href="@{/employee/notifications}">
+                <i class="bi bi-bell"></i>
+                <span>Уведомления</span>
+                <span class="badge bg-danger rounded-pill ms-1"
+                      th:if="${unreadNotificationCount != null and unreadNotificationCount > 0}"
+                      th:text="${unreadNotificationCount}"></span>
+            </a>
+        </li>
         <li class="nav-item" sec:authorize="isAuthenticated()">
             <a th:href="@{/employee/profile}">
                 <i class="bi bi-person-circle"></i> <span>Профиль</span>

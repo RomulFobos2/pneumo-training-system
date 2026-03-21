@@ -5,8 +5,10 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import ru.mai.voshod.pneumotraining.models.Department;
 import ru.mai.voshod.pneumotraining.models.Employee;
 import ru.mai.voshod.pneumotraining.models.Role;
+import ru.mai.voshod.pneumotraining.repo.DepartmentRepository;
 import ru.mai.voshod.pneumotraining.repo.EmployeeRepository;
 import ru.mai.voshod.pneumotraining.repo.RoleRepository;
 
@@ -20,13 +22,16 @@ public class DataInitializer implements CommandLineRunner {
 
     private final RoleRepository roleRepository;
     private final EmployeeRepository employeeRepository;
+    private final DepartmentRepository departmentRepository;
     private final BCryptPasswordEncoder bCryptPasswordEncoder;
 
     public DataInitializer(RoleRepository roleRepository,
                            EmployeeRepository employeeRepository,
+                           DepartmentRepository departmentRepository,
                            BCryptPasswordEncoder bCryptPasswordEncoder) {
         this.roleRepository = roleRepository;
         this.employeeRepository = employeeRepository;
+        this.departmentRepository = departmentRepository;
         this.bCryptPasswordEncoder = bCryptPasswordEncoder;
     }
 
@@ -38,6 +43,8 @@ public class DataInitializer implements CommandLineRunner {
         createRoleIfNotExists("ROLE_EMPLOYEE_SPECIALIST", "Специалист");
         createRoleIfNotExists("ROLE_EMPLOYEE_OPERATOR", "Оператор");
 
+        Department adminDept = createDepartmentIfNotExists("Администрация", "Административное подразделение");
+
         if (employeeRepository.findByUsername("admin").isEmpty()) {
             Role adminRole = roleRepository.findByName("ROLE_EMPLOYEE_ADMIN")
                     .orElseThrow(() -> new RuntimeException("Роль ROLE_EMPLOYEE_ADMIN не найдена"));
@@ -47,11 +54,23 @@ public class DataInitializer implements CommandLineRunner {
             admin.setRole(adminRole);
             admin.setActive(true);
             admin.setNeedChangePassword(true);
-            admin.setSubdivision("Администрация");
+            admin.setDepartment(adminDept);
             admin.setPosition("Системный администратор");
             employeeRepository.save(admin);
             log.info("Создан администратор по умолчанию: admin/admin");
         }
+    }
+
+    private Department createDepartmentIfNotExists(String name, String description) {
+        if (!departmentRepository.existsByName(name)) {
+            Department dept = new Department(name, description);
+            departmentRepository.save(dept);
+            log.info("Создано подразделение: {}", name);
+            return dept;
+        }
+        return departmentRepository.findAllByOrderByNameAsc().stream()
+                .filter(d -> d.getName().equals(name))
+                .findFirst().orElse(null);
     }
 
     private void createRoleIfNotExists(String name, String description) {

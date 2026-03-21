@@ -1,0 +1,98 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Редактировать подразделение | АОС ПИ</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/javascript.js"></script>
+</head>
+<body>
+<div id="wrapper">
+    <div th:insert="~{blocks/header :: sidebar}"></div>
+    <div id="content-wrapper">
+        <div th:insert="~{blocks/header :: topbar}"></div>
+        <div th:insert="~{blocks/header :: overlay}"></div>
+        <main class="container-fluid">
+
+            <div class="row justify-content-center">
+                <div class="col-12 col-lg-8">
+                    <div class="profile-card p-4">
+                        <h1 class="page-title">Редактирование подразделения</h1>
+
+                        <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
+
+                        <form method="post" th:action="@{/employee/admin/departments/editDepartment/{id}(id=${department.id})}" class="auth-form">
+                            <div class="mb-3">
+                                <label class="form-label">Название <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" name="inputName" required maxlength="200"
+                                       id="inputName" th:value="${department.name}"/>
+                                <div id="nameError" class="form-text text-danger" style="display:none">
+                                    Подразделение с таким названием уже существует
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Описание</label>
+                                <textarea class="form-control" name="inputDescription" rows="3"
+                                          th:text="${department.description}"></textarea>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-auth" id="submitBtn">
+                                    <i class="bi bi-check-lg"></i> Сохранить
+                                </button>
+                                <a th:href="@{/employee/admin/departments/allDepartments}" class="btn btn-outline-secondary">
+                                    Отмена
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+        <div th:insert="~{blocks/footer :: footer}"></div>
+    </div>
+</div>
+
+<script th:inline="javascript">
+    (function() {
+        var deptId = /*[[${department.id}]]*/ 0;
+        var nameInput = document.getElementById('inputName');
+        var nameError = document.getElementById('nameError');
+        var submitBtn = document.getElementById('submitBtn');
+        var timer = null;
+
+        nameInput.addEventListener('input', function() {
+            clearTimeout(timer);
+            var name = nameInput.value.trim();
+            if (name.length === 0) {
+                nameError.style.display = 'none';
+                nameInput.classList.remove('is-valid', 'is-invalid');
+                submitBtn.disabled = false;
+                return;
+            }
+            timer = setTimeout(function() {
+                fetch('/employee/admin/departments/check-name?name=' + encodeURIComponent(name) + '&id=' + deptId)
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        if (data.exists) {
+                            nameError.style.display = 'block';
+                            nameInput.classList.add('is-invalid');
+                            nameInput.classList.remove('is-valid');
+                            submitBtn.disabled = true;
+                        } else {
+                            nameError.style.display = 'none';
+                            nameInput.classList.add('is-valid');
+                            nameInput.classList.remove('is-invalid');
+                            submitBtn.disabled = false;
+                        }
+                    });
+            }, 400);
+        });
+    })();
+</script>
+</body>
+</html>

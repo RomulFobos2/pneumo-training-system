@@ -19,11 +19,63 @@
         <main class="container-fluid">
 
             <div class="profile-card mb-4">
-                <h1 class="page-title mb-0">Доступные тесты</h1>
+                <h1 class="page-title mb-0">Тестирование</h1>
             </div>
 
             <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
 
+            <!-- Назначенные тесты -->
+            <div th:if="${!#lists.isEmpty(assignedTests)}" class="mb-4">
+                <h5 class="mb-3"><i class="bi bi-clipboard-check"></i> Назначенные тесты</h5>
+                <div class="row g-3">
+                    <div class="col-12 col-md-6 col-lg-4" th:each="at : ${assignedTests}">
+                        <div class="profile-card p-4 h-100 d-flex flex-column border-start border-3"
+                             th:classappend="${at.daysUntilDeadline > 5 ? 'border-success' : (at.daysUntilDeadline >= 1 ? 'border-warning' : 'border-danger')}">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h5 class="mb-0" th:text="${at.testTitle}"></h5>
+                                <span class="badge"
+                                      th:classappend="${at.daysUntilDeadline > 5 ? 'bg-success' : (at.daysUntilDeadline >= 1 ? 'bg-warning text-dark' : 'bg-danger')}"
+                                      th:text="${at.daysUntilDeadline > 0 ? 'Осталось ' + at.daysUntilDeadline + ' дн.' : (at.daysUntilDeadline == 0 ? 'Сегодня!' : 'Просрочено')}"></span>
+                            </div>
+                            <p class="text-muted small flex-grow-1"
+                               th:if="${at.testDescription}"
+                               th:text="${#strings.length(at.testDescription) > 120
+                                   ? #strings.substring(at.testDescription, 0, 120) + '...'
+                                   : at.testDescription}"></p>
+                            <div class="mb-2">
+                                <span class="badge bg-light text-dark me-1">
+                                    <i class="bi bi-question-circle"></i>
+                                    <span th:text="${at.questionCount}"></span> вопросов
+                                </span>
+                                <span class="badge bg-light text-dark me-1" th:if="${at.timeLimit > 0}">
+                                    <i class="bi bi-clock"></i>
+                                    <span th:text="${at.timeLimit}"></span> мин
+                                </span>
+                                <span class="badge bg-light text-dark me-1" th:if="${at.timeLimit == 0}">
+                                    <i class="bi bi-clock"></i> без ограничения
+                                </span>
+                                <span class="badge bg-light text-dark">
+                                    <i class="bi bi-check-circle"></i>
+                                    <span th:text="${at.passingScore}"></span>%
+                                </span>
+                            </div>
+                            <div class="mb-2">
+                                <span class="text-muted small">
+                                    <i class="bi bi-calendar-event"></i> Срок: <span th:text="${#temporals.format(at.deadline, 'dd.MM.yyyy')}"></span>
+                                </span>
+                                <span class="badge bg-warning text-dark ms-1" th:if="${at.exam}">Экзамен</span>
+                            </div>
+                            <a th:href="@{/employee/specialist/testing/startTest/{id}(id=${at.testId})}"
+                               class="btn btn-primary btn-sm mt-auto">
+                                <i class="bi bi-play-fill"></i> Начать
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Доступные тесты -->
+            <h5 class="mb-3"><i class="bi bi-list-check"></i> Доступные тесты</h5>
             <div class="row g-3">
                 <div class="col-12 col-md-6 col-lg-4" th:each="test : ${availableTests}">
                     <div class="profile-card p-4 h-100 d-flex flex-column">

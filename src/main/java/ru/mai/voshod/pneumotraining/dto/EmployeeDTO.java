@@ -12,7 +12,8 @@ public class EmployeeDTO {
     private String middleName;
     private String fullName;
     private LocalDate birthDate;
-    private String subdivision;
+    private Long departmentId;
+    private String departmentName;
     private String position;
     private String username;
     private String roleName;

@@ -54,8 +54,11 @@
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label">Подразделение</label>
-                                    <input type="text" name="inputSubdivision" class="form-control"
-                                           maxlength="200" th:value="${userDTO.subdivision}">
+                                    <select name="inputDepartmentId" class="form-select">
+                                        <option value="">— Не выбрано —</option>
+                                        <option th:each="dept : ${allDepartments}" th:value="${dept.id}" th:text="${dept.name}"
+                                                th:selected="${userDTO.departmentId != null and userDTO.departmentId == dept.id}"></option>
+                                    </select>
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label">Должность</label>
