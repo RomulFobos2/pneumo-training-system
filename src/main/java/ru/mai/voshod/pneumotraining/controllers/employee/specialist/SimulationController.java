@@ -70,7 +70,7 @@ public class SimulationController {
             return "redirect:/employee/specialist/mnemo/result/" + sessionId;
         }
 
-        model.addAttribute("session", session);
+        model.addAttribute("simSession", session);
 
         // Загрузить данные схемы для SVG-рендера
         if (session.getSchemaId() != null) {
@@ -85,7 +85,7 @@ public class SimulationController {
                          @AuthenticationPrincipal Employee currentUser) {
         Optional<SimulationSessionDTO> resultOpt = simulationService.getResult(sessionId, currentUser);
         if (resultOpt.isEmpty()) return "redirect:/employee/specialist/mnemo/scenarios";
-        model.addAttribute("session", resultOpt.get());
+        model.addAttribute("simSession", resultOpt.get());
         return "employee/specialist/mnemo/result";
     }
 

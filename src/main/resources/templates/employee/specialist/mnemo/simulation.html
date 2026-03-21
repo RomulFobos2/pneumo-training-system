@@ -45,23 +45,23 @@
                 <!-- Header: timer + progress -->
                 <div class="sim-header">
                     <div>
-                        <strong th:text="${session.scenarioTitle}" style="font-size:1rem;"></strong>
+                        <strong th:text="${simSession.scenarioTitle}" style="font-size:1rem;"></strong>
                     </div>
                     <div class="sim-progress" id="stepProgress">
                         <!-- Rendered by JS -->
                     </div>
                     <div>
-                        <span th:if="${session.endTime != null}" class="sim-timer" id="simTimer"
-                              th:attr="data-end-time=${session.endTime}">--:--</span>
-                        <span th:if="${session.endTime == null}" class="text-muted">Без ограничения</span>
+                        <span th:if="${simSession.endTime != null}" class="sim-timer" id="simTimer"
+                              th:attr="data-end-time=${simSession.endTime}">--:--</span>
+                        <span th:if="${simSession.endTime == null}" class="text-muted">Без ограничения</span>
                     </div>
                 </div>
 
                 <!-- Instruction -->
                 <div class="sim-instruction" id="simInstruction">
                     <i class="bi bi-arrow-right-circle"></i>
-                    <strong>Шаг <span id="currentStepNum" th:text="${session.currentStep}"></span>:</strong>
-                    <span id="instructionText" th:text="${session.currentInstruction ?: 'Следуйте инструкции'}"></span>
+                    <strong>Шаг <span id="currentStepNum" th:text="${simSession.currentStep}"></span>:</strong>
+                    <span id="instructionText" th:text="${simSession.currentInstruction ?: 'Следуйте инструкции'}"></span>
                 </div>
 
                 <!-- Feedback -->
@@ -85,11 +85,11 @@
 </div>
 
 <script th:inline="javascript">
-    var simSessionId = [[${session.id}]];
-    var simCurrentStep = [[${session.currentStep}]];
-    var simTotalSteps = [[${session.totalSteps}]];
-    var simCompletedSteps = [[${session.completedSteps}]];
-    var simCurrentState = [[${session.currentState}]];
+    var simSessionId = [[${simSession.id}]];
+    var simCurrentStep = [[${simSession.currentStep}]];
+    var simTotalSteps = [[${simSession.totalSteps}]];
+    var simCompletedSteps = [[${simSession.completedSteps}]];
+    var simCurrentState = [[${simSession.currentState}]];
     var simSchemaData = [[${schemaData}]];
 </script>
 <script src="/js/schemaEditor.js"></script>

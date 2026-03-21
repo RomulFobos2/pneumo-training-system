@@ -22,19 +22,19 @@
                 <div class="col-12 col-lg-9">
 
                     <div class="profile-card p-4 mb-4">
-                        <h1 class="page-title mb-3" th:text="${session.scenarioTitle}"></h1>
+                        <h1 class="page-title mb-3" th:text="${simSession.scenarioTitle}"></h1>
 
                         <!-- Status -->
                         <div class="text-center mb-4">
-                            <div th:if="${session.sessionStatus == 'COMPLETED'}">
+                            <div th:if="${simSession.sessionStatus == 'COMPLETED'}">
                                 <i class="bi bi-check-circle-fill text-success" style="font-size: 3rem;"></i>
                                 <h4 class="text-success mt-2">Симуляция пройдена успешно</h4>
                             </div>
-                            <div th:if="${session.sessionStatus == 'EXPIRED'}">
+                            <div th:if="${simSession.sessionStatus == 'EXPIRED'}">
                                 <i class="bi bi-clock-fill text-warning" style="font-size: 3rem;"></i>
                                 <h4 class="text-warning mt-2">Время истекло</h4>
                             </div>
-                            <div th:if="${session.sessionStatus == 'FAILED'}">
+                            <div th:if="${simSession.sessionStatus == 'FAILED'}">
                                 <i class="bi bi-x-circle-fill text-danger" style="font-size: 3rem;"></i>
                                 <h4 class="text-danger mt-2">Симуляция не пройдена</h4>
                             </div>
@@ -46,15 +46,15 @@
                                 <div class="border rounded p-3 text-center">
                                     <div class="text-muted" style="font-size:0.8rem;">Статус</div>
                                     <span class="badge mt-1"
-                                          th:classappend="${session.sessionStatus == 'COMPLETED' ? 'bg-success' : (session.sessionStatus == 'EXPIRED' ? 'bg-warning text-dark' : 'bg-danger')}"
-                                          th:text="${session.sessionStatusDisplayName}"></span>
+                                          th:classappend="${simSession.sessionStatus == 'COMPLETED' ? 'bg-success' : (session.sessionStatus == 'EXPIRED' ? 'bg-warning text-dark' : 'bg-danger')}"
+                                          th:text="${simSession.sessionStatusDisplayName}"></span>
                                 </div>
                             </div>
                             <div class="col-md-3">
                                 <div class="border rounded p-3 text-center">
                                     <div class="text-muted" style="font-size:0.8rem;">Пройдено шагов</div>
                                     <div class="fw-bold fs-5">
-                                        <span th:text="${session.completedSteps}"></span> / <span th:text="${session.totalSteps}"></span>
+                                        <span th:text="${simSession.completedSteps}"></span> / <span th:text="${simSession.totalSteps}"></span>
                                     </div>
                                 </div>
                             </div>
@@ -68,7 +68,7 @@
                                 <div class="border rounded p-3 text-center">
                                     <div class="text-muted" style="font-size:0.8rem;">Завершение</div>
                                     <div style="font-size:0.9rem;"
-                                         th:text="${session.finishedAt != null ? #temporals.format(session.finishedAt, 'dd.MM.yyyy HH:mm') : '—'}"></div>
+                                         th:text="${simSession.finishedAt != null ? #temporals.format(session.finishedAt, 'dd.MM.yyyy HH:mm') : '—'}"></div>
                                 </div>
                             </div>
                         </div>
@@ -78,11 +78,11 @@
                             <div class="d-flex justify-content-between mb-1">
                                 <small class="text-muted">Прогресс</small>
                                 <small class="text-muted"
-                                       th:text="${session.totalSteps > 0 ? (session.completedSteps * 100 / session.totalSteps) + '%' : '0%'}"></small>
+                                       th:text="${simSession.totalSteps > 0 ? (session.completedSteps * 100 / session.totalSteps) + '%' : '0%'}"></small>
                             </div>
                             <div class="progress" style="height: 10px;">
                                 <div class="progress-bar"
-                                     th:classappend="${session.sessionStatus == 'COMPLETED' ? 'bg-success' : 'bg-warning'}"
+                                     th:classappend="${simSession.sessionStatus == 'COMPLETED' ? 'bg-success' : 'bg-warning'}"
                                      role="progressbar"
                                      th:style="'width: ' + (session.totalSteps > 0 ? (session.completedSteps * 100 / session.totalSteps) : 0) + '%'"></div>
                             </div>
