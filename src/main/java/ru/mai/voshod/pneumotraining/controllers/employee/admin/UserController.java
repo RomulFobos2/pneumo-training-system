@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import ru.mai.voshod.pneumotraining.dto.EmployeeDTO;
 import ru.mai.voshod.pneumotraining.service.employee.EmployeeService;
+import ru.mai.voshod.pneumotraining.service.employee.admin.DepartmentService;
 
 import java.time.LocalDate;
 import java.util.HashMap;
@@ -20,9 +21,11 @@ import java.util.Optional;
 public class UserController {
 
     private final EmployeeService employeeService;
+    private final DepartmentService departmentService;
 
-    public UserController(EmployeeService employeeService) {
+    public UserController(EmployeeService employeeService, DepartmentService departmentService) {
         this.employeeService = employeeService;
+        this.departmentService = departmentService;
     }
 
     // ========== AJAX проверка уникальности username ==========
@@ -55,6 +58,7 @@ public class UserController {
     @GetMapping("/employee/admin/users/addUser")
     public String addUserForm(Model model) {
         model.addAttribute("allRoles", employeeService.getAllRoles());
+        model.addAttribute("allDepartments", departmentService.getAllDepartments());
         return "employee/admin/users/addUser";
     }
 
@@ -63,18 +67,19 @@ public class UserController {
                           @RequestParam String inputFirstName,
                           @RequestParam(required = false) String inputMiddleName,
                           @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate inputBirthDate,
-                          @RequestParam(required = false) String inputSubdivision,
+                          @RequestParam(required = false) Long inputDepartmentId,
                           @RequestParam(required = false) String inputPosition,
                           @RequestParam String inputUsername,
                           @RequestParam String inputPassword,
                           @RequestParam String inputRole,
                           Model model) {
         Optional<Long> result = employeeService.saveUser(inputLastName, inputFirstName, inputMiddleName,
-                inputBirthDate, inputSubdivision, inputPosition, inputUsername, inputPassword, inputRole);
+                inputBirthDate, inputDepartmentId, inputPosition, inputUsername, inputPassword, inputRole);
 
         if (result.isEmpty()) {
             model.addAttribute("userError", "Ошибка при сохранении. Возможно, логин уже занят.");
             model.addAttribute("allRoles", employeeService.getAllRoles());
+            model.addAttribute("allDepartments", departmentService.getAllDepartments());
             return "employee/admin/users/addUser";
         }
         return "redirect:/employee/admin/users/detailsUser/" + result.get();
@@ -103,6 +108,7 @@ public class UserController {
         }
         model.addAttribute("userDTO", userOptional.get());
         model.addAttribute("allRoles", employeeService.getAllRoles());
+        model.addAttribute("allDepartments", departmentService.getAllDepartments());
         return "employee/admin/users/editUser";
     }
 
@@ -112,13 +118,13 @@ public class UserController {
                            @RequestParam String inputFirstName,
                            @RequestParam(required = false) String inputMiddleName,
                            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate inputBirthDate,
-                           @RequestParam(required = false) String inputSubdivision,
+                           @RequestParam(required = false) Long inputDepartmentId,
                            @RequestParam(required = false) String inputPosition,
                            @RequestParam String inputUsername,
                            @RequestParam String inputRole,
                            RedirectAttributes redirectAttributes) {
         Optional<Long> result = employeeService.editUser(id, inputLastName, inputFirstName, inputMiddleName,
-                inputBirthDate, inputSubdivision, inputPosition, inputUsername, inputRole);
+                inputBirthDate, inputDepartmentId, inputPosition, inputUsername, inputRole);
 
         if (result.isEmpty()) {
             redirectAttributes.addFlashAttribute("userError", "Ошибка при сохранении изменений.");

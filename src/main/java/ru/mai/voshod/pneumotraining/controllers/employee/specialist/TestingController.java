@@ -10,6 +10,7 @@ import ru.mai.voshod.pneumotraining.dto.TestDTO;
 import ru.mai.voshod.pneumotraining.dto.TestSessionDTO;
 import ru.mai.voshod.pneumotraining.enumeration.TestSessionStatus;
 import ru.mai.voshod.pneumotraining.models.Employee;
+import ru.mai.voshod.pneumotraining.service.employee.chief.TestAssignmentService;
 import ru.mai.voshod.pneumotraining.service.employee.specialist.TestingService;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -21,16 +22,20 @@ import java.util.Optional;
 public class TestingController {
 
     private final TestingService testingService;
+    private final TestAssignmentService testAssignmentService;
 
-    public TestingController(TestingService testingService) {
+    public TestingController(TestingService testingService,
+                             TestAssignmentService testAssignmentService) {
         this.testingService = testingService;
+        this.testAssignmentService = testAssignmentService;
     }
 
     // ========== Список доступных тестов ==========
 
     @GetMapping("/employee/specialist/testing/availableTests")
-    public String availableTests(Model model) {
+    public String availableTests(@AuthenticationPrincipal Employee currentUser, Model model) {
         model.addAttribute("availableTests", testingService.getAvailableTests());
+        model.addAttribute("assignedTests", testAssignmentService.getAssignedTestsForEmployee(currentUser.getId()));
         return "employee/specialist/testing/availableTests";
     }
 

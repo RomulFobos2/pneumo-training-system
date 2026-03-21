@@ -1,0 +1,187 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Новое назначение | АОС ПИ</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/javascript.js"></script>
+</head>
+<body>
+<div id="wrapper">
+    <div th:insert="~{blocks/header :: sidebar}"></div>
+    <div id="content-wrapper">
+        <div th:insert="~{blocks/header :: topbar}"></div>
+        <div th:insert="~{blocks/header :: overlay}"></div>
+        <main class="container-fluid">
+
+            <div class="row justify-content-center">
+                <div class="col-12 col-lg-10">
+                    <div class="profile-card p-4">
+                        <h1 class="page-title">Новое назначение</h1>
+
+                        <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
+
+                        <form method="post" th:action="@{/employee/chief/assignments/addAssignment}" id="assignmentForm" class="auth-form">
+
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-6">
+                                    <label class="form-label">Тест <span class="text-danger">*</span></label>
+                                    <select name="inputTestId" class="form-select" required>
+                                        <option value="">— Выберите тест —</option>
+                                        <option th:each="t : ${allTests}" th:value="${t.id}" th:text="${t.title}"></option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Срок сдачи <span class="text-danger">*</span></label>
+                                    <input type="date" name="inputDeadline" class="form-control" required/>
+                                </div>
+                            </div>
+
+                            <!-- Режим выбора сотрудников -->
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Выбор сотрудников</label>
+                                <div class="d-flex gap-3">
+                                    <div class="form-check">
+                                        <input type="radio" name="selectionMode" value="employees" class="form-check-input"
+                                               id="modeEmployees" checked onchange="toggleMode()">
+                                        <label class="form-check-label" for="modeEmployees">По сотрудникам</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input type="radio" name="selectionMode" value="department" class="form-check-input"
+                                               id="modeDepartment" onchange="toggleMode()">
+                                        <label class="form-check-label" for="modeDepartment">По подразделению</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Выбор по подразделению -->
+                            <div id="departmentBlock" style="display:none" class="mb-3">
+                                <label class="form-label">Подразделение</label>
+                                <select id="departmentSelect" class="form-select" onchange="loadDepartmentEmployees()">
+                                    <option value="">— Выберите подразделение —</option>
+                                    <option th:each="d : ${allDepartments}" th:value="${d.id}" th:text="${d.name}"></option>
+                                </select>
+                            </div>
+
+                            <!-- Кнопки выбора -->
+                            <div class="mb-2 d-flex gap-2">
+                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="selectAll()">
+                                    <i class="bi bi-check-all"></i> Выбрать всех
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="deselectAll()">
+                                    <i class="bi bi-x-lg"></i> Снять все отметки
+                                </button>
+                                <span id="selectedCount" class="badge bg-primary align-self-center">0 выбрано</span>
+                            </div>
+
+                            <!-- Список сотрудников -->
+                            <div id="employeeList" class="profile-card p-3 mb-4" style="max-height: 400px; overflow-y: auto;">
+                                <div th:each="e : ${allEmployees}" class="form-check mb-1 employee-item">
+                                    <input type="checkbox" class="form-check-input employee-checkbox"
+                                           name="inputEmployeeIds" th:value="${e.id}" th:id="'emp_' + ${e.id}"
+                                           onchange="updateCount()">
+                                    <label class="form-check-label" th:for="'emp_' + ${e.id}">
+                                        <span th:text="${e.fullName}"></span>
+                                        <small class="text-muted" th:text="${e.departmentName != null ? '(' + e.departmentName + ')' : ''}"></small>
+                                    </label>
+                                </div>
+                                <div th:if="${#lists.isEmpty(allEmployees)}" class="text-muted text-center">
+                                    Нет доступных сотрудников
+                                </div>
+                            </div>
+
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-auth" id="submitBtn" disabled>
+                                    <i class="bi bi-check-lg"></i> Назначить
+                                </button>
+                                <a th:href="@{/employee/chief/assignments/allAssignments}" class="btn btn-outline-secondary">
+                                    Отмена
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+        <div th:insert="~{blocks/footer :: footer}"></div>
+    </div>
+</div>
+
+<script>
+    function toggleMode() {
+        var mode = document.querySelector('input[name="selectionMode"]:checked').value;
+        var deptBlock = document.getElementById('departmentBlock');
+        var empList = document.getElementById('employeeList');
+
+        if (mode === 'department') {
+            deptBlock.style.display = 'block';
+            // Очистить текущий выбор
+            deselectAll();
+        } else {
+            deptBlock.style.display = 'none';
+            // Показать всех сотрудников
+            var items = document.querySelectorAll('.employee-item');
+            items.forEach(function(item) { item.style.display = ''; });
+        }
+    }
+
+    function loadDepartmentEmployees() {
+        var deptId = document.getElementById('departmentSelect').value;
+        if (!deptId) return;
+
+        fetch('/employee/chief/assignments/employeesByDepartment/' + deptId)
+            .then(function(r) { return r.json(); })
+            .then(function(employees) {
+                var container = document.getElementById('employeeList');
+                container.innerHTML = '';
+
+                if (employees.length === 0) {
+                    container.innerHTML = '<div class="text-muted text-center">Нет сотрудников в подразделении</div>';
+                    updateCount();
+                    return;
+                }
+
+                employees.forEach(function(e) {
+                    var div = document.createElement('div');
+                    div.className = 'form-check mb-1 employee-item';
+                    div.innerHTML =
+                        '<input type="checkbox" class="form-check-input employee-checkbox" ' +
+                        'name="inputEmployeeIds" value="' + e.id + '" id="emp_' + e.id + '" ' +
+                        'onchange="updateCount()" checked>' +
+                        '<label class="form-check-label" for="emp_' + e.id + '">' +
+                        '<span>' + e.fullName + '</span>' +
+                        (e.departmentName ? ' <small class="text-muted">(' + e.departmentName + ')</small>' : '') +
+                        '</label>';
+                    container.appendChild(div);
+                });
+                updateCount();
+            });
+    }
+
+    function selectAll() {
+        document.querySelectorAll('.employee-checkbox').forEach(function(cb) {
+            if (cb.closest('.employee-item').style.display !== 'none') {
+                cb.checked = true;
+            }
+        });
+        updateCount();
+    }
+
+    function deselectAll() {
+        document.querySelectorAll('.employee-checkbox').forEach(function(cb) { cb.checked = false; });
+        updateCount();
+    }
+
+    function updateCount() {
+        var count = document.querySelectorAll('.employee-checkbox:checked').length;
+        document.getElementById('selectedCount').textContent = count + ' выбрано';
+        document.getElementById('submitBtn').disabled = (count === 0);
+    }
+</script>
+</body>
+</html>

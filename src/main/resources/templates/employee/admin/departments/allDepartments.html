@@ -1,0 +1,78 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Подразделения | АОС ПИ</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/javascript.js"></script>
+</head>
+<body>
+<div id="wrapper">
+    <div th:insert="~{blocks/header :: sidebar}"></div>
+    <div id="content-wrapper">
+        <div th:insert="~{blocks/header :: topbar}"></div>
+        <div th:insert="~{blocks/header :: overlay}"></div>
+        <main class="container-fluid">
+
+            <div class="profile-card mb-4">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <h1 class="page-title mb-0">Подразделения</h1>
+                    <div class="profile-actions">
+                        <a th:href="@{/employee/admin/departments/addDepartment}" class="btn btn-success btn-profile">
+                            <i class="bi bi-plus-lg"></i> Добавить подразделение
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
+            <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
+
+            <div class="table-container">
+                <table class="table table-modern">
+                    <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Название</th>
+                        <th>Описание</th>
+                        <th>Сотрудников</th>
+                        <th style="width: 150px">Действия</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="dept, index : ${allDepartments}">
+                        <td th:text="${index.index + 1}"></td>
+                        <td th:text="${dept.name}"></td>
+                        <td th:text="${dept.description}" style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></td>
+                        <td><span class="badge bg-primary" th:text="${dept.employeeCount}"></span></td>
+                        <td>
+                            <div class="d-flex gap-1">
+                                <a th:href="@{/employee/admin/departments/editDepartment/{id}(id=${dept.id})}"
+                                   class="btn btn-sm btn-outline-primary" title="Редактировать">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <a href="javascript:void(0)"
+                                   th:onclick="'confirmDelete(\'/employee/admin/departments/deleteDepartment/' + ${dept.id} + '\')'"
+                                   class="btn btn-sm btn-outline-danger" title="Удалить">
+                                    <i class="bi bi-trash"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(allDepartments)}">
+                        <td colspan="5" class="text-center text-muted">Подразделения ещё не созданы</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </main>
+        <div th:insert="~{blocks/footer :: footer}"></div>
+    </div>
+</div>
+</body>
+</html>
