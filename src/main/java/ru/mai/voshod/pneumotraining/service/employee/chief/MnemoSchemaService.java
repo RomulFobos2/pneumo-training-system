@@ -149,10 +149,13 @@ public class MnemoSchemaService {
             if (data.getWidth() != null) schema.setWidth(data.getWidth());
             if (data.getHeight() != null) schema.setHeight(data.getHeight());
 
-            // Полная замена элементов
+            // 1. Очистить ОБЕ коллекции и flush (orphanRemoval удалит старые записи)
+            schema.getConnections().clear();
             schema.getElements().clear();
-            Map<Long, SchemaElement> tempIdMap = new HashMap<>();
+            mnemoSchemaRepository.saveAndFlush(schema);
 
+            // 2. Добавить новые элементы
+            Map<Long, SchemaElement> tempIdMap = new HashMap<>();
             for (SchemaElementDTO dto : data.getElements()) {
                 SchemaElement element = new SchemaElement();
                 element.setName(dto.getName());
@@ -165,18 +168,15 @@ public class MnemoSchemaService {
                 element.setRotation(dto.getRotation() != null ? dto.getRotation() : 0);
                 element.setSchema(schema);
                 schema.getElements().add(element);
-
-                // Маппинг временного ID клиента → entity для соединений
                 if (dto.getId() != null) {
                     tempIdMap.put(dto.getId(), element);
                 }
             }
 
-            // Flush чтобы элементы получили real ID
+            // 3. Flush чтобы элементы получили real ID
             mnemoSchemaRepository.saveAndFlush(schema);
 
-            // Полная замена соединений
-            schema.getConnections().clear();
+            // 4. Добавить соединения (элементы уже persisted)
             for (SchemaConnectionDTO dto : data.getConnections()) {
                 SchemaElement source = tempIdMap.get(dto.getSourceElementId());
                 SchemaElement target = tempIdMap.get(dto.getTargetElementId());
