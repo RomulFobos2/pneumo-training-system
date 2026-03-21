@@ -2,6 +2,8 @@ package ru.mai.voshod.pneumotraining.dto;
 
 import lombok.Data;
 
+import java.util.List;
+
 @Data
 public class TestDTO {
     private Long id;
@@ -10,9 +12,11 @@ public class TestDTO {
     private Integer timeLimit;
     private Integer passingScore;
     private boolean isExam;
-    private boolean isActive;
+    private boolean availableWithoutAssignment;
     private Long createdById;
     private String createdByFullName;
     private boolean allowBackNavigation;
     private int questionCount;
+    private List<Long> departmentIds;
+    private List<DepartmentDTO> allowedDepartments;
 }

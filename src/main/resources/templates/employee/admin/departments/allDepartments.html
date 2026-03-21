@@ -38,6 +38,7 @@
                     <tr>
                         <th>#</th>
                         <th>Название</th>
+                        <th>Родитель</th>
                         <th>Описание</th>
                         <th>Сотрудников</th>
                         <th style="width: 150px">Действия</th>
@@ -46,7 +47,8 @@
                     <tbody>
                     <tr th:each="dept, index : ${allDepartments}">
                         <td th:text="${index.index + 1}"></td>
-                        <td th:text="${dept.name}"></td>
+                        <td th:style="'padding-left:' + (${dept.level} * 20 + 8) + 'px'" th:text="${dept.name}"></td>
+                        <td th:text="${dept.parentName}" class="text-muted"></td>
                         <td th:text="${dept.description}" style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></td>
                         <td><span class="badge bg-primary" th:text="${dept.employeeCount}"></span></td>
                         <td>
@@ -64,7 +66,7 @@
                         </td>
                     </tr>
                     <tr th:if="${#lists.isEmpty(allDepartments)}">
-                        <td colspan="5" class="text-center text-muted">Подразделения ещё не созданы</td>
+                        <td colspan="6" class="text-center text-muted">Подразделения ещё не созданы</td>
                     </tr>
                     </tbody>
                 </table>

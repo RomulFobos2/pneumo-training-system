@@ -49,7 +49,7 @@ public class AnalyticsService {
         long totalEmployees = employeeRepository.count();
         long activeEmployees = employeeRepository.countByIsActiveTrue();
         long totalTests = testRepository.count();
-        long activeTests = testRepository.findByIsActiveTrueOrderByTitleAsc().size();
+        long activeTests = testRepository.findByAvailableWithoutAssignmentTrueOrderByTitleAsc().size();
 
         data.put("totalEmployees", totalEmployees);
         data.put("activeEmployees", activeEmployees);
@@ -182,7 +182,7 @@ public class AnalyticsService {
 
         // Данные для фильтров
         data.put("allEmployees", employeeRepository.findAllByOrderByLastNameAsc());
-        data.put("allTests", testRepository.findByIsActiveTrueOrderByTitleAsc());
+        data.put("allTests", testRepository.findAllByOrderByTitleAsc());
         data.put("dateFrom", effectiveFrom);
         data.put("dateTo", effectiveTo);
         data.put("selectedTestId", testId);
@@ -256,7 +256,7 @@ public class AnalyticsService {
             setTableWidth(metricsTable);
             setCell(metricsTable, 0, 0, "Активных сотрудников");
             setCell(metricsTable, 0, 1, data.get("activeEmployees") + " из " + data.get("totalEmployees"));
-            setCell(metricsTable, 1, 0, "Активных тестов");
+            setCell(metricsTable, 1, 0, "Доступных без назначения");
             setCell(metricsTable, 1, 1, data.get("activeTests") + " из " + data.get("totalTests"));
             setCell(metricsTable, 2, 0, "Сессий за период");
             setCell(metricsTable, 2, 1, String.valueOf(data.get("sessionsCount")));

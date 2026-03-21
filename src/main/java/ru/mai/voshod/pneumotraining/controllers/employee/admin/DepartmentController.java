@@ -41,23 +41,26 @@ public class DepartmentController {
 
     @GetMapping("/allDepartments")
     public String allDepartments(Model model) {
-        model.addAttribute("allDepartments", departmentService.getAllDepartments());
+        model.addAttribute("allDepartments", departmentService.getAllDepartmentsFlat());
         return "employee/admin/departments/allDepartments";
     }
 
     @GetMapping("/addDepartment")
-    public String addDepartmentForm() {
+    public String addDepartmentForm(Model model) {
+        model.addAttribute("allDepartments", departmentService.getAllDepartmentsFlat());
         return "employee/admin/departments/addDepartment";
     }
 
     @PostMapping("/addDepartment")
     public String addDepartment(@RequestParam String inputName,
                                 @RequestParam(required = false) String inputDescription,
+                                @RequestParam(required = false) Long inputParentId,
                                 Model model,
                                 RedirectAttributes redirectAttributes) {
-        Optional<Long> result = departmentService.saveDepartment(inputName, inputDescription);
+        Optional<Long> result = departmentService.saveDepartment(inputName, inputDescription, inputParentId);
         if (result.isEmpty()) {
             model.addAttribute("errorMessage", "Ошибка при создании. Возможно, название уже занято.");
+            model.addAttribute("allDepartments", departmentService.getAllDepartmentsFlat());
             return "employee/admin/departments/addDepartment";
         }
         redirectAttributes.addFlashAttribute("successMessage", "Подразделение создано.");
@@ -71,6 +74,7 @@ public class DepartmentController {
             return "redirect:/employee/admin/departments/allDepartments";
         }
         model.addAttribute("department", deptOptional.get());
+        model.addAttribute("allDepartments", departmentService.getAllDepartmentsFlatExcluding(id));
         return "employee/admin/departments/editDepartment";
     }
 
@@ -78,8 +82,9 @@ public class DepartmentController {
     public String editDepartment(@PathVariable Long id,
                                  @RequestParam String inputName,
                                  @RequestParam(required = false) String inputDescription,
+                                 @RequestParam(required = false) Long inputParentId,
                                  RedirectAttributes redirectAttributes) {
-        Optional<Long> result = departmentService.editDepartment(id, inputName, inputDescription);
+        Optional<Long> result = departmentService.editDepartment(id, inputName, inputDescription, inputParentId);
         if (result.isEmpty()) {
             redirectAttributes.addFlashAttribute("errorMessage", "Ошибка при сохранении. Возможно, название уже занято.");
             return "redirect:/employee/admin/departments/editDepartment/" + id;
@@ -93,7 +98,8 @@ public class DepartmentController {
         if (departmentService.deleteDepartment(id)) {
             redirectAttributes.addFlashAttribute("successMessage", "Подразделение удалено.");
         } else {
-            redirectAttributes.addFlashAttribute("errorMessage", "Нельзя удалить подразделение, в котором есть сотрудники.");
+            redirectAttributes.addFlashAttribute("errorMessage",
+                    "Нельзя удалить подразделение, в котором есть сотрудники или дочерние подразделения.");
         }
         return "redirect:/employee/admin/departments/allDepartments";
     }

@@ -29,8 +29,8 @@
                         <p class="page-subtitle" th:if="${testDTO.description}" th:text="${testDTO.description}"></p>
                     </div>
                     <div>
-                        <span th:if="${testDTO.isActive()}" class="badge bg-success">Активен</span>
-                        <span th:if="${!testDTO.isActive()}" class="badge bg-secondary">Черновик</span>
+                        <span th:if="${testDTO.availableWithoutAssignment}" class="badge bg-success">Свободный доступ</span>
+                        <span th:if="${!testDTO.availableWithoutAssignment}" class="badge bg-info">Только по назначению</span>
                     </div>
                 </div>
                 <div class="row mt-3">
@@ -56,16 +56,14 @@
                         <span th:text="${testDTO.createdByFullName}"></span>
                     </div>
                 </div>
+                <div th:if="${testDTO.availableWithoutAssignment && testDTO.allowedDepartments != null && !testDTO.allowedDepartments.isEmpty()}" class="mt-3">
+                    <small class="text-muted">Подразделения:</small>
+                    <span th:each="d : ${testDTO.allowedDepartments}" class="badge bg-light text-dark me-1" th:text="${d.name}"></span>
+                </div>
                 <div class="mt-3">
                     <a th:href="@{/employee/chief/tests/editTest/{id}(id=${testDTO.id})}"
                        class="btn btn-sm btn-outline-primary me-1">
                         <i class="bi bi-pencil"></i> Редактировать
-                    </a>
-                    <a th:href="@{/employee/chief/tests/activateTest/{id}(id=${testDTO.id})}"
-                       class="btn btn-sm me-1"
-                       th:classappend="${testDTO.isActive()} ? 'btn-outline-secondary' : 'btn-outline-success'">
-                        <i class="bi" th:classappend="${testDTO.isActive()} ? 'bi-pause-circle' : 'bi-play-circle'"></i>
-                        <span th:text="${testDTO.isActive()} ? 'Деактивировать' : 'Активировать'"></span>
                     </a>
                     <a th:href="@{/employee/chief/tests/deleteTest/{id}(id=${testDTO.id})}"
                        class="btn btn-sm btn-outline-danger"

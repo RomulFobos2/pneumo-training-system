@@ -38,7 +38,7 @@
                         <th style="width: 100px">Время</th>
                         <th style="width: 100px">Проходной</th>
                         <th style="width: 80px">Экзамен</th>
-                        <th style="width: 90px">Статус</th>
+                        <th style="width: 140px">Доступность</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -59,8 +59,8 @@
                             <span th:if="${!test.isExam()}" class="text-muted">Нет</span>
                         </td>
                         <td>
-                            <span th:if="${test.isActive()}" class="badge bg-success">Активен</span>
-                            <span th:if="${!test.isActive()}" class="badge bg-secondary">Черновик</span>
+                            <span th:if="${test.availableWithoutAssignment}" class="badge bg-success">Свободный доступ</span>
+                            <span th:if="${!test.availableWithoutAssignment}" class="badge bg-info">Только по назначению</span>
                         </td>
                     </tr>
                     <tr th:if="${#lists.isEmpty(allTests)}">

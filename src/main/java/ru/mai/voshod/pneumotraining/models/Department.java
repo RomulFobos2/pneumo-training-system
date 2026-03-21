@@ -28,6 +28,15 @@ public class Department {
     @Column(columnDefinition = "TEXT")
     private String description;
 
+    @ManyToOne
+    @JoinColumn(name = "parent_id")
+    @ToString.Exclude
+    private Department parent;
+
+    @OneToMany(mappedBy = "parent")
+    @ToString.Exclude
+    private List<Department> children = new ArrayList<>();
+
     @OneToMany(mappedBy = "department")
     @ToString.Exclude
     private List<Employee> employees = new ArrayList<>();
@@ -35,5 +44,11 @@ public class Department {
     public Department(String name, String description) {
         this.name = name;
         this.description = description;
+    }
+
+    public Department(String name, String description, Department parent) {
+        this.name = name;
+        this.description = description;
+        this.parent = parent;
     }
 }

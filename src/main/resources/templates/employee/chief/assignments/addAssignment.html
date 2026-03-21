@@ -25,83 +25,137 @@
 
                         <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
 
+                        <!-- Индикатор шагов -->
+                        <div class="d-flex align-items-center mb-4">
+                            <span id="stepBadge1" class="badge bg-primary me-2">1</span>
+                            <span id="stepLabel1" class="fw-bold me-3">Режим</span>
+                            <i class="bi bi-chevron-right text-muted me-3"></i>
+                            <span id="stepBadge2" class="badge bg-secondary me-2">2</span>
+                            <span id="stepLabel2" class="text-muted me-3">Сотрудники</span>
+                            <i class="bi bi-chevron-right text-muted me-3"></i>
+                            <span id="stepBadge3" class="badge bg-secondary me-2">3</span>
+                            <span id="stepLabel3" class="text-muted">Тест и срок</span>
+                        </div>
+
                         <form method="post" th:action="@{/employee/chief/assignments/addAssignment}" id="assignmentForm" class="auth-form">
 
-                            <div class="row g-3 mb-4">
-                                <div class="col-md-6">
-                                    <label class="form-label">Тест <span class="text-danger">*</span></label>
-                                    <select name="inputTestId" class="form-select" required>
-                                        <option value="">— Выберите тест —</option>
-                                        <option th:each="t : ${allTests}" th:value="${t.id}" th:text="${t.title}"></option>
-                                    </select>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">Срок сдачи <span class="text-danger">*</span></label>
-                                    <input type="date" name="inputDeadline" class="form-control" required/>
-                                </div>
-                            </div>
-
-                            <!-- Режим выбора сотрудников -->
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">Выбор сотрудников</label>
-                                <div class="d-flex gap-3">
-                                    <div class="form-check">
-                                        <input type="radio" name="selectionMode" value="employees" class="form-check-input"
-                                               id="modeEmployees" checked onchange="toggleMode()">
-                                        <label class="form-check-label" for="modeEmployees">По сотрудникам</label>
+                            <!-- ===== ШАГ 1: Выбор режима ===== -->
+                            <div id="step1">
+                                <h5 class="mb-3">Шаг 1. Выберите режим назначения</h5>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <div class="profile-card p-3 text-center step-card" style="cursor:pointer"
+                                             onclick="selectMode('department')">
+                                            <i class="bi bi-building fs-1 text-primary"></i>
+                                            <h6 class="mt-2">По подразделению</h6>
+                                            <small class="text-muted">Назначить тест сотрудникам подразделения</small>
+                                        </div>
                                     </div>
-                                    <div class="form-check">
-                                        <input type="radio" name="selectionMode" value="department" class="form-check-input"
-                                               id="modeDepartment" onchange="toggleMode()">
-                                        <label class="form-check-label" for="modeDepartment">По подразделению</label>
+                                    <div class="col-md-6">
+                                        <div class="profile-card p-3 text-center step-card" style="cursor:pointer"
+                                             onclick="selectMode('employee')">
+                                            <i class="bi bi-person fs-1 text-success"></i>
+                                            <h6 class="mt-2">Конкретному сотруднику</h6>
+                                            <small class="text-muted">Назначить тест одному сотруднику</small>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- Выбор по подразделению -->
-                            <div id="departmentBlock" style="display:none" class="mb-3">
-                                <label class="form-label">Подразделение</label>
-                                <select id="departmentSelect" class="form-select" onchange="loadDepartmentEmployees()">
-                                    <option value="">— Выберите подразделение —</option>
-                                    <option th:each="d : ${allDepartments}" th:value="${d.id}" th:text="${d.name}"></option>
-                                </select>
-                            </div>
+                            <!-- ===== ШАГ 2: Выбор сотрудников ===== -->
+                            <div id="step2" style="display:none">
+                                <h5 class="mb-3" id="step2Title">Шаг 2.</h5>
 
-                            <!-- Кнопки выбора -->
-                            <div class="mb-2 d-flex gap-2">
-                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="selectAll()">
-                                    <i class="bi bi-check-all"></i> Выбрать всех
-                                </button>
-                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="deselectAll()">
-                                    <i class="bi bi-x-lg"></i> Снять все отметки
-                                </button>
-                                <span id="selectedCount" class="badge bg-primary align-self-center">0 выбрано</span>
-                            </div>
+                                <!-- Режим «По подразделению» -->
+                                <div id="deptModeBlock" style="display:none">
+                                    <div class="mb-3">
+                                        <label class="form-label">Подразделение <span class="text-danger">*</span></label>
+                                        <select id="departmentSelect" class="form-select" onchange="onDepartmentSelected()">
+                                            <option value="">— Выберите подразделение —</option>
+                                            <option th:each="d : ${allDepartments}" th:value="${d.id}"
+                                                    th:text="${'— '.repeat(d.level) + d.name}"></option>
+                                        </select>
+                                    </div>
 
-                            <!-- Список сотрудников -->
-                            <div id="employeeList" class="profile-card p-3 mb-4" style="max-height: 400px; overflow-y: auto;">
-                                <div th:each="e : ${allEmployees}" class="form-check mb-1 employee-item">
-                                    <input type="checkbox" class="form-check-input employee-checkbox"
-                                           name="inputEmployeeIds" th:value="${e.id}" th:id="'emp_' + ${e.id}"
-                                           onchange="updateCount()">
-                                    <label class="form-check-label" th:for="'emp_' + ${e.id}">
-                                        <span th:text="${e.fullName}"></span>
-                                        <small class="text-muted" th:text="${e.departmentName != null ? '(' + e.departmentName + ')' : ''}"></small>
-                                    </label>
+                                    <!-- Список сотрудников подразделения -->
+                                    <div id="deptEmployeeList" style="display:none">
+                                        <div class="mb-2 d-flex gap-2">
+                                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="selectAll()">
+                                                <i class="bi bi-check-all"></i> Выбрать всех
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="deselectAll()">
+                                                <i class="bi bi-x-lg"></i> Снять все
+                                            </button>
+                                            <span id="selectedCountDept" class="badge bg-primary align-self-center">0 выбрано</span>
+                                        </div>
+                                        <div id="deptEmployeeContainer" class="profile-card p-3 mb-3" style="max-height:350px; overflow-y:auto;">
+                                        </div>
+                                    </div>
                                 </div>
-                                <div th:if="${#lists.isEmpty(allEmployees)}" class="text-muted text-center">
-                                    Нет доступных сотрудников
+
+                                <!-- Режим «По сотруднику» -->
+                                <div id="empModeBlock" style="display:none">
+                                    <div class="mb-3">
+                                        <label class="form-label">Сотрудник <span class="text-danger">*</span></label>
+                                        <select id="employeeSelect" class="form-select" onchange="onEmployeeSelected()">
+                                            <option value="">— Выберите сотрудника —</option>
+                                            <option th:each="e : ${allEmployees}" th:value="${e.id}"
+                                                    th:data-dept-id="${e.departmentId}"
+                                                    th:text="${e.fullName + (e.departmentName != null ? ' (' + e.departmentName + ')' : '')}"></option>
+                                        </select>
+                                        <!-- Скрытый чекбокс для передачи ID сотрудника -->
+                                        <input type="hidden" name="" id="hiddenEmployeeId" value=""/>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex gap-2 mt-3">
+                                    <button type="button" class="btn btn-outline-secondary" onclick="goToStep(1)">
+                                        <i class="bi bi-arrow-left"></i> Назад
+                                    </button>
+                                    <button type="button" class="btn btn-primary" id="step2NextBtn" onclick="goToStep(3)" disabled>
+                                        Далее <i class="bi bi-arrow-right"></i>
+                                    </button>
                                 </div>
                             </div>
 
-                            <div class="d-flex gap-2">
-                                <button type="submit" class="btn btn-auth" id="submitBtn" disabled>
-                                    <i class="bi bi-check-lg"></i> Назначить
-                                </button>
-                                <a th:href="@{/employee/chief/assignments/allAssignments}" class="btn btn-outline-secondary">
-                                    Отмена
-                                </a>
+                            <!-- ===== ШАГ 3: Выбор теста и срока ===== -->
+                            <div id="step3" style="display:none">
+                                <h5 class="mb-3">Шаг 3. Выберите тест и срок сдачи</h5>
+
+                                <div id="step3Summary" class="alert alert-info mb-3"></div>
+
+                                <div class="row g-3 mb-4">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Тест <span class="text-danger">*</span></label>
+                                        <select name="inputTestId" id="testSelect" class="form-select" required onchange="validateStep3()">
+                                            <option value="">— Загрузка тестов... —</option>
+                                        </select>
+                                        <div id="noTestsWarning" class="form-text text-warning mt-1" style="display:none">
+                                            <i class="bi bi-exclamation-triangle"></i> Нет доступных тестов для выбранного подразделения
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Срок сдачи <span class="text-danger">*</span></label>
+                                        <input type="date" name="inputDeadline" id="deadlineInput" class="form-control" required onchange="validateStep3()"/>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex gap-2">
+                                    <button type="button" class="btn btn-outline-secondary" onclick="goToStep(2)">
+                                        <i class="bi bi-arrow-left"></i> Назад
+                                    </button>
+                                    <button type="submit" class="btn btn-auth" id="submitBtn" disabled>
+                                        <i class="bi bi-check-lg"></i> Назначить
+                                    </button>
+                                    <a th:href="@{/employee/chief/assignments/allAssignments}" class="btn btn-outline-secondary">
+                                        Отмена
+                                    </a>
+                                </div>
                             </div>
+
+                            <!-- Скрытые поля для передачи employee IDs -->
+                            <div id="hiddenEmployeeInputs"></div>
+
                         </form>
                     </div>
                 </div>
@@ -113,36 +167,90 @@
 </div>
 
 <script>
-    function toggleMode() {
-        var mode = document.querySelector('input[name="selectionMode"]:checked').value;
-        var deptBlock = document.getElementById('departmentBlock');
-        var empList = document.getElementById('employeeList');
+    var currentStep = 1;
+    var currentMode = null; // 'department' | 'employee'
+    var selectedDepartmentId = null;
+    var selectedEmployeeIds = [];
 
-        if (mode === 'department') {
-            deptBlock.style.display = 'block';
-            // Очистить текущий выбор
-            deselectAll();
-        } else {
-            deptBlock.style.display = 'none';
-            // Показать всех сотрудников
-            var items = document.querySelectorAll('.employee-item');
-            items.forEach(function(item) { item.style.display = ''; });
+    // ========== Навигация по шагам ==========
+
+    function goToStep(step) {
+        // Валидация перед переходом вперёд
+        if (step === 3) {
+            selectedEmployeeIds = collectSelectedEmployeeIds();
+            if (selectedEmployeeIds.length === 0) return;
+            loadTestsForStep3();
+        }
+
+        document.getElementById('step1').style.display = step === 1 ? 'block' : 'none';
+        document.getElementById('step2').style.display = step === 2 ? 'block' : 'none';
+        document.getElementById('step3').style.display = step === 3 ? 'block' : 'none';
+        currentStep = step;
+        updateStepIndicator();
+    }
+
+    function updateStepIndicator() {
+        for (var i = 1; i <= 3; i++) {
+            var badge = document.getElementById('stepBadge' + i);
+            var label = document.getElementById('stepLabel' + i);
+            if (i < currentStep) {
+                badge.className = 'badge bg-success me-2';
+                badge.innerHTML = '<i class="bi bi-check-lg"></i>';
+                label.className = 'text-success me-3';
+            } else if (i === currentStep) {
+                badge.className = 'badge bg-primary me-2';
+                badge.textContent = i;
+                label.className = 'fw-bold me-3';
+            } else {
+                badge.className = 'badge bg-secondary me-2';
+                badge.textContent = i;
+                label.className = 'text-muted me-3';
+            }
         }
     }
 
-    function loadDepartmentEmployees() {
+    // ========== Шаг 1: Выбор режима ==========
+
+    function selectMode(mode) {
+        currentMode = mode;
+        if (mode === 'department') {
+            document.getElementById('step2Title').textContent = 'Шаг 2. Выберите подразделение и сотрудников';
+            document.getElementById('deptModeBlock').style.display = 'block';
+            document.getElementById('empModeBlock').style.display = 'none';
+            document.getElementById('departmentSelect').value = '';
+            document.getElementById('deptEmployeeList').style.display = 'none';
+        } else {
+            document.getElementById('step2Title').textContent = 'Шаг 2. Выберите сотрудника';
+            document.getElementById('deptModeBlock').style.display = 'none';
+            document.getElementById('empModeBlock').style.display = 'block';
+            document.getElementById('employeeSelect').value = '';
+        }
+        document.getElementById('step2NextBtn').disabled = true;
+        goToStep(2);
+    }
+
+    // ========== Шаг 2 — Режим «По подразделению» ==========
+
+    function onDepartmentSelected() {
         var deptId = document.getElementById('departmentSelect').value;
-        if (!deptId) return;
+        selectedDepartmentId = deptId;
+        if (!deptId) {
+            document.getElementById('deptEmployeeList').style.display = 'none';
+            document.getElementById('step2NextBtn').disabled = true;
+            return;
+        }
 
         fetch('/employee/chief/assignments/employeesByDepartment/' + deptId)
             .then(function(r) { return r.json(); })
             .then(function(employees) {
-                var container = document.getElementById('employeeList');
+                var container = document.getElementById('deptEmployeeContainer');
                 container.innerHTML = '';
 
                 if (employees.length === 0) {
-                    container.innerHTML = '<div class="text-muted text-center">Нет сотрудников в подразделении</div>';
-                    updateCount();
+                    container.innerHTML = '<div class="text-muted text-center py-2">Нет сотрудников в подразделении</div>';
+                    document.getElementById('deptEmployeeList').style.display = 'block';
+                    document.getElementById('step2NextBtn').disabled = true;
+                    updateDeptCount();
                     return;
                 }
 
@@ -151,36 +259,117 @@
                     div.className = 'form-check mb-1 employee-item';
                     div.innerHTML =
                         '<input type="checkbox" class="form-check-input employee-checkbox" ' +
-                        'name="inputEmployeeIds" value="' + e.id + '" id="emp_' + e.id + '" ' +
-                        'onchange="updateCount()" checked>' +
+                        'value="' + e.id + '" id="emp_' + e.id + '" onchange="updateDeptCount()" checked>' +
                         '<label class="form-check-label" for="emp_' + e.id + '">' +
                         '<span>' + e.fullName + '</span>' +
                         (e.departmentName ? ' <small class="text-muted">(' + e.departmentName + ')</small>' : '') +
                         '</label>';
                     container.appendChild(div);
                 });
-                updateCount();
+
+                document.getElementById('deptEmployeeList').style.display = 'block';
+                updateDeptCount();
             });
     }
 
     function selectAll() {
-        document.querySelectorAll('.employee-checkbox').forEach(function(cb) {
-            if (cb.closest('.employee-item').style.display !== 'none') {
-                cb.checked = true;
-            }
-        });
-        updateCount();
+        document.querySelectorAll('#deptEmployeeContainer .employee-checkbox').forEach(function(cb) { cb.checked = true; });
+        updateDeptCount();
     }
 
     function deselectAll() {
-        document.querySelectorAll('.employee-checkbox').forEach(function(cb) { cb.checked = false; });
-        updateCount();
+        document.querySelectorAll('#deptEmployeeContainer .employee-checkbox').forEach(function(cb) { cb.checked = false; });
+        updateDeptCount();
     }
 
-    function updateCount() {
-        var count = document.querySelectorAll('.employee-checkbox:checked').length;
-        document.getElementById('selectedCount').textContent = count + ' выбрано';
-        document.getElementById('submitBtn').disabled = (count === 0);
+    function updateDeptCount() {
+        var count = document.querySelectorAll('#deptEmployeeContainer .employee-checkbox:checked').length;
+        document.getElementById('selectedCountDept').textContent = count + ' выбрано';
+        document.getElementById('step2NextBtn').disabled = (count === 0);
+    }
+
+    // ========== Шаг 2 — Режим «По сотруднику» ==========
+
+    function onEmployeeSelected() {
+        var val = document.getElementById('employeeSelect').value;
+        document.getElementById('step2NextBtn').disabled = !val;
+    }
+
+    // ========== Сбор выбранных сотрудников ==========
+
+    function collectSelectedEmployeeIds() {
+        var ids = [];
+        if (currentMode === 'department') {
+            document.querySelectorAll('#deptEmployeeContainer .employee-checkbox:checked').forEach(function(cb) {
+                ids.push(cb.value);
+            });
+        } else {
+            var val = document.getElementById('employeeSelect').value;
+            if (val) ids.push(val);
+        }
+        return ids;
+    }
+
+    // ========== Шаг 3: Загрузка тестов ==========
+
+    function loadTestsForStep3() {
+        // Формируем сводку
+        var summary = '';
+        if (currentMode === 'department') {
+            var deptName = document.getElementById('departmentSelect').selectedOptions[0].textContent.replace(/^[—\s]+/, '');
+            var count = selectedEmployeeIds.length;
+            summary = '<strong>Подразделение:</strong> ' + deptName + '<br><strong>Сотрудников:</strong> ' + count;
+        } else {
+            var empName = document.getElementById('employeeSelect').selectedOptions[0].textContent;
+            summary = '<strong>Сотрудник:</strong> ' + empName;
+        }
+        document.getElementById('step3Summary').innerHTML = summary;
+
+        // Определяем URL для загрузки тестов
+        var testsUrl;
+        if (currentMode === 'department') {
+            testsUrl = '/employee/chief/assignments/testsByDepartment/' + selectedDepartmentId;
+        } else {
+            testsUrl = '/employee/chief/assignments/testsByEmployee/' + selectedEmployeeIds[0];
+        }
+
+        var testSelect = document.getElementById('testSelect');
+        testSelect.innerHTML = '<option value="">— Загрузка... —</option>';
+        document.getElementById('noTestsWarning').style.display = 'none';
+
+        fetch(testsUrl)
+            .then(function(r) { return r.json(); })
+            .then(function(tests) {
+                testSelect.innerHTML = '<option value="">— Выберите тест —</option>';
+                if (tests.length === 0) {
+                    document.getElementById('noTestsWarning').style.display = 'block';
+                } else {
+                    tests.forEach(function(t) {
+                        var opt = document.createElement('option');
+                        opt.value = t.id;
+                        opt.textContent = t.title;
+                        testSelect.appendChild(opt);
+                    });
+                }
+                validateStep3();
+            });
+
+        // Заполняем скрытые поля с ID сотрудников
+        var hidden = document.getElementById('hiddenEmployeeInputs');
+        hidden.innerHTML = '';
+        selectedEmployeeIds.forEach(function(id) {
+            var input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'inputEmployeeIds';
+            input.value = id;
+            hidden.appendChild(input);
+        });
+    }
+
+    function validateStep3() {
+        var testSelected = document.getElementById('testSelect').value !== '';
+        var deadlineFilled = document.getElementById('deadlineInput').value !== '';
+        document.getElementById('submitBtn').disabled = !(testSelected && deadlineFilled);
     }
 </script>
 </body>

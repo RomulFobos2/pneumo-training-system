@@ -5,12 +5,17 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.interceptor.TransactionAspectSupport;
+import ru.mai.voshod.pneumotraining.dto.DepartmentDTO;
 import ru.mai.voshod.pneumotraining.dto.TestDTO;
+import ru.mai.voshod.pneumotraining.mapper.DepartmentMapper;
 import ru.mai.voshod.pneumotraining.mapper.TestMapper;
+import ru.mai.voshod.pneumotraining.models.Department;
 import ru.mai.voshod.pneumotraining.models.Employee;
 import ru.mai.voshod.pneumotraining.models.Test;
+import ru.mai.voshod.pneumotraining.repo.DepartmentRepository;
 import ru.mai.voshod.pneumotraining.repo.TestQuestionRepository;
 import ru.mai.voshod.pneumotraining.repo.TestRepository;
+import ru.mai.voshod.pneumotraining.service.employee.admin.DepartmentService;
 
 import java.util.List;
 import java.util.Optional;
@@ -22,11 +27,17 @@ public class TestService {
 
     private final TestRepository testRepository;
     private final TestQuestionRepository testQuestionRepository;
+    private final DepartmentRepository departmentRepository;
+    private final DepartmentService departmentService;
 
     public TestService(TestRepository testRepository,
-                       TestQuestionRepository testQuestionRepository) {
+                       TestQuestionRepository testQuestionRepository,
+                       DepartmentRepository departmentRepository,
+                       DepartmentService departmentService) {
         this.testRepository = testRepository;
         this.testQuestionRepository = testQuestionRepository;
+        this.departmentRepository = departmentRepository;
+        this.departmentService = departmentService;
     }
 
     // ========== CRUD ==========
@@ -34,6 +45,7 @@ public class TestService {
     @Transactional
     public Optional<Long> saveTest(String title, String description, Integer timeLimit,
                                     Integer passingScore, boolean isExam, boolean allowBackNavigation,
+                                    boolean availableWithoutAssignment, List<Long> departmentIds,
                                     Employee createdBy) {
         log.info("Создание теста: title={}", title);
 
@@ -50,8 +62,13 @@ public class TestService {
             test.setPassingScore(passingScore != null ? passingScore : 60);
             test.setExam(isExam);
             test.setAllowBackNavigation(allowBackNavigation);
-            test.setActive(false);
+            test.setAvailableWithoutAssignment(availableWithoutAssignment);
             test.setCreatedBy(createdBy);
+
+            if (departmentIds != null && !departmentIds.isEmpty()) {
+                test.setAllowedDepartments(departmentRepository.findAllById(departmentIds));
+            }
+
             testRepository.save(test);
             log.info("Тест создан: id={}, title={}", test.getId(), title);
             return Optional.of(test.getId());
@@ -64,7 +81,8 @@ public class TestService {
 
     @Transactional
     public Optional<Long> editTest(Long id, String title, String description, Integer timeLimit,
-                                    Integer passingScore, boolean isExam, boolean allowBackNavigation) {
+                                    Integer passingScore, boolean isExam, boolean allowBackNavigation,
+                                    boolean availableWithoutAssignment, List<Long> departmentIds) {
         log.info("Редактирование теста: id={}", id);
 
         Optional<Test> testOptional = testRepository.findById(id);
@@ -86,6 +104,13 @@ public class TestService {
             test.setPassingScore(passingScore != null ? passingScore : 60);
             test.setExam(isExam);
             test.setAllowBackNavigation(allowBackNavigation);
+            test.setAvailableWithoutAssignment(availableWithoutAssignment);
+
+            test.getAllowedDepartments().clear();
+            if (departmentIds != null && !departmentIds.isEmpty()) {
+                test.getAllowedDepartments().addAll(departmentRepository.findAllById(departmentIds));
+            }
+
             testRepository.save(test);
             log.info("Тест обновлён: id={}", id);
             return Optional.of(id);
@@ -117,64 +142,28 @@ public class TestService {
         }
     }
 
-    @Transactional
-    public boolean toggleActive(Long id) {
-        log.info("Переключение активности теста: id={}", id);
-
-        Optional<Test> testOptional = testRepository.findById(id);
-        if (testOptional.isEmpty()) {
-            log.error("Тест не найден: id={}", id);
-            return false;
-        }
-
-        try {
-            Test test = testOptional.get();
-
-            // Нельзя активировать тест без вопросов
-            if (!test.isActive() && testQuestionRepository.countByTestId(id) == 0) {
-                log.error("Невозможно активировать тест без вопросов: id={}", id);
-                return false;
-            }
-
-            test.setActive(!test.isActive());
-            testRepository.save(test);
-            log.info("Тест id={} теперь {}", id, test.isActive() ? "активен" : "неактивен");
-            return true;
-        } catch (Exception e) {
-            log.error("Ошибка при переключении активности теста: {}", e.getMessage(), e);
-            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
-            return false;
-        }
-    }
-
     // ========== Запросы данных ==========
 
+    @Transactional(readOnly = true)
     public List<TestDTO> getAllTests() {
         List<Test> tests = testRepository.findAllByOrderByIdDesc();
-        return tests.stream().map(test -> {
-            TestDTO dto = TestMapper.INSTANCE.toDTO(test);
-            dto.setQuestionCount((int) testQuestionRepository.countByTestId(test.getId()));
-            return dto;
-        }).toList();
+        return tests.stream().map(this::toTestDTO).toList();
     }
 
-    public List<TestDTO> getAllActiveTests() {
-        List<Test> tests = testRepository.findByIsActiveTrueOrderByTitleAsc();
-        return tests.stream().map(test -> {
-            TestDTO dto = TestMapper.INSTANCE.toDTO(test);
-            dto.setQuestionCount((int) testQuestionRepository.countByTestId(test.getId()));
-            return dto;
-        }).toList();
+    /**
+     * Тесты, привязанные к подразделению с учётом наследования (для назначений).
+     * Если тест назначен на родительское подразделение, он доступен дочерним.
+     */
+    @Transactional(readOnly = true)
+    public List<TestDTO> getTestsForDepartment(Long departmentId) {
+        List<Long> ancestorIds = departmentService.getAncestorIds(departmentId);
+        List<Test> tests = testRepository.findByDepartmentIds(ancestorIds);
+        return tests.stream().map(this::toTestDTO).toList();
     }
 
     @Transactional(readOnly = true)
     public Optional<TestDTO> getTestById(Long id) {
-        return testRepository.findById(id)
-                .map(test -> {
-                    TestDTO dto = TestMapper.INSTANCE.toDTO(test);
-                    dto.setQuestionCount((int) testQuestionRepository.countByTestId(test.getId()));
-                    return dto;
-                });
+        return testRepository.findById(id).map(this::toTestDTO);
     }
 
     // ========== Проверки ==========
@@ -184,5 +173,15 @@ public class TestService {
             return testRepository.existsByTitleAndIdNot(title, id);
         }
         return testRepository.existsByTitle(title);
+    }
+
+    // ========== Вспомогательные ==========
+
+    private TestDTO toTestDTO(Test test) {
+        TestDTO dto = TestMapper.INSTANCE.toDTO(test);
+        dto.setQuestionCount((int) testQuestionRepository.countByTestId(test.getId()));
+        dto.setDepartmentIds(test.getAllowedDepartments().stream().map(Department::getId).toList());
+        dto.setAllowedDepartments(DepartmentMapper.INSTANCE.toDTOList(test.getAllowedDepartments()));
+        return dto;
     }
 }

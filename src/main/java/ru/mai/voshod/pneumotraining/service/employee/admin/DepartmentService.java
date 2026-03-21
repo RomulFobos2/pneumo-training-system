@@ -10,8 +10,7 @@ import ru.mai.voshod.pneumotraining.models.Department;
 import ru.mai.voshod.pneumotraining.repo.DepartmentRepository;
 import ru.mai.voshod.pneumotraining.repo.EmployeeRepository;
 
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 @Slf4j
@@ -28,12 +27,34 @@ public class DepartmentService {
 
     @Transactional(readOnly = true)
     public List<DepartmentDTO> getAllDepartments() {
-        List<Department> departments = departmentRepository.findAllByOrderByNameAsc();
-        List<DepartmentDTO> dtos = DepartmentMapper.INSTANCE.toDTOList(departments);
-        for (int i = 0; i < departments.size(); i++) {
-            dtos.get(i).setEmployeeCount(departments.get(i).getEmployees().size());
+        return getAllDepartmentsFlat();
+    }
+
+    @Transactional(readOnly = true)
+    public List<DepartmentDTO> getAllDepartmentsTree() {
+        List<Department> roots = departmentRepository.findByParentIsNullOrderByNameAsc();
+        List<DepartmentDTO> tree = new ArrayList<>();
+        for (Department root : roots) {
+            tree.add(buildTree(root, 0));
         }
-        return dtos;
+        return tree;
+    }
+
+    @Transactional(readOnly = true)
+    public List<DepartmentDTO> getAllDepartmentsFlat() {
+        List<DepartmentDTO> tree = getAllDepartmentsTree();
+        List<DepartmentDTO> flat = new ArrayList<>();
+        flattenTree(tree, flat);
+        return flat;
+    }
+
+    @Transactional(readOnly = true)
+    public List<DepartmentDTO> getAllDepartmentsFlatExcluding(Long excludeId) {
+        List<DepartmentDTO> flat = getAllDepartmentsFlat();
+        Set<Long> excludeIds = new HashSet<>();
+        collectDescendantIds(flat, excludeId, excludeIds);
+        excludeIds.add(excludeId);
+        return flat.stream().filter(d -> !excludeIds.contains(d.getId())).toList();
     }
 
     @Transactional(readOnly = true)
@@ -46,8 +67,8 @@ public class DepartmentService {
     }
 
     @Transactional
-    public Optional<Long> saveDepartment(String name, String description) {
-        log.info("Создание подразделения: name={}", name);
+    public Optional<Long> saveDepartment(String name, String description, Long parentId) {
+        log.info("Создание подразделения: name={}, parentId={}", name, parentId);
 
         if (departmentRepository.existsByName(name)) {
             log.error("Подразделение с именем '{}' уже существует", name);
@@ -56,6 +77,9 @@ public class DepartmentService {
 
         try {
             Department department = new Department(name, description);
+            if (parentId != null) {
+                departmentRepository.findById(parentId).ifPresent(department::setParent);
+            }
             departmentRepository.save(department);
             log.info("Подразделение создано: id={}, name={}", department.getId(), name);
             return Optional.of(department.getId());
@@ -67,7 +91,7 @@ public class DepartmentService {
     }
 
     @Transactional
-    public Optional<Long> editDepartment(Long id, String name, String description) {
+    public Optional<Long> editDepartment(Long id, String name, String description, Long parentId) {
         log.info("Редактирование подразделения: id={}", id);
 
         Optional<Department> deptOptional = departmentRepository.findById(id);
@@ -85,6 +109,13 @@ public class DepartmentService {
             Department department = deptOptional.get();
             department.setName(name);
             department.setDescription(description);
+
+            if (parentId != null && !parentId.equals(id)) {
+                departmentRepository.findById(parentId).ifPresent(department::setParent);
+            } else {
+                department.setParent(null);
+            }
+
             departmentRepository.save(department);
             log.info("Подразделение обновлено: id={}, name={}", id, name);
             return Optional.of(id);
@@ -107,7 +138,12 @@ public class DepartmentService {
 
         Department department = deptOptional.get();
         if (!department.getEmployees().isEmpty()) {
-            log.error("Нельзя удалить подразделение с сотрудниками: id={}, employees={}", id, department.getEmployees().size());
+            log.error("Нельзя удалить подразделение с сотрудниками: id={}", id);
+            return false;
+        }
+
+        if (!department.getChildren().isEmpty()) {
+            log.error("Нельзя удалить подразделение с дочерними подразделениями: id={}", id);
             return false;
         }
 
@@ -128,5 +164,69 @@ public class DepartmentService {
 
     public boolean checkNameExcluding(String name, Long id) {
         return departmentRepository.existsByNameAndIdNot(name, id);
+    }
+
+    /**
+     * Собирает ID подразделения и всех его потомков.
+     */
+    @Transactional(readOnly = true)
+    public List<Long> getDescendantIdsIncludingSelf(Long departmentId) {
+        List<Long> result = new ArrayList<>();
+        result.add(departmentId);
+        List<DepartmentDTO> flat = getAllDepartmentsFlat();
+        Set<Long> descendants = new HashSet<>();
+        collectDescendantIds(flat, departmentId, descendants);
+        result.addAll(descendants);
+        return result;
+    }
+
+    /**
+     * Собирает цепочку ID подразделений от заданного до корня (включая само подразделение).
+     * Используется для наследования доступа к тестам: если тест назначен на родителя, он доступен потомкам.
+     */
+    @Transactional(readOnly = true)
+    public List<Long> getAncestorIds(Long departmentId) {
+        List<Long> ids = new ArrayList<>();
+        Optional<Department> current = departmentRepository.findById(departmentId);
+        while (current.isPresent()) {
+            ids.add(current.get().getId());
+            current = current.get().getParent() != null
+                    ? Optional.of(current.get().getParent())
+                    : Optional.empty();
+        }
+        return ids;
+    }
+
+    // ========== Вспомогательные методы ==========
+
+    private DepartmentDTO buildTree(Department dept, int level) {
+        DepartmentDTO dto = DepartmentMapper.INSTANCE.toDTO(dept);
+        dto.setEmployeeCount(dept.getEmployees().size());
+        dto.setLevel(level);
+        List<Department> children = dept.getChildren();
+        if (children != null) {
+            children.stream()
+                    .sorted(Comparator.comparing(Department::getName))
+                    .forEach(child -> dto.getChildren().add(buildTree(child, level + 1)));
+        }
+        return dto;
+    }
+
+    private void flattenTree(List<DepartmentDTO> tree, List<DepartmentDTO> flat) {
+        for (DepartmentDTO dto : tree) {
+            flat.add(dto);
+            if (dto.getChildren() != null && !dto.getChildren().isEmpty()) {
+                flattenTree(dto.getChildren(), flat);
+            }
+        }
+    }
+
+    private void collectDescendantIds(List<DepartmentDTO> flat, Long parentId, Set<Long> result) {
+        for (DepartmentDTO dto : flat) {
+            if (parentId.equals(dto.getParentId())) {
+                result.add(dto.getId());
+                collectDescendantIds(flat, dto.getId(), result);
+            }
+        }
     }
 }

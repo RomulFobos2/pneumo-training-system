@@ -27,6 +27,14 @@
 
                         <form method="post" th:action="@{/employee/admin/departments/addDepartment}" class="auth-form">
                             <div class="mb-3">
+                                <label class="form-label">Родительское подразделение</label>
+                                <select name="inputParentId" class="form-select">
+                                    <option value="">— Корневое подразделение —</option>
+                                    <option th:each="d : ${allDepartments}" th:value="${d.id}"
+                                            th:text="${'— '.repeat(d.level) + d.name}"></option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
                                 <label class="form-label">Название <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control" name="inputName" required maxlength="200"
                                        id="inputName"/>

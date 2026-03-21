@@ -11,6 +11,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import ru.mai.voshod.pneumotraining.dto.DepartmentDTO;
 import ru.mai.voshod.pneumotraining.dto.EmployeeDTO;
 import ru.mai.voshod.pneumotraining.dto.TestAssignmentDTO;
+import ru.mai.voshod.pneumotraining.dto.TestDTO;
 import ru.mai.voshod.pneumotraining.mapper.EmployeeMapper;
 import ru.mai.voshod.pneumotraining.models.Employee;
 import ru.mai.voshod.pneumotraining.repo.EmployeeRepository;
@@ -51,7 +52,6 @@ public class TestAssignmentController {
 
     @GetMapping("/addAssignment")
     public String addAssignmentForm(Model model) {
-        model.addAttribute("allTests", testService.getAllActiveTests());
         model.addAttribute("allDepartments", departmentService.getAllDepartments());
         model.addAttribute("allEmployees", getSpecialistOperatorEmployees());
         return "employee/chief/assignments/addAssignment";
@@ -93,17 +93,34 @@ public class TestAssignmentController {
         return "redirect:/employee/chief/assignments/allAssignments";
     }
 
+    @GetMapping("/testsByDepartment/{departmentId}")
+    @ResponseBody
+    public ResponseEntity<List<TestDTO>> testsByDepartment(@PathVariable Long departmentId) {
+        return ResponseEntity.ok(testService.getTestsForDepartment(departmentId));
+    }
+
     @GetMapping("/employeesByDepartment/{departmentId}")
     @ResponseBody
     public ResponseEntity<List<EmployeeDTO>> employeesByDepartment(@PathVariable Long departmentId) {
+        List<Long> deptIds = departmentService.getDescendantIdsIncludingSelf(departmentId);
         List<Employee> employees = employeeRepository.findAllByOrderByLastNameAsc().stream()
                 .filter(e -> e.isActive()
                         && e.getDepartment() != null
-                        && e.getDepartment().getId().equals(departmentId)
+                        && deptIds.contains(e.getDepartment().getId())
                         && (e.getRole().getName().equals("ROLE_EMPLOYEE_SPECIALIST")
                         || e.getRole().getName().equals("ROLE_EMPLOYEE_OPERATOR")))
                 .toList();
         return ResponseEntity.ok(EmployeeMapper.INSTANCE.toDTOList(employees));
+    }
+
+    @GetMapping("/testsByEmployee/{employeeId}")
+    @ResponseBody
+    public ResponseEntity<List<TestDTO>> testsByEmployee(@PathVariable Long employeeId) {
+        Optional<Employee> empOpt = employeeRepository.findById(employeeId);
+        if (empOpt.isEmpty() || empOpt.get().getDepartment() == null) {
+            return ResponseEntity.ok(List.of());
+        }
+        return ResponseEntity.ok(testService.getTestsForDepartment(empOpt.get().getDepartment().getId()));
     }
 
     private List<EmployeeDTO> getSpecialistOperatorEmployees() {
