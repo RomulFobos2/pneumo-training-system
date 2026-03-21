@@ -43,6 +43,16 @@
             </a>
         </li>
         <li class="nav-item" sec:authorize="hasRole('ROLE_EMPLOYEE_CHIEF')">
+            <a th:href="@{/employee/chief/schemas/allSchemas}">
+                <i class="bi bi-diagram-3"></i> <span>Мнемосхемы</span>
+            </a>
+        </li>
+        <li class="nav-item" sec:authorize="hasRole('ROLE_EMPLOYEE_CHIEF')">
+            <a th:href="@{/employee/chief/scenarios/allScenarios}">
+                <i class="bi bi-play-circle"></i> <span>Сценарии</span>
+            </a>
+        </li>
+        <li class="nav-item" sec:authorize="hasRole('ROLE_EMPLOYEE_CHIEF')">
             <a th:href="@{/employee/chief/results/allResults}">
                 <i class="bi bi-clipboard-data"></i> <span>Результаты</span>
             </a>
@@ -73,7 +83,7 @@
             </a>
         </li>
         <li class="nav-item" sec:authorize="hasAnyRole('ROLE_EMPLOYEE_SPECIALIST','ROLE_EMPLOYEE_OPERATOR')">
-            <a href="#">
+            <a th:href="@{/employee/specialist/mnemo/scenarios}">
                 <i class="bi bi-diagram-3"></i> <span>Мнемосхема</span>
             </a>
         </li>

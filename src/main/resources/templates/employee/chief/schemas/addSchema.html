@@ -1,0 +1,67 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Новая мнемосхема | АОС ПИ</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/javascript.js"></script>
+</head>
+<body>
+<div id="wrapper">
+    <div th:insert="~{blocks/header :: sidebar}"></div>
+    <div id="content-wrapper">
+        <div th:insert="~{blocks/header :: topbar}"></div>
+        <div th:insert="~{blocks/header :: overlay}"></div>
+        <main class="container-fluid">
+
+            <div class="row justify-content-center">
+                <div class="col-12 col-lg-8">
+                    <div class="profile-card p-4">
+                        <h1 class="page-title">Новая мнемосхема</h1>
+
+                        <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
+
+                        <form method="post" th:action="@{/employee/chief/schemas/addSchema}" class="auth-form">
+
+                            <div class="mb-3">
+                                <label class="form-label">Название <span class="text-danger">*</span></label>
+                                <input type="text" name="inputTitle" class="form-control" required maxlength="255"/>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Описание</label>
+                                <textarea name="inputDescription" class="form-control" rows="3"></textarea>
+                            </div>
+
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-6">
+                                    <label class="form-label">Ширина холста (px)</label>
+                                    <input type="number" name="inputWidth" class="form-control" value="1200" min="400" max="4000"/>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Высота холста (px)</label>
+                                    <input type="number" name="inputHeight" class="form-control" value="800" min="300" max="3000"/>
+                                </div>
+                            </div>
+
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-auth">
+                                    <i class="bi bi-plus-lg"></i> Создать и открыть редактор
+                                </button>
+                                <a th:href="@{/employee/chief/schemas/allSchemas}" class="btn btn-outline-secondary">Отмена</a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+        <div th:insert="~{blocks/footer :: footer}"></div>
+    </div>
+</div>
+</body>
+</html>

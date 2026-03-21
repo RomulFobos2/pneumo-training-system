@@ -1,0 +1,89 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Мнемосхемы | АОС ПИ</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/javascript.js"></script>
+</head>
+<body>
+<div id="wrapper">
+    <div th:insert="~{blocks/header :: sidebar}"></div>
+    <div id="content-wrapper">
+        <div th:insert="~{blocks/header :: topbar}"></div>
+        <div th:insert="~{blocks/header :: overlay}"></div>
+        <main class="container-fluid">
+
+            <div class="profile-card mb-4 d-flex justify-content-between align-items-center">
+                <h1 class="page-title mb-0">Мнемосхемы</h1>
+                <a href="/employee/chief/schemas/addSchema" class="btn btn-success btn-sm">
+                    <i class="bi bi-plus-lg"></i> Создать схему
+                </a>
+            </div>
+
+            <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
+            <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
+
+            <div class="profile-card">
+                <div class="table-responsive">
+                    <table class="table table-modern mb-0">
+                        <thead>
+                        <tr>
+                            <th>Название</th>
+                            <th>Описание</th>
+                            <th>Размер</th>
+                            <th>Элементов</th>
+                            <th>Соединений</th>
+                            <th>Создатель</th>
+                            <th>Действия</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="s : ${allSchemas}">
+                            <td th:text="${s.title}"></td>
+                            <td>
+                                <span th:if="${s.description != null && s.description.length() > 50}"
+                                      th:text="${s.description.substring(0, 50) + '...'}"></span>
+                                <span th:if="${s.description == null || s.description.length() <= 50}"
+                                      th:text="${s.description}"></span>
+                            </td>
+                            <td th:text="${s.width + ' x ' + s.height}"></td>
+                            <td th:text="${s.elementCount}"></td>
+                            <td th:text="${s.connectionCount}"></td>
+                            <td th:text="${s.createdByFullName}"></td>
+                            <td>
+                                <div class="action-buttons">
+                                    <a th:href="@{/employee/chief/schemas/detailsSchema/{id}(id=${s.id})}"
+                                       class="btn btn-sm btn-outline-primary" title="Просмотр">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <a th:href="@{/employee/chief/schemas/editSchema/{id}(id=${s.id})}"
+                                       class="btn btn-sm btn-outline-warning" title="Редактор">
+                                        <i class="bi bi-pencil-square"></i>
+                                    </a>
+                                    <a th:href="@{/employee/chief/schemas/deleteSchema/{id}(id=${s.id})}"
+                                       class="btn btn-sm btn-outline-danger" title="Удалить"
+                                       onclick="return confirm('Удалить схему?')">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(allSchemas)}">
+                            <td colspan="7" class="text-center text-muted py-4">Нет созданных схем</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </main>
+        <div th:insert="~{blocks/footer :: footer}"></div>
+    </div>
+</div>
+</body>
+</html>

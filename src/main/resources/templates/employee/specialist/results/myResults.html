@@ -22,6 +22,21 @@
                 <h1 class="page-title mb-0">Мои результаты</h1>
             </div>
 
+            <!-- Tabs -->
+            <ul class="nav nav-tabs mb-3" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="tests-tab" data-bs-toggle="tab"
+                            data-bs-target="#testsPane" type="button" role="tab">Тесты</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="sim-tab" data-bs-toggle="tab"
+                            data-bs-target="#simPane" type="button" role="tab">Симуляции</button>
+                </li>
+            </ul>
+
+            <div class="tab-content">
+            <!-- Tests tab -->
+            <div class="tab-pane fade show active" id="testsPane" role="tabpanel">
             <div class="profile-card p-4">
                 <table class="table table-modern">
                     <thead>
@@ -65,6 +80,44 @@
                     </tr>
                     </tbody>
                 </table>
+            </div>
+            </div>
+
+            <!-- Simulations tab -->
+            <div class="tab-pane fade" id="simPane" role="tabpanel">
+            <div class="profile-card p-4">
+                <table class="table table-modern">
+                    <thead>
+                    <tr>
+                        <th style="width: 50px">#</th>
+                        <th>Сценарий</th>
+                        <th style="width: 140px">Дата</th>
+                        <th style="width: 120px">Шагов</th>
+                        <th style="width: 120px">Статус</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="s, index : ${simSessions}">
+                        <td class="row-number" th:text="${index.index + 1}"></td>
+                        <td>
+                            <a th:href="@{/employee/specialist/mnemo/result/{id}(id=${s.id})}"
+                               th:text="${s.scenarioTitle}"></a>
+                        </td>
+                        <td th:text="${#temporals.format(s.startedAt, 'dd.MM.yyyy HH:mm')}"></td>
+                        <td th:text="${s.completedSteps + ' / ' + s.totalSteps}"></td>
+                        <td>
+                            <span class="badge"
+                                  th:classappend="${s.sessionStatus == 'COMPLETED' ? 'bg-success' : (s.sessionStatus == 'EXPIRED' ? 'bg-warning text-dark' : (s.sessionStatus == 'IN_PROGRESS' ? 'bg-info' : 'bg-danger'))}"
+                                  th:text="${s.sessionStatusDisplayName}"></span>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(simSessions)}">
+                        <td colspan="5" class="text-center text-muted">У вас пока нет результатов симуляций</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+            </div>
             </div>
 
         </main>
