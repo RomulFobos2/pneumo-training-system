@@ -113,7 +113,86 @@ var SchemaEditor = (function () {
     function getSymbolDefs() {
         var mainDefs = document.querySelector('#editorSvg defs');
         if (mainDefs) return '<defs>' + mainDefs.innerHTML + '</defs>';
-        return '';
+
+        // Fallback: встроенные символы для страниц без редактора (симуляция, просмотр, сценарий)
+        return '<defs>' +
+            // VALVE off (red)
+            '<symbol id="symbol-VALVE-off" viewBox="0 0 60 60">' +
+            '<circle cx="30" cy="30" r="25" fill="#fde8e8" stroke="#e74c3c" stroke-width="2.5"/>' +
+            '<path d="M15 30 L45 30 M30 15 L30 45" stroke="#e74c3c" stroke-width="3"/>' +
+            '</symbol>' +
+            // VALVE on (green)
+            '<symbol id="symbol-VALVE-on" viewBox="0 0 60 60">' +
+            '<circle cx="30" cy="30" r="25" fill="#d4edda" stroke="#27ae60" stroke-width="2.5"/>' +
+            '<path d="M15 30 L45 30" stroke="#27ae60" stroke-width="3"/>' +
+            '<circle cx="30" cy="30" r="5" fill="#27ae60"/>' +
+            '</symbol>' +
+            // PUMP off
+            '<symbol id="symbol-PUMP-off" viewBox="0 0 60 60">' +
+            '<circle cx="30" cy="30" r="25" fill="#eef2f7" stroke="#95a5a6" stroke-width="2.5"/>' +
+            '<path d="M18 30 L30 18 L42 30 L30 42 Z" fill="none" stroke="#95a5a6" stroke-width="2.5"/>' +
+            '</symbol>' +
+            // PUMP on
+            '<symbol id="symbol-PUMP-on" viewBox="0 0 60 60">' +
+            '<circle cx="30" cy="30" r="25" fill="#d4edda" stroke="#27ae60" stroke-width="2.5"/>' +
+            '<path d="M18 30 L30 18 L42 30 L30 42 Z" fill="#27ae60" fill-opacity="0.3" stroke="#27ae60" stroke-width="2.5"/>' +
+            '<circle cx="30" cy="30" r="4" fill="#27ae60"/>' +
+            '</symbol>' +
+            // SWITCH off
+            '<symbol id="symbol-SWITCH-off" viewBox="0 0 60 60">' +
+            '<rect x="5" y="15" width="50" height="30" rx="6" fill="#eef2f7" stroke="#95a5a6" stroke-width="2.5"/>' +
+            '<circle cx="22" cy="30" r="9" fill="#95a5a6"/>' +
+            '</symbol>' +
+            // SWITCH on
+            '<symbol id="symbol-SWITCH-on" viewBox="0 0 60 60">' +
+            '<rect x="5" y="15" width="50" height="30" rx="6" fill="#d4edda" stroke="#27ae60" stroke-width="2.5"/>' +
+            '<circle cx="38" cy="30" r="9" fill="#27ae60"/>' +
+            '</symbol>' +
+            // SENSOR_PRESSURE off
+            '<symbol id="symbol-SENSOR_PRESSURE-off" viewBox="0 0 60 60">' +
+            '<circle cx="30" cy="30" r="25" fill="#f3e8ff" stroke="#9b59b6" stroke-width="2.5"/>' +
+            '<text x="30" y="36" text-anchor="middle" font-size="22" font-weight="bold" fill="#9b59b6">P</text>' +
+            '</symbol>' +
+            // SENSOR_PRESSURE on
+            '<symbol id="symbol-SENSOR_PRESSURE-on" viewBox="0 0 60 60">' +
+            '<circle cx="30" cy="30" r="25" fill="#e8d5f5" stroke="#8e44ad" stroke-width="2.5"/>' +
+            '<text x="30" y="36" text-anchor="middle" font-size="22" font-weight="bold" fill="#8e44ad">P</text>' +
+            '</symbol>' +
+            // SENSOR_TEMPERATURE off
+            '<symbol id="symbol-SENSOR_TEMPERATURE-off" viewBox="0 0 60 60">' +
+            '<circle cx="30" cy="30" r="25" fill="#fef3e2" stroke="#e67e22" stroke-width="2.5"/>' +
+            '<text x="30" y="36" text-anchor="middle" font-size="22" font-weight="bold" fill="#e67e22">T</text>' +
+            '</symbol>' +
+            // SENSOR_TEMPERATURE on
+            '<symbol id="symbol-SENSOR_TEMPERATURE-on" viewBox="0 0 60 60">' +
+            '<circle cx="30" cy="30" r="25" fill="#fde3c8" stroke="#d35400" stroke-width="2.5"/>' +
+            '<text x="30" y="36" text-anchor="middle" font-size="22" font-weight="bold" fill="#d35400">T</text>' +
+            '</symbol>' +
+            // HEATER off
+            '<symbol id="symbol-HEATER-off" viewBox="0 0 60 60">' +
+            '<rect x="5" y="8" width="50" height="44" rx="6" fill="#eef2f7" stroke="#95a5a6" stroke-width="2.5"/>' +
+            '<path d="M14 22 Q22 17 30 22 Q38 27 46 22" stroke="#95a5a6" stroke-width="2.5" fill="none"/>' +
+            '<path d="M14 35 Q22 30 30 35 Q38 40 46 35" stroke="#95a5a6" stroke-width="2.5" fill="none"/>' +
+            '</symbol>' +
+            // HEATER on
+            '<symbol id="symbol-HEATER-on" viewBox="0 0 60 60">' +
+            '<rect x="5" y="8" width="50" height="44" rx="6" fill="#fde8e8" stroke="#e74c3c" stroke-width="2.5"/>' +
+            '<path d="M14 22 Q22 17 30 22 Q38 27 46 22" stroke="#e74c3c" stroke-width="2.5" fill="none"/>' +
+            '<path d="M14 35 Q22 30 30 35 Q38 40 46 35" stroke="#e74c3c" stroke-width="2.5" fill="none"/>' +
+            '</symbol>' +
+            // LOCK off (locked)
+            '<symbol id="symbol-LOCK-off" viewBox="0 0 60 60">' +
+            '<rect x="13" y="28" width="34" height="26" rx="5" fill="#fde8e8" stroke="#e74c3c" stroke-width="2.5"/>' +
+            '<path d="M20 28 V20 Q20 8 30 8 Q40 8 40 20 V28" fill="none" stroke="#e74c3c" stroke-width="3"/>' +
+            '<circle cx="30" cy="40" r="3" fill="#e74c3c"/>' +
+            '</symbol>' +
+            // LOCK on (unlocked)
+            '<symbol id="symbol-LOCK-on" viewBox="0 0 60 60">' +
+            '<rect x="13" y="28" width="34" height="26" rx="5" fill="#d4edda" stroke="#27ae60" stroke-width="2.5"/>' +
+            '<path d="M20 28 V20 Q20 8 30 8 Q40 8 40 20" fill="none" stroke="#27ae60" stroke-width="3"/>' +
+            '<circle cx="30" cy="40" r="3" fill="#27ae60"/>' +
+            '</symbol>' +
+            '</defs>';
     }
 
     // ========== Загрузка/сохранение ==========
