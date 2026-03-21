@@ -17,6 +17,8 @@ import ru.mai.voshod.pneumotraining.models.MnemoSchema;
 import ru.mai.voshod.pneumotraining.models.SchemaConnection;
 import ru.mai.voshod.pneumotraining.models.SchemaElement;
 import ru.mai.voshod.pneumotraining.repo.MnemoSchemaRepository;
+import ru.mai.voshod.pneumotraining.repo.SchemaConnectionRepository;
+import ru.mai.voshod.pneumotraining.repo.SchemaElementRepository;
 
 import java.util.HashMap;
 import java.util.List;
@@ -28,9 +30,15 @@ import java.util.Optional;
 public class MnemoSchemaService {
 
     private final MnemoSchemaRepository mnemoSchemaRepository;
+    private final SchemaElementRepository elementRepository;
+    private final SchemaConnectionRepository connectionRepository;
 
-    public MnemoSchemaService(MnemoSchemaRepository mnemoSchemaRepository) {
+    public MnemoSchemaService(MnemoSchemaRepository mnemoSchemaRepository,
+                              SchemaElementRepository elementRepository,
+                              SchemaConnectionRepository connectionRepository) {
         this.mnemoSchemaRepository = mnemoSchemaRepository;
+        this.elementRepository = elementRepository;
+        this.connectionRepository = connectionRepository;
     }
 
     // ========== CRUD ==========
@@ -148,13 +156,15 @@ public class MnemoSchemaService {
 
             if (data.getWidth() != null) schema.setWidth(data.getWidth());
             if (data.getHeight() != null) schema.setHeight(data.getHeight());
+            mnemoSchemaRepository.save(schema);
 
-            // 1. Очистить ОБЕ коллекции и flush (orphanRemoval удалит старые записи)
-            schema.getConnections().clear();
-            schema.getElements().clear();
-            mnemoSchemaRepository.saveAndFlush(schema);
+            // 1. Удалить старые соединения и элементы напрямую через репозитории
+            connectionRepository.deleteAll(connectionRepository.findBySchemaId(schemaId));
+            connectionRepository.flush();
+            elementRepository.deleteAll(elementRepository.findBySchemaId(schemaId));
+            elementRepository.flush();
 
-            // 2. Добавить новые элементы
+            // 2. Сохранить новые элементы напрямую
             Map<Long, SchemaElement> tempIdMap = new HashMap<>();
             for (SchemaElementDTO dto : data.getElements()) {
                 SchemaElement element = new SchemaElement();
@@ -167,16 +177,15 @@ public class MnemoSchemaService {
                 element.setInitialState(dto.isInitialState());
                 element.setRotation(dto.getRotation() != null ? dto.getRotation() : 0);
                 element.setSchema(schema);
-                schema.getElements().add(element);
+
+                SchemaElement saved = elementRepository.save(element);
                 if (dto.getId() != null) {
-                    tempIdMap.put(dto.getId(), element);
+                    tempIdMap.put(dto.getId(), saved);
                 }
             }
+            elementRepository.flush();
 
-            // 3. Flush чтобы элементы получили real ID
-            mnemoSchemaRepository.saveAndFlush(schema);
-
-            // 4. Добавить соединения (элементы уже persisted)
+            // 3. Сохранить соединения (элементы уже persistent с реальными ID)
             for (SchemaConnectionDTO dto : data.getConnections()) {
                 SchemaElement source = tempIdMap.get(dto.getSourceElementId());
                 SchemaElement target = tempIdMap.get(dto.getTargetElementId());
@@ -187,10 +196,8 @@ public class MnemoSchemaService {
                 conn.setSourceElement(source);
                 conn.setTargetElement(target);
                 conn.setPathData(dto.getPathData());
-                schema.getConnections().add(conn);
+                connectionRepository.save(conn);
             }
-
-            mnemoSchemaRepository.save(schema);
             log.info("Данные схемы сохранены: id={}", schemaId);
             return true;
         } catch (Exception e) {
