@@ -106,16 +106,22 @@ var SchemaEditor = (function () {
             line.setAttribute('y2', tgt.posY + (tgt.height || 60) / 2);
             line.setAttribute('stroke', '#6c757d');
             line.setAttribute('stroke-width', '3');
+            line.setAttribute('marker-end', 'url(#editor-arrow)');
             g.insertBefore(line, g.firstChild);
         });
     }
 
     function getSymbolDefs() {
+        var arrowMarker =
+            '<marker id="editor-arrow" viewBox="0 0 10 6" refX="10" refY="3" markerWidth="8" markerHeight="6" orient="auto">' +
+            '<path d="M0,0 L10,3 L0,6 Z" fill="#6c757d"/>' +
+            '</marker>';
+
         var mainDefs = document.querySelector('#editorSvg defs');
-        if (mainDefs) return '<defs>' + mainDefs.innerHTML + '</defs>';
+        if (mainDefs) return '<defs>' + mainDefs.innerHTML + arrowMarker + '</defs>';
 
         // Fallback: встроенные символы для страниц без редактора (симуляция, просмотр, сценарий)
-        return '<defs>' +
+        return '<defs>' + arrowMarker +
             // VALVE off (red)
             '<symbol id="symbol-VALVE-off" viewBox="0 0 60 60">' +
             '<circle cx="30" cy="30" r="25" fill="#fde8e8" stroke="#e74c3c" stroke-width="2.5"/>' +
@@ -406,6 +412,7 @@ var SchemaEditor = (function () {
         line.setAttribute('y1', src.posY + src.height / 2);
         line.setAttribute('x2', tgt.posX + tgt.width / 2);
         line.setAttribute('y2', tgt.posY + tgt.height / 2);
+        line.setAttribute('marker-end', 'url(#editor-arrow)');
         connectionsLayer.appendChild(line);
         conn.svgLine = line;
     }

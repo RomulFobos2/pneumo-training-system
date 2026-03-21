@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.interceptor.TransactionAspectSupport;
 import ru.mai.voshod.pneumotraining.dto.SimulationSessionDTO;
+import ru.mai.voshod.pneumotraining.enumeration.ElementType;
 import ru.mai.voshod.pneumotraining.enumeration.SimulationSessionStatus;
 import ru.mai.voshod.pneumotraining.mapper.SimulationSessionMapper;
 import ru.mai.voshod.pneumotraining.models.*;
@@ -148,6 +149,20 @@ public class SimulationService {
                 return Optional.of(Map.of("expired", true));
             }
 
+            // Проверка: датчики и надписи не переключаются
+            MnemoSchema schema = session.getScenario().getSchema();
+            if (schema != null) {
+                Optional<SchemaElement> schemaElement = schema.getElements().stream()
+                        .filter(e -> e.getName().equals(elementName))
+                        .findFirst();
+                if (schemaElement.isPresent() && isNonToggleable(schemaElement.get().getElementType())) {
+                    Map<String, Object> res = new LinkedHashMap<>();
+                    res.put("notToggleable", true);
+                    res.put("expired", false);
+                    return Optional.of(res);
+                }
+            }
+
             Map<String, Boolean> state = deserializeState(session.getCurrentState());
             if (!state.containsKey(elementName)) {
                 log.warn("Элемент не найден в состоянии: {}", elementName);
@@ -212,8 +227,17 @@ public class SimulationService {
                 fullExpected.putAll(stepExpected);
             }
 
-            // 2. Проверить ВСЕ элементы (и из шагов, и не затронутые — должны быть в initialState)
+            // 2. Исключить непереключаемые элементы (датчики, надписи) из проверки
+            Set<String> nonToggleableNames = new HashSet<>();
+            if (schema != null && schema.getElements() != null) {
+                schema.getElements().stream()
+                        .filter(el -> isNonToggleable(el.getElementType()))
+                        .forEach(el -> nonToggleableNames.add(el.getName()));
+            }
+
+            // 3. Проверить ВСЕ переключаемые элементы
             for (Map.Entry<String, Boolean> entry : fullExpected.entrySet()) {
+                if (nonToggleableNames.contains(entry.getKey())) continue;
                 Boolean actual = currentState.get(entry.getKey());
                 if (actual == null || !actual.equals(entry.getValue())) {
                     log.info("Ошибка на элементе {}: ожидалось={}, факт={}",
@@ -307,6 +331,12 @@ public class SimulationService {
         session.setFinishedAt(LocalDateTime.now());
         sessionRepository.save(session);
         log.info("Сессия истекла: id={}", session.getId());
+    }
+
+    private boolean isNonToggleable(ElementType type) {
+        return type == ElementType.SENSOR_PRESSURE
+                || type == ElementType.SENSOR_TEMPERATURE
+                || type == ElementType.LABEL;
     }
 
     private Map<String, Boolean> deserializeState(String json) {

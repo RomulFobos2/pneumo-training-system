@@ -66,22 +66,25 @@ var Simulation = (function () {
             tooltipEl.innerHTML =
                 '<div class="sim-tooltip-name">' + (el.name || '—') + '</div>' +
                 '<div class="sim-tooltip-type">' + typeName + '</div>';
-        } else {
-            var stateText = isOn ? 'ВКЛ' : 'ВЫКЛ';
-            var stateClass = isOn ? 'sim-tooltip-on' : 'sim-tooltip-off';
-            var sensorHtml = '';
-
-            // Значение датчика
-            if (SENSOR_RANGES[el.elementType]) {
-                var range = SENSOR_RANGES[el.elementType];
-                var val = isOn ? getSensorValue(el.name, range) : 0;
-                sensorHtml = '<div class="sim-tooltip-value">' + val.toFixed(2) + ' ' + range.unit + '</div>';
-            }
+        } else if (isSensorType(el.elementType)) {
+            // Датчик — пассивный элемент, показания зависят от потока
+            var range = SENSOR_RANGES[el.elementType];
+            var hasFlow = checkSensorFlow(el.name);
+            var val = hasFlow && range ? getSensorValue(el.name, range) : 0;
+            var valText = range ? val.toFixed(2) + ' ' + range.unit : '—';
 
             tooltipEl.innerHTML =
                 '<div class="sim-tooltip-name">' + (el.name || '—') + '</div>' +
                 '<div class="sim-tooltip-type">' + typeName + '</div>' +
-                sensorHtml +
+                '<div class="sim-tooltip-value">' + valText + '</div>' +
+                '<div class="sim-tooltip-hint">Пассивный элемент (показания зависят от потока)</div>';
+        } else {
+            var stateText = isOn ? 'ВКЛ' : 'ВЫКЛ';
+            var stateClass = isOn ? 'sim-tooltip-on' : 'sim-tooltip-off';
+
+            tooltipEl.innerHTML =
+                '<div class="sim-tooltip-name">' + (el.name || '—') + '</div>' +
+                '<div class="sim-tooltip-type">' + typeName + '</div>' +
                 '<div class="sim-tooltip-state ' + stateClass + '">' + stateText + '</div>' +
                 '<div class="sim-tooltip-hint">Нажмите для переключения</div>';
         }
@@ -121,6 +124,38 @@ var Simulation = (function () {
         var val = range.min + norm * (range.max - range.min);
         sensorCache[name] = val;
         return val;
+    }
+
+    function isSensorType(type) {
+        return type === 'SENSOR_PRESSURE' || type === 'SENSOR_TEMPERATURE';
+    }
+
+    /** Проверяет, доходит ли поток до датчика (есть ли активная входящая труба) */
+    function checkSensorFlow(sensorName) {
+        return connectionLines.some(function (conn) {
+            return conn.tgt.name === sensorName && (isNeutralElement(conn.src) || isElementOn(conn.src));
+        });
+    }
+
+    /** Обновляет значения всех датчиков на основе потока */
+    function updateSensorValues() {
+        Object.keys(elementGroups).forEach(function (name) {
+            var eg = elementGroups[name];
+            if (!eg.valueText) return;
+            var el = eg.el;
+            var range = SENSOR_RANGES[el.elementType];
+            if (!range) return;
+
+            var hasFlow = checkSensorFlow(name);
+            if (hasFlow) {
+                var val = getSensorValue(el.name, range);
+                eg.valueText.textContent = val.toFixed(2) + ' ' + range.unit;
+                eg.valueText.setAttribute('fill', '#0d6efd');
+            } else {
+                eg.valueText.textContent = '0,00';
+                eg.valueText.setAttribute('fill', '#adb5bd');
+            }
+        });
     }
 
     // ========== Рендер схемы ==========
@@ -231,7 +266,7 @@ var Simulation = (function () {
                 label.textContent = el.name || '';
                 group.appendChild(label);
 
-                // Значение датчика под именем
+                // Значение датчика под именем (заполняется позже через updateSensorValues)
                 var valueText = null;
                 if (isSensor) {
                     valueText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
@@ -240,15 +275,8 @@ var Simulation = (function () {
                     valueText.setAttribute('text-anchor', 'middle');
                     valueText.setAttribute('font-size', '10');
                     valueText.setAttribute('font-weight', '700');
-                    var range = SENSOR_RANGES[el.elementType];
-                    if (isOn && range) {
-                        var val = getSensorValue(el.name, range);
-                        valueText.textContent = val.toFixed(2) + ' ' + range.unit;
-                        valueText.setAttribute('fill', '#0d6efd');
-                    } else {
-                        valueText.textContent = '0,00';
-                        valueText.setAttribute('fill', '#adb5bd');
-                    }
+                    valueText.textContent = '0,00';
+                    valueText.setAttribute('fill', '#adb5bd');
                     group.appendChild(valueText);
                 }
 
@@ -257,9 +285,13 @@ var Simulation = (function () {
                 group.addEventListener('mousemove', function (evt) { positionTooltip(evt); });
                 group.addEventListener('mouseleave', function () { hideTooltip(); });
 
-                // Клик — переключение (не для LABEL)
+                // Клик — переключение (не для LABEL и датчиков)
                 group.addEventListener('click', function () {
                     hideTooltip();
+                    if (isSensorType(el.elementType)) {
+                        showFeedback(el.name + ': показания зависят от потока', 'info');
+                        return;
+                    }
                     toggleElement(el.name, group, use, el, valueText);
                 });
 
@@ -269,8 +301,9 @@ var Simulation = (function () {
             svgEl.appendChild(group);
         });
 
-        // Обновить цвета труб
+        // Обновить цвета труб и значения датчиков
         updatePipeColors();
+        updateSensorValues();
     }
 
     // ========== Окрашивание труб ==========
@@ -322,25 +355,17 @@ var Simulation = (function () {
                 window.location.href = '/employee/specialist/mnemo/result/' + simSessionId;
                 return;
             }
+            if (data.notToggleable) {
+                showFeedback(name + ': этот элемент нельзя переключить', 'info');
+                return;
+            }
             elementState[name] = data.newState;
             var state = data.newState ? 'on' : 'off';
             use.setAttribute('href', '#symbol-' + el.elementType + '-' + state);
 
-            // Обновить значение датчика
-            if (valueText && SENSOR_RANGES[el.elementType]) {
-                var range = SENSOR_RANGES[el.elementType];
-                if (data.newState) {
-                    var val = getSensorValue(el.name, range);
-                    valueText.textContent = val.toFixed(2) + ' ' + range.unit;
-                    valueText.setAttribute('fill', '#0d6efd');
-                } else {
-                    valueText.textContent = '0,00';
-                    valueText.setAttribute('fill', '#adb5bd');
-                }
-            }
-
-            // Обновить цвета труб
+            // Обновить цвета труб и значения датчиков
             updatePipeColors();
+            updateSensorValues();
 
             // Подпись состояния
             showFeedback(el.name + ': ' + (data.newState ? 'ВКЛ' : 'ВЫКЛ'), 'info');
