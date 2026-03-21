@@ -17,6 +17,7 @@ import ru.mai.voshod.pneumotraining.mapper.TestSessionMapper;
 import ru.mai.voshod.pneumotraining.enumeration.AssignmentStatus;
 import ru.mai.voshod.pneumotraining.models.*;
 import ru.mai.voshod.pneumotraining.repo.*;
+import ru.mai.voshod.pneumotraining.service.employee.admin.DepartmentService;
 import ru.mai.voshod.pneumotraining.service.employee.chief.TestAssignmentService;
 
 import java.time.LocalDateTime;
@@ -35,6 +36,7 @@ public class TestingService {
     private final TestSessionAnswerRepository testSessionAnswerRepository;
     private final TestAssignmentEmployeeRepository testAssignmentEmployeeRepository;
     private final TestAssignmentService testAssignmentService;
+    private final DepartmentService departmentService;
     private final ObjectMapper objectMapper;
 
     public TestingService(TestRepository testRepository,
@@ -43,7 +45,8 @@ public class TestingService {
                           TestSessionRepository testSessionRepository,
                           TestSessionAnswerRepository testSessionAnswerRepository,
                           TestAssignmentEmployeeRepository testAssignmentEmployeeRepository,
-                          TestAssignmentService testAssignmentService) {
+                          TestAssignmentService testAssignmentService,
+                          DepartmentService departmentService) {
         this.testRepository = testRepository;
         this.testQuestionRepository = testQuestionRepository;
         this.testAnswerRepository = testAnswerRepository;
@@ -51,6 +54,7 @@ public class TestingService {
         this.testSessionAnswerRepository = testSessionAnswerRepository;
         this.testAssignmentEmployeeRepository = testAssignmentEmployeeRepository;
         this.testAssignmentService = testAssignmentService;
+        this.departmentService = departmentService;
         this.objectMapper = new ObjectMapper();
     }
 
@@ -61,7 +65,8 @@ public class TestingService {
         if (employee.getDepartment() == null) {
             return Collections.emptyList();
         }
-        List<Test> tests = testRepository.findAvailableByDepartmentId(employee.getDepartment().getId());
+        List<Long> ancestorIds = departmentService.getAncestorIds(employee.getDepartment().getId());
+        List<Test> tests = testRepository.findAvailableByDepartmentIds(ancestorIds);
         return tests.stream().map(test -> {
             TestDTO dto = TestMapper.INSTANCE.toDTO(test);
             dto.setQuestionCount((int) testQuestionRepository.countByTestId(test.getId()));
@@ -559,10 +564,11 @@ public class TestingService {
     }
 
     private boolean canEmployeeAccessTest(Test test, Employee employee) {
-        // Доступен без назначения и подразделение сотрудника в списке допущенных
+        // Доступен без назначения — проверяем подразделение сотрудника с наследованием вверх по дереву
         if (test.isAvailableWithoutAssignment() && employee.getDepartment() != null) {
+            List<Long> ancestorIds = departmentService.getAncestorIds(employee.getDepartment().getId());
             boolean departmentAllowed = test.getAllowedDepartments().stream()
-                    .anyMatch(d -> d.getId().equals(employee.getDepartment().getId()));
+                    .anyMatch(d -> ancestorIds.contains(d.getId()));
             if (departmentAllowed) return true;
         }
         // Есть активное назначение (PENDING) для этого теста

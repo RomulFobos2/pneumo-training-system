@@ -67,19 +67,10 @@
                                 </div>
                             </div>
 
-                            <!-- Доступ без назначения -->
-                            <div class="mb-3">
-                                <div class="form-check">
-                                    <input type="checkbox" name="inputAvailableWithoutAssignment" value="true"
-                                           class="form-check-input" id="availableCheck">
-                                    <label class="form-check-label fw-bold" for="availableCheck">Доступен без назначения</label>
-                                    <div class="form-text text-muted">Сотрудники выбранных подразделений смогут проходить тест без назначения</div>
-                                </div>
-                            </div>
-
-                            <!-- Дерево подразделений -->
-                            <div id="departmentTree" style="display:none" class="mb-4 profile-card p-3">
-                                <label class="form-label fw-bold">Подразделения</label>
+                            <!-- Дерево подразделений (всегда видимо) -->
+                            <div id="departmentTree" class="mb-4 profile-card p-3">
+                                <label class="form-label fw-bold">Подразделения <span class="text-danger">*</span></label>
+                                <div class="form-text text-muted mb-2">Выберите подразделения, для которых будет доступен тест</div>
                                 <div th:each="dept : ${allDepartments}" class="form-check"
                                      th:style="'padding-left:' + (${dept.level} * 24 + 16) + 'px'">
                                     <input type="checkbox" name="inputDepartmentIds" th:value="${dept.id}"
@@ -93,6 +84,16 @@
                                 </div>
                                 <div id="deptError" class="form-text text-danger mt-2" style="display:none">
                                     Выберите хотя бы одно подразделение
+                                </div>
+                            </div>
+
+                            <!-- Доступ без назначения -->
+                            <div class="mb-4">
+                                <div class="form-check">
+                                    <input type="checkbox" name="inputAvailableWithoutAssignment" value="true"
+                                           class="form-check-input" id="availableCheck">
+                                    <label class="form-check-label fw-bold" for="availableCheck">Доступен без назначения</label>
+                                    <div class="form-text text-muted">Сотрудники выбранных подразделений смогут проходить тест без назначения</div>
                                 </div>
                             </div>
 
@@ -116,18 +117,8 @@
 
 <script>
     (function() {
-        var availableCheckbox = document.getElementById('availableCheck');
-        var deptTree = document.getElementById('departmentTree');
         var deptError = document.getElementById('deptError');
         var deptCheckboxes = document.querySelectorAll('.dept-checkbox');
-
-        availableCheckbox.addEventListener('change', function() {
-            deptTree.style.display = this.checked ? 'block' : 'none';
-            if (!this.checked) {
-                deptCheckboxes.forEach(function(cb) { cb.checked = false; cb.indeterminate = false; });
-                deptError.style.display = 'none';
-            }
-        });
 
         deptCheckboxes.forEach(function(cb) {
             cb.addEventListener('change', function() {
@@ -178,12 +169,10 @@
         }
 
         document.getElementById('testForm').addEventListener('submit', function(e) {
-            if (availableCheckbox.checked) {
-                var anyChecked = Array.from(deptCheckboxes).some(function(cb) { return cb.checked; });
-                if (!anyChecked) {
-                    e.preventDefault();
-                    deptError.style.display = 'block';
-                }
+            var anyChecked = Array.from(deptCheckboxes).some(function(cb) { return cb.checked; });
+            if (!anyChecked) {
+                e.preventDefault();
+                deptError.style.display = 'block';
             }
         });
     })();

@@ -15,6 +15,7 @@ import ru.mai.voshod.pneumotraining.models.Test;
 import ru.mai.voshod.pneumotraining.repo.DepartmentRepository;
 import ru.mai.voshod.pneumotraining.repo.TestQuestionRepository;
 import ru.mai.voshod.pneumotraining.repo.TestRepository;
+import ru.mai.voshod.pneumotraining.service.employee.admin.DepartmentService;
 
 import java.util.List;
 import java.util.Optional;
@@ -27,13 +28,16 @@ public class TestService {
     private final TestRepository testRepository;
     private final TestQuestionRepository testQuestionRepository;
     private final DepartmentRepository departmentRepository;
+    private final DepartmentService departmentService;
 
     public TestService(TestRepository testRepository,
                        TestQuestionRepository testQuestionRepository,
-                       DepartmentRepository departmentRepository) {
+                       DepartmentRepository departmentRepository,
+                       DepartmentService departmentService) {
         this.testRepository = testRepository;
         this.testQuestionRepository = testQuestionRepository;
         this.departmentRepository = departmentRepository;
+        this.departmentService = departmentService;
     }
 
     // ========== CRUD ==========
@@ -61,7 +65,7 @@ public class TestService {
             test.setAvailableWithoutAssignment(availableWithoutAssignment);
             test.setCreatedBy(createdBy);
 
-            if (availableWithoutAssignment && departmentIds != null && !departmentIds.isEmpty()) {
+            if (departmentIds != null && !departmentIds.isEmpty()) {
                 test.setAllowedDepartments(departmentRepository.findAllById(departmentIds));
             }
 
@@ -103,7 +107,7 @@ public class TestService {
             test.setAvailableWithoutAssignment(availableWithoutAssignment);
 
             test.getAllowedDepartments().clear();
-            if (availableWithoutAssignment && departmentIds != null && !departmentIds.isEmpty()) {
+            if (departmentIds != null && !departmentIds.isEmpty()) {
                 test.getAllowedDepartments().addAll(departmentRepository.findAllById(departmentIds));
             }
 
@@ -146,9 +150,14 @@ public class TestService {
         return tests.stream().map(this::toTestDTO).toList();
     }
 
+    /**
+     * Тесты, привязанные к подразделению с учётом наследования (для назначений).
+     * Если тест назначен на родительское подразделение, он доступен дочерним.
+     */
     @Transactional(readOnly = true)
     public List<TestDTO> getTestsForDepartment(Long departmentId) {
-        List<Test> tests = testRepository.findAvailableByDepartmentId(departmentId);
+        List<Long> ancestorIds = departmentService.getAncestorIds(departmentId);
+        List<Test> tests = testRepository.findByDepartmentIds(ancestorIds);
         return tests.stream().map(this::toTestDTO).toList();
     }
 

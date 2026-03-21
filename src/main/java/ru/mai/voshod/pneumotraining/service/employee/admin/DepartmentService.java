@@ -166,6 +166,23 @@ public class DepartmentService {
         return departmentRepository.existsByNameAndIdNot(name, id);
     }
 
+    /**
+     * Собирает цепочку ID подразделений от заданного до корня (включая само подразделение).
+     * Используется для наследования доступа к тестам: если тест назначен на родителя, он доступен потомкам.
+     */
+    @Transactional(readOnly = true)
+    public List<Long> getAncestorIds(Long departmentId) {
+        List<Long> ids = new ArrayList<>();
+        Optional<Department> current = departmentRepository.findById(departmentId);
+        while (current.isPresent()) {
+            ids.add(current.get().getId());
+            current = current.get().getParent() != null
+                    ? Optional.of(current.get().getParent())
+                    : Optional.empty();
+        }
+        return ids;
+    }
+
     // ========== Вспомогательные методы ==========
 
     private DepartmentDTO buildTree(Department dept, int level) {
