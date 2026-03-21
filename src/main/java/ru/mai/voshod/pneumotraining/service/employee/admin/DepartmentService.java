@@ -167,6 +167,20 @@ public class DepartmentService {
     }
 
     /**
+     * Собирает ID подразделения и всех его потомков.
+     */
+    @Transactional(readOnly = true)
+    public List<Long> getDescendantIdsIncludingSelf(Long departmentId) {
+        List<Long> result = new ArrayList<>();
+        result.add(departmentId);
+        List<DepartmentDTO> flat = getAllDepartmentsFlat();
+        Set<Long> descendants = new HashSet<>();
+        collectDescendantIds(flat, departmentId, descendants);
+        result.addAll(descendants);
+        return result;
+    }
+
+    /**
      * Собирает цепочку ID подразделений от заданного до корня (включая само подразделение).
      * Используется для наследования доступа к тестам: если тест назначен на родителя, он доступен потомкам.
      */
