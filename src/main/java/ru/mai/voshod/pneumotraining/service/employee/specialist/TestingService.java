@@ -14,6 +14,7 @@ import ru.mai.voshod.pneumotraining.enumeration.TestSessionStatus;
 import ru.mai.voshod.pneumotraining.mapper.TestAnswerMapper;
 import ru.mai.voshod.pneumotraining.mapper.TestMapper;
 import ru.mai.voshod.pneumotraining.mapper.TestSessionMapper;
+import ru.mai.voshod.pneumotraining.enumeration.AssignmentStatus;
 import ru.mai.voshod.pneumotraining.models.*;
 import ru.mai.voshod.pneumotraining.repo.*;
 import ru.mai.voshod.pneumotraining.service.employee.chief.TestAssignmentService;
@@ -32,6 +33,7 @@ public class TestingService {
     private final TestAnswerRepository testAnswerRepository;
     private final TestSessionRepository testSessionRepository;
     private final TestSessionAnswerRepository testSessionAnswerRepository;
+    private final TestAssignmentEmployeeRepository testAssignmentEmployeeRepository;
     private final TestAssignmentService testAssignmentService;
     private final ObjectMapper objectMapper;
 
@@ -40,20 +42,26 @@ public class TestingService {
                           TestAnswerRepository testAnswerRepository,
                           TestSessionRepository testSessionRepository,
                           TestSessionAnswerRepository testSessionAnswerRepository,
+                          TestAssignmentEmployeeRepository testAssignmentEmployeeRepository,
                           TestAssignmentService testAssignmentService) {
         this.testRepository = testRepository;
         this.testQuestionRepository = testQuestionRepository;
         this.testAnswerRepository = testAnswerRepository;
         this.testSessionRepository = testSessionRepository;
         this.testSessionAnswerRepository = testSessionAnswerRepository;
+        this.testAssignmentEmployeeRepository = testAssignmentEmployeeRepository;
         this.testAssignmentService = testAssignmentService;
         this.objectMapper = new ObjectMapper();
     }
 
     // ========== Доступные тесты ==========
 
-    public List<TestDTO> getAvailableTests() {
-        List<Test> tests = testRepository.findByIsActiveTrueOrderByTitleAsc();
+    @Transactional(readOnly = true)
+    public List<TestDTO> getAvailableTests(Employee employee) {
+        if (employee.getDepartment() == null) {
+            return Collections.emptyList();
+        }
+        List<Test> tests = testRepository.findAvailableByDepartmentId(employee.getDepartment().getId());
         return tests.stream().map(test -> {
             TestDTO dto = TestMapper.INSTANCE.toDTO(test);
             dto.setQuestionCount((int) testQuestionRepository.countByTestId(test.getId()));
@@ -62,9 +70,9 @@ public class TestingService {
     }
 
     @Transactional(readOnly = true)
-    public Optional<TestDTO> getTestForStart(Long testId) {
+    public Optional<TestDTO> getTestForStart(Long testId, Employee employee) {
         return testRepository.findById(testId)
-                .filter(Test::isActive)
+                .filter(test -> canEmployeeAccessTest(test, employee))
                 .map(test -> {
                     TestDTO dto = TestMapper.INSTANCE.toDTO(test);
                     dto.setQuestionCount((int) testQuestionRepository.countByTestId(test.getId()));
@@ -79,8 +87,8 @@ public class TestingService {
         log.info("Старт теста id={} для сотрудника id={}", testId, employee.getId());
 
         Optional<Test> testOpt = testRepository.findById(testId);
-        if (testOpt.isEmpty() || !testOpt.get().isActive()) {
-            log.error("Тест не найден или неактивен: id={}", testId);
+        if (testOpt.isEmpty() || !canEmployeeAccessTest(testOpt.get(), employee)) {
+            log.error("Тест не найден или недоступен: id={}", testId);
             return Optional.empty();
         }
 
@@ -548,5 +556,18 @@ public class TestingService {
             default:
                 return false;
         }
+    }
+
+    private boolean canEmployeeAccessTest(Test test, Employee employee) {
+        // Доступен без назначения и подразделение сотрудника в списке допущенных
+        if (test.isAvailableWithoutAssignment() && employee.getDepartment() != null) {
+            boolean departmentAllowed = test.getAllowedDepartments().stream()
+                    .anyMatch(d -> d.getId().equals(employee.getDepartment().getId()));
+            if (departmentAllowed) return true;
+        }
+        // Есть активное назначение (PENDING) для этого теста
+        List<TestAssignmentEmployee> pending = testAssignmentEmployeeRepository
+                .findByEmployeeIdAndAssignment_TestIdAndStatus(employee.getId(), test.getId(), AssignmentStatus.PENDING);
+        return !pending.isEmpty();
     }
 }

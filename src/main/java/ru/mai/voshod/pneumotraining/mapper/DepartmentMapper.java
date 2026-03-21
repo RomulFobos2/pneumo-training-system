@@ -13,6 +13,10 @@ public interface DepartmentMapper {
     DepartmentMapper INSTANCE = Mappers.getMapper(DepartmentMapper.class);
 
     @Mapping(target = "employeeCount", ignore = true)
+    @Mapping(source = "parent.id", target = "parentId")
+    @Mapping(source = "parent.name", target = "parentName")
+    @Mapping(target = "level", ignore = true)
+    @Mapping(target = "children", ignore = true)
     DepartmentDTO toDTO(Department department);
 
     List<DepartmentDTO> toDTOList(List<Department> departments);

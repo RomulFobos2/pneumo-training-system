@@ -61,7 +61,7 @@
                             <!-- Выбор по подразделению -->
                             <div id="departmentBlock" style="display:none" class="mb-3">
                                 <label class="form-label">Подразделение</label>
-                                <select id="departmentSelect" class="form-select" onchange="loadDepartmentEmployees()">
+                                <select id="departmentSelect" class="form-select" onchange="onDepartmentChange()">
                                     <option value="">— Выберите подразделение —</option>
                                     <option th:each="d : ${allDepartments}" th:value="${d.id}" th:text="${d.name}"></option>
                                 </select>
@@ -113,20 +113,57 @@
 </div>
 
 <script>
+    var allTestsBackup = null;
+
     function toggleMode() {
         var mode = document.querySelector('input[name="selectionMode"]:checked').value;
         var deptBlock = document.getElementById('departmentBlock');
-        var empList = document.getElementById('employeeList');
 
         if (mode === 'department') {
             deptBlock.style.display = 'block';
-            // Очистить текущий выбор
             deselectAll();
         } else {
             deptBlock.style.display = 'none';
-            // Показать всех сотрудников
             var items = document.querySelectorAll('.employee-item');
             items.forEach(function(item) { item.style.display = ''; });
+            restoreAllTests();
+        }
+    }
+
+    function onDepartmentChange() {
+        loadDepartmentEmployees();
+        loadDepartmentTests();
+    }
+
+    function loadDepartmentTests() {
+        var deptId = document.getElementById('departmentSelect').value;
+        var testSelect = document.querySelector('select[name="inputTestId"]');
+
+        if (!allTestsBackup) {
+            allTestsBackup = testSelect.innerHTML;
+        }
+
+        if (!deptId) {
+            testSelect.innerHTML = allTestsBackup;
+            return;
+        }
+
+        fetch('/employee/chief/assignments/testsByDepartment/' + deptId)
+            .then(function(r) { return r.json(); })
+            .then(function(tests) {
+                testSelect.innerHTML = '<option value="">— Выберите тест —</option>';
+                tests.forEach(function(t) {
+                    var opt = document.createElement('option');
+                    opt.value = t.id;
+                    opt.textContent = t.title;
+                    testSelect.appendChild(opt);
+                });
+            });
+    }
+
+    function restoreAllTests() {
+        if (allTestsBackup) {
+            document.querySelector('select[name="inputTestId"]').innerHTML = allTestsBackup;
         }
     }
 

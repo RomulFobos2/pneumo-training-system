@@ -15,6 +15,8 @@ public interface TestMapper {
     @Mapping(source = "createdBy.id", target = "createdById")
     @Mapping(source = "createdBy.fullName", target = "createdByFullName")
     @Mapping(target = "questionCount", ignore = true)
+    @Mapping(target = "departmentIds", ignore = true)
+    @Mapping(target = "allowedDepartments", ignore = true)
     TestDTO toDTO(Test test);
 
     List<TestDTO> toDTOList(List<Test> tests);

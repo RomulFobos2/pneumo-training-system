@@ -34,7 +34,7 @@ public class TestingController {
 
     @GetMapping("/employee/specialist/testing/availableTests")
     public String availableTests(@AuthenticationPrincipal Employee currentUser, Model model) {
-        model.addAttribute("availableTests", testingService.getAvailableTests());
+        model.addAttribute("availableTests", testingService.getAvailableTests(currentUser));
         model.addAttribute("assignedTests", testAssignmentService.getAssignedTestsForEmployee(currentUser.getId()));
         return "employee/specialist/testing/availableTests";
     }
@@ -42,8 +42,9 @@ public class TestingController {
     // ========== Подтверждение перед началом ==========
 
     @GetMapping("/employee/specialist/testing/startTest/{testId}")
-    public String startTestForm(@PathVariable(value = "testId") long testId, Model model) {
-        Optional<TestDTO> testOpt = testingService.getTestForStart(testId);
+    public String startTestForm(@PathVariable(value = "testId") long testId,
+                                @AuthenticationPrincipal Employee currentUser, Model model) {
+        Optional<TestDTO> testOpt = testingService.getTestForStart(testId, currentUser);
         if (testOpt.isEmpty()) {
             return "redirect:/employee/specialist/testing/availableTests";
         }

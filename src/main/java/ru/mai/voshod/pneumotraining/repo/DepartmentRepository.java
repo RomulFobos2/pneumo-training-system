@@ -9,6 +9,8 @@ public interface DepartmentRepository extends JpaRepository<Department, Long> {
 
     List<Department> findAllByOrderByNameAsc();
 
+    List<Department> findByParentIsNullOrderByNameAsc();
+
     boolean existsByName(String name);
 
     boolean existsByNameAndIdNot(String name, Long id);

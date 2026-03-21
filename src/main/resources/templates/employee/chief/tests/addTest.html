@@ -26,7 +26,7 @@
 
                         <div th:if="${testError}" class="alert alert-danger" th:text="${testError}"></div>
 
-                        <form action="/employee/chief/tests/addTest" method="post" class="auth-form">
+                        <form action="/employee/chief/tests/addTest" method="post" class="auth-form" id="testForm">
                             <div class="row g-3 mb-4">
                                 <div class="col-12">
                                     <label class="form-label">Название *</label>
@@ -67,6 +67,35 @@
                                 </div>
                             </div>
 
+                            <!-- Доступ без назначения -->
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input type="checkbox" name="inputAvailableWithoutAssignment" value="true"
+                                           class="form-check-input" id="availableCheck">
+                                    <label class="form-check-label fw-bold" for="availableCheck">Доступен без назначения</label>
+                                    <div class="form-text text-muted">Сотрудники выбранных подразделений смогут проходить тест без назначения</div>
+                                </div>
+                            </div>
+
+                            <!-- Дерево подразделений -->
+                            <div id="departmentTree" style="display:none" class="mb-4 profile-card p-3">
+                                <label class="form-label fw-bold">Подразделения</label>
+                                <div th:each="dept : ${allDepartments}" class="form-check"
+                                     th:style="'padding-left:' + (${dept.level} * 24 + 16) + 'px'">
+                                    <input type="checkbox" name="inputDepartmentIds" th:value="${dept.id}"
+                                           class="form-check-input dept-checkbox"
+                                           th:data-parent="${dept.parentId}"
+                                           th:id="'dept_' + ${dept.id}">
+                                    <label class="form-check-label" th:for="'dept_' + ${dept.id}" th:text="${dept.name}"></label>
+                                </div>
+                                <div th:if="${#lists.isEmpty(allDepartments)}" class="text-muted">
+                                    Нет подразделений
+                                </div>
+                                <div id="deptError" class="form-text text-danger mt-2" style="display:none">
+                                    Выберите хотя бы одно подразделение
+                                </div>
+                            </div>
+
                             <button type="submit" class="btn btn-success btn-profile">
                                 <i class="bi bi-plus-lg"></i> Создать тест
                             </button>
@@ -84,5 +113,80 @@
         <div th:insert="~{blocks/footer :: footer}"></div>
     </div>
 </div>
+
+<script>
+    (function() {
+        var availableCheckbox = document.getElementById('availableCheck');
+        var deptTree = document.getElementById('departmentTree');
+        var deptError = document.getElementById('deptError');
+        var deptCheckboxes = document.querySelectorAll('.dept-checkbox');
+
+        availableCheckbox.addEventListener('change', function() {
+            deptTree.style.display = this.checked ? 'block' : 'none';
+            if (!this.checked) {
+                deptCheckboxes.forEach(function(cb) { cb.checked = false; cb.indeterminate = false; });
+                deptError.style.display = 'none';
+            }
+        });
+
+        deptCheckboxes.forEach(function(cb) {
+            cb.addEventListener('change', function() {
+                var myId = this.value;
+                if (this.checked) {
+                    checkChildren(myId, true);
+                } else {
+                    checkChildren(myId, false);
+                }
+                updateParentState(this.getAttribute('data-parent'));
+                deptError.style.display = 'none';
+            });
+        });
+
+        function checkChildren(parentId, checked) {
+            deptCheckboxes.forEach(function(child) {
+                if (child.getAttribute('data-parent') === parentId) {
+                    child.checked = checked;
+                    child.indeterminate = false;
+                    checkChildren(child.value, checked);
+                }
+            });
+        }
+
+        function updateParentState(parentId) {
+            if (!parentId) return;
+            var parent = document.getElementById('dept_' + parentId);
+            if (!parent) return;
+            var children = document.querySelectorAll('.dept-checkbox[data-parent="' + parentId + '"]');
+            if (children.length === 0) return;
+            var checkedCount = 0;
+            var indeterminateCount = 0;
+            children.forEach(function(c) {
+                if (c.checked) checkedCount++;
+                if (c.indeterminate) indeterminateCount++;
+            });
+            if (checkedCount === 0 && indeterminateCount === 0) {
+                parent.checked = false;
+                parent.indeterminate = false;
+            } else if (checkedCount === children.length) {
+                parent.checked = true;
+                parent.indeterminate = false;
+            } else {
+                parent.checked = false;
+                parent.indeterminate = true;
+            }
+            updateParentState(parent.getAttribute('data-parent'));
+        }
+
+        document.getElementById('testForm').addEventListener('submit', function(e) {
+            if (availableCheckbox.checked) {
+                var anyChecked = Array.from(deptCheckboxes).some(function(cb) { return cb.checked; });
+                if (!anyChecked) {
+                    e.preventDefault();
+                    deptError.style.display = 'block';
+                }
+            }
+        });
+    })();
+</script>
 </body>
 </html>

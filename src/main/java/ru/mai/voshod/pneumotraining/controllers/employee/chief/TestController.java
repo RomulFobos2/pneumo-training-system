@@ -8,9 +8,11 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import ru.mai.voshod.pneumotraining.dto.TestDTO;
 import ru.mai.voshod.pneumotraining.models.Employee;
+import ru.mai.voshod.pneumotraining.service.employee.admin.DepartmentService;
 import ru.mai.voshod.pneumotraining.service.employee.chief.TestQuestionService;
 import ru.mai.voshod.pneumotraining.service.employee.chief.TestService;
 
+import java.util.List;
 import java.util.Optional;
 
 @Controller
@@ -19,10 +21,13 @@ public class TestController {
 
     private final TestService testService;
     private final TestQuestionService testQuestionService;
+    private final DepartmentService departmentService;
 
-    public TestController(TestService testService, TestQuestionService testQuestionService) {
+    public TestController(TestService testService, TestQuestionService testQuestionService,
+                          DepartmentService departmentService) {
         this.testService = testService;
         this.testQuestionService = testQuestionService;
+        this.departmentService = departmentService;
     }
 
     // ========== Список тестов ==========
@@ -36,7 +41,8 @@ public class TestController {
     // ========== Создание теста ==========
 
     @GetMapping("/employee/chief/tests/addTest")
-    public String addTestForm() {
+    public String addTestForm(Model model) {
+        model.addAttribute("allDepartments", departmentService.getAllDepartmentsFlat());
         return "employee/chief/tests/addTest";
     }
 
@@ -47,12 +53,16 @@ public class TestController {
                           @RequestParam Integer inputPassingScore,
                           @RequestParam(required = false, defaultValue = "false") boolean inputIsExam,
                           @RequestParam(required = false, defaultValue = "false") boolean inputAllowBackNavigation,
+                          @RequestParam(required = false, defaultValue = "false") boolean inputAvailableWithoutAssignment,
+                          @RequestParam(required = false) List<Long> inputDepartmentIds,
                           @AuthenticationPrincipal Employee currentUser,
                           Model model) {
         Optional<Long> result = testService.saveTest(inputTitle, inputDescription,
-                inputTimeLimit, inputPassingScore, inputIsExam, inputAllowBackNavigation, currentUser);
+                inputTimeLimit, inputPassingScore, inputIsExam, inputAllowBackNavigation,
+                inputAvailableWithoutAssignment, inputDepartmentIds, currentUser);
         if (result.isEmpty()) {
             model.addAttribute("testError", "Ошибка при сохранении. Возможно, название уже занято.");
+            model.addAttribute("allDepartments", departmentService.getAllDepartmentsFlat());
             return "employee/chief/tests/addTest";
         }
         return "redirect:/employee/chief/tests/detailsTest/" + result.get();
@@ -80,6 +90,7 @@ public class TestController {
             return "redirect:/employee/chief/tests/allTests";
         }
         model.addAttribute("testDTO", testOptional.get());
+        model.addAttribute("allDepartments", departmentService.getAllDepartmentsFlat());
         return "employee/chief/tests/editTest";
     }
 
@@ -91,9 +102,12 @@ public class TestController {
                            @RequestParam Integer inputPassingScore,
                            @RequestParam(required = false, defaultValue = "false") boolean inputIsExam,
                            @RequestParam(required = false, defaultValue = "false") boolean inputAllowBackNavigation,
+                           @RequestParam(required = false, defaultValue = "false") boolean inputAvailableWithoutAssignment,
+                           @RequestParam(required = false) List<Long> inputDepartmentIds,
                            RedirectAttributes redirectAttributes) {
         Optional<Long> result = testService.editTest(id, inputTitle, inputDescription,
-                inputTimeLimit, inputPassingScore, inputIsExam, inputAllowBackNavigation);
+                inputTimeLimit, inputPassingScore, inputIsExam, inputAllowBackNavigation,
+                inputAvailableWithoutAssignment, inputDepartmentIds);
         if (result.isEmpty()) {
             redirectAttributes.addFlashAttribute("testError", "Ошибка при сохранении изменений.");
             return "redirect:/employee/chief/tests/editTest/" + id;
@@ -111,19 +125,6 @@ public class TestController {
             redirectAttributes.addFlashAttribute("errorMessage", "Ошибка при удалении теста.");
         }
         return "redirect:/employee/chief/tests/allTests";
-    }
-
-    // ========== Активация / деактивация ==========
-
-    @GetMapping("/employee/chief/tests/activateTest/{id}")
-    public String activateTest(@PathVariable(value = "id") long id, RedirectAttributes redirectAttributes) {
-        if (testService.toggleActive(id)) {
-            redirectAttributes.addFlashAttribute("successMessage", "Статус теста изменён.");
-        } else {
-            redirectAttributes.addFlashAttribute("errorMessage",
-                    "Невозможно активировать тест. Убедитесь, что в тесте есть хотя бы один вопрос.");
-        }
-        return "redirect:/employee/chief/tests/detailsTest/" + id;
     }
 
     // ========== AJAX проверка уникальности ==========

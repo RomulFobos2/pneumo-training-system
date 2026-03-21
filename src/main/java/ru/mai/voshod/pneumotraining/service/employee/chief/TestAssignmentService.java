@@ -133,7 +133,6 @@ public class TestAssignmentService {
 
         for (TestAssignmentEmployee ae : pending) {
             Test test = ae.getAssignment().getTest();
-            if (!test.isActive()) continue;
 
             AssignedTestDTO dto = new AssignedTestDTO();
             dto.setAssignmentEmployeeId(ae.getId());

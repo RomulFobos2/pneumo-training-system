@@ -54,9 +54,9 @@ public class Test {
     @Column(nullable = false)
     private boolean isExam = false;
 
-    /** Активен ли тест (доступен для прохождения) */
+    /** Доступен ли тест без назначения (для свободного прохождения) */
     @Column(nullable = false)
-    private boolean isActive = false;
+    private boolean availableWithoutAssignment = false;
 
     /** Разрешена ли навигация назад при прохождении теста */
     @Column(nullable = false)
@@ -67,6 +67,16 @@ public class Test {
     @JoinColumn(name = "created_by_id")
     @ToString.Exclude
     private Employee createdBy;
+
+    /** Подразделения, которым тест доступен без назначения */
+    @ManyToMany
+    @JoinTable(
+            name = "t_test_department",
+            joinColumns = @JoinColumn(name = "test_id"),
+            inverseJoinColumns = @JoinColumn(name = "department_id")
+    )
+    @ToString.Exclude
+    private List<Department> allowedDepartments = new ArrayList<>();
 
     /** Вопросы теста */
     @OneToMany(mappedBy = "test", cascade = CascadeType.ALL, orphanRemoval = true)

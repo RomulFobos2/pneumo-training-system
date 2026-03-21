@@ -11,6 +11,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import ru.mai.voshod.pneumotraining.dto.DepartmentDTO;
 import ru.mai.voshod.pneumotraining.dto.EmployeeDTO;
 import ru.mai.voshod.pneumotraining.dto.TestAssignmentDTO;
+import ru.mai.voshod.pneumotraining.dto.TestDTO;
 import ru.mai.voshod.pneumotraining.mapper.EmployeeMapper;
 import ru.mai.voshod.pneumotraining.models.Employee;
 import ru.mai.voshod.pneumotraining.repo.EmployeeRepository;
@@ -51,7 +52,7 @@ public class TestAssignmentController {
 
     @GetMapping("/addAssignment")
     public String addAssignmentForm(Model model) {
-        model.addAttribute("allTests", testService.getAllActiveTests());
+        model.addAttribute("allTests", testService.getAllTests());
         model.addAttribute("allDepartments", departmentService.getAllDepartments());
         model.addAttribute("allEmployees", getSpecialistOperatorEmployees());
         return "employee/chief/assignments/addAssignment";
@@ -91,6 +92,12 @@ public class TestAssignmentController {
             redirectAttributes.addFlashAttribute("errorMessage", "Ошибка при удалении назначения.");
         }
         return "redirect:/employee/chief/assignments/allAssignments";
+    }
+
+    @GetMapping("/testsByDepartment/{departmentId}")
+    @ResponseBody
+    public ResponseEntity<List<TestDTO>> testsByDepartment(@PathVariable Long departmentId) {
+        return ResponseEntity.ok(testService.getTestsForDepartment(departmentId));
     }
 
     @GetMapping("/employeesByDepartment/{departmentId}")
