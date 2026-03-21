@@ -46,7 +46,7 @@
                                 <div class="border rounded p-3 text-center">
                                     <div class="text-muted" style="font-size:0.8rem;">Статус</div>
                                     <span class="badge mt-1"
-                                          th:classappend="${simSession.sessionStatus == 'COMPLETED' ? 'bg-success' : (session.sessionStatus == 'EXPIRED' ? 'bg-warning text-dark' : 'bg-danger')}"
+                                          th:classappend="${simSession.sessionStatus == 'COMPLETED' ? 'bg-success' : (simSession.sessionStatus == 'EXPIRED' ? 'bg-warning text-dark' : 'bg-danger')}"
                                           th:text="${simSession.sessionStatusDisplayName}"></span>
                                 </div>
                             </div>
@@ -61,14 +61,14 @@
                             <div class="col-md-3">
                                 <div class="border rounded p-3 text-center">
                                     <div class="text-muted" style="font-size:0.8rem;">Начало</div>
-                                    <div style="font-size:0.9rem;" th:text="${#temporals.format(session.startedAt, 'dd.MM.yyyy HH:mm')}"></div>
+                                    <div style="font-size:0.9rem;" th:text="${#temporals.format(simSession.startedAt, 'dd.MM.yyyy HH:mm')}"></div>
                                 </div>
                             </div>
                             <div class="col-md-3">
                                 <div class="border rounded p-3 text-center">
                                     <div class="text-muted" style="font-size:0.8rem;">Завершение</div>
                                     <div style="font-size:0.9rem;"
-                                         th:text="${simSession.finishedAt != null ? #temporals.format(session.finishedAt, 'dd.MM.yyyy HH:mm') : '—'}"></div>
+                                         th:text="${simSession.finishedAt != null ? #temporals.format(simSession.finishedAt, 'dd.MM.yyyy HH:mm') : '—'}"></div>
                                 </div>
                             </div>
                         </div>
@@ -78,13 +78,13 @@
                             <div class="d-flex justify-content-between mb-1">
                                 <small class="text-muted">Прогресс</small>
                                 <small class="text-muted"
-                                       th:text="${simSession.totalSteps > 0 ? (session.completedSteps * 100 / session.totalSteps) + '%' : '0%'}"></small>
+                                       th:text="${simSession.totalSteps > 0 ? (simSession.completedSteps * 100 / simSession.totalSteps) + '%' : '0%'}"></small>
                             </div>
                             <div class="progress" style="height: 10px;">
                                 <div class="progress-bar"
                                      th:classappend="${simSession.sessionStatus == 'COMPLETED' ? 'bg-success' : 'bg-warning'}"
                                      role="progressbar"
-                                     th:style="'width: ' + (session.totalSteps > 0 ? (session.completedSteps * 100 / session.totalSteps) : 0) + '%'"></div>
+                                     th:style="'width: ' + (simSession.totalSteps > 0 ? (simSession.completedSteps * 100 / simSession.totalSteps) : 0) + '%'"></div>
                             </div>
                         </div>
 

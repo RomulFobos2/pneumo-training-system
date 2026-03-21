@@ -14,7 +14,8 @@ public enum ElementType {
     SENSOR_PRESSURE("Датчик давления"),
     SENSOR_TEMPERATURE("Датчик температуры"),
     HEATER("Нагреватель"),
-    LOCK("Блокировка");
+    LOCK("Блокировка"),
+    LABEL("Надпись");
 
     private final String displayName;
 

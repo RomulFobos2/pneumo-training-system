@@ -192,6 +192,15 @@ var SchemaEditor = (function () {
             '<path d="M20 28 V20 Q20 8 30 8 Q40 8 40 20" fill="none" stroke="#27ae60" stroke-width="3"/>' +
             '<circle cx="30" cy="40" r="3" fill="#27ae60"/>' +
             '</symbol>' +
+            // LABEL (надпись — одинаковая для on/off)
+            '<symbol id="symbol-LABEL-off" viewBox="0 0 60 60">' +
+            '<rect x="2" y="10" width="56" height="40" rx="4" fill="#fff" stroke="#adb5bd" stroke-width="1.5" stroke-dasharray="4,2"/>' +
+            '<text x="30" y="36" text-anchor="middle" font-size="14" fill="#495057">Aa</text>' +
+            '</symbol>' +
+            '<symbol id="symbol-LABEL-on" viewBox="0 0 60 60">' +
+            '<rect x="2" y="10" width="56" height="40" rx="4" fill="#fff" stroke="#adb5bd" stroke-width="1.5" stroke-dasharray="4,2"/>' +
+            '<text x="30" y="36" text-anchor="middle" font-size="14" fill="#495057">Aa</text>' +
+            '</symbol>' +
             '</defs>';
     }
 
@@ -604,7 +613,7 @@ var SchemaEditor = (function () {
         var typeNames = {
             'VALVE': 'VP', 'PUMP': 'N', 'SWITCH': 'WS',
             'SENSOR_PRESSURE': 'PT', 'SENSOR_TEMPERATURE': 'TT',
-            'HEATER': 'NR', 'LOCK': 'BH'
+            'HEATER': 'NR', 'LOCK': 'BH', 'LABEL': 'L'
         };
         var prefix = typeNames[type] || type;
         var count = elements.filter(function (el) { return el.elementType === type; }).length + 1;

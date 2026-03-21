@@ -69,8 +69,9 @@ public class SimulationService {
             Map<String, Boolean> initialState = new LinkedHashMap<>();
             MnemoSchema schema = scenario.getSchema();
             if (schema != null && schema.getElements() != null) {
-                schema.getElements().forEach(el ->
-                        initialState.put(el.getName(), el.isInitialState()));
+                schema.getElements().stream()
+                        .filter(el -> el.getElementType() != ru.mai.voshod.pneumotraining.enumeration.ElementType.LABEL)
+                        .forEach(el -> initialState.put(el.getName(), el.isInitialState()));
             }
 
             SimulationSession session = new SimulationSession();
@@ -199,8 +200,9 @@ public class SimulationService {
             Map<String, Boolean> fullExpected = new LinkedHashMap<>();
             MnemoSchema schema = session.getScenario().getSchema();
             if (schema != null && schema.getElements() != null) {
-                schema.getElements().forEach(el ->
-                        fullExpected.put(el.getName(), el.isInitialState()));
+                schema.getElements().stream()
+                        .filter(el -> el.getElementType() != ru.mai.voshod.pneumotraining.enumeration.ElementType.LABEL)
+                        .forEach(el -> fullExpected.put(el.getName(), el.isInitialState()));
             }
 
             // Наложить ожидаемые состояния всех шагов от 1 до currentStep
