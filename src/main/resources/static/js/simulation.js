@@ -1,6 +1,6 @@
 /**
  * Simulation — клиентский движок симуляции мнемосхемы.
- * Таймер, переключение элементов, проверка шагов.
+ * Таймер, переключение элементов, проверка шагов, tooltip.
  */
 var Simulation = (function () {
 
@@ -8,6 +8,18 @@ var Simulation = (function () {
     var elementState = {};   // {name: true/false}
     var elementGroups = {};  // {name: SVG group}
     var timerInterval = null;
+    var tooltipEl = null;
+
+    /** Русские названия типов элементов */
+    var TYPE_LABELS = {
+        'VALVE': 'Пневмоклапан',
+        'PUMP': 'Насос',
+        'SWITCH': 'Переключатель',
+        'SENSOR_PRESSURE': 'Датчик давления',
+        'SENSOR_TEMPERATURE': 'Датчик температуры',
+        'HEATER': 'Нагреватель',
+        'LOCK': 'Блокиратор'
+    };
 
     function init() {
         svgEl = document.getElementById('simSvg');
@@ -20,11 +32,53 @@ var Simulation = (function () {
             elementState = simCurrentState;
         }
 
+        createTooltip();
         renderSchema();
         renderStepProgress();
         startTimer();
 
         document.getElementById('btnCheckStep').addEventListener('click', checkStep);
+    }
+
+    // ========== Tooltip ==========
+
+    function createTooltip() {
+        tooltipEl = document.createElement('div');
+        tooltipEl.className = 'sim-tooltip';
+        tooltipEl.style.display = 'none';
+        document.body.appendChild(tooltipEl);
+    }
+
+    function showTooltip(el, evt) {
+        var isOn = elementState.hasOwnProperty(el.name) ? elementState[el.name] : el.initialState;
+        var typeName = TYPE_LABELS[el.elementType] || el.elementType;
+        var stateText = isOn ? 'ВКЛ' : 'ВЫКЛ';
+        var stateClass = isOn ? 'sim-tooltip-on' : 'sim-tooltip-off';
+
+        tooltipEl.innerHTML =
+            '<div class="sim-tooltip-name">' + (el.name || '—') + '</div>' +
+            '<div class="sim-tooltip-type">' + typeName + '</div>' +
+            '<div class="sim-tooltip-state ' + stateClass + '">' + stateText + '</div>' +
+            '<div class="sim-tooltip-hint">Нажмите для переключения</div>';
+
+        tooltipEl.style.display = 'block';
+        positionTooltip(evt);
+    }
+
+    function positionTooltip(evt) {
+        if (!tooltipEl || tooltipEl.style.display === 'none') return;
+        var x = evt.clientX + 14;
+        var y = evt.clientY + 14;
+        // Не выходить за правый/нижний край
+        var rect = tooltipEl.getBoundingClientRect();
+        if (x + rect.width > window.innerWidth) x = evt.clientX - rect.width - 10;
+        if (y + rect.height > window.innerHeight) y = evt.clientY - rect.height - 10;
+        tooltipEl.style.left = x + 'px';
+        tooltipEl.style.top = y + 'px';
+    }
+
+    function hideTooltip() {
+        if (tooltipEl) tooltipEl.style.display = 'none';
     }
 
     // ========== Рендер схемы ==========
@@ -96,7 +150,14 @@ var Simulation = (function () {
             label.textContent = el.name || '';
             group.appendChild(label);
 
+            // Tooltip при наведении
+            group.addEventListener('mouseenter', function (evt) { showTooltip(el, evt); });
+            group.addEventListener('mousemove', function (evt) { positionTooltip(evt); });
+            group.addEventListener('mouseleave', function () { hideTooltip(); });
+
+            // Клик — переключение
             group.addEventListener('click', function () {
+                hideTooltip();
                 toggleElement(el.name, group, use, el);
             });
 
@@ -124,6 +185,9 @@ var Simulation = (function () {
             elementState[name] = data.newState;
             var state = data.newState ? 'on' : 'off';
             use.setAttribute('href', '#symbol-' + el.elementType + '-' + state);
+
+            // Подпись состояния
+            showFeedback(el.name + ': ' + (data.newState ? 'ВКЛ' : 'ВЫКЛ'), 'info');
 
             // Visual feedback
             group.classList.add('toggled');
@@ -163,6 +227,8 @@ var Simulation = (function () {
                 renderStepProgress();
                 showFeedback('Шаг пройден! Переход к шагу ' + data.nextStep, 'success');
             } else if (data.status === 'wrong') {
+                // Подсветить ошибочный элемент
+                highlightError(data.failedElement);
                 showFeedback('Ошибка: элемент «' + data.failedElement + '» — ожидалось ' +
                     (data.expected ? 'ВКЛ' : 'ВЫКЛ') + ', текущее ' +
                     (data.actual ? 'ВКЛ' : 'ВЫКЛ'), 'error');
@@ -175,6 +241,23 @@ var Simulation = (function () {
             btn.innerHTML = '<i class="bi bi-check-circle"></i> Проверить шаг';
             showFeedback('Ошибка связи с сервером', 'error');
         });
+    }
+
+    // ========== Подсветка ошибочного элемента ==========
+
+    function highlightError(elementName) {
+        var info = elementGroups[elementName];
+        if (!info) return;
+        var border = info.group.querySelector('.element-border');
+        if (!border) return;
+        border.setAttribute('stroke', '#dc3545');
+        border.setAttribute('stroke-width', '3');
+        border.setAttribute('stroke-dasharray', '5,3');
+        setTimeout(function () {
+            border.setAttribute('stroke', '#dee2e6');
+            border.setAttribute('stroke-width', '1');
+            border.removeAttribute('stroke-dasharray');
+        }, 3000);
     }
 
     // ========== Прогресс шагов ==========
@@ -240,13 +323,13 @@ var Simulation = (function () {
     function showFeedback(msg, type) {
         var el = document.getElementById('simFeedback');
         if (!msg) {
-            el.classList.remove('show', 'success', 'error');
+            el.classList.remove('show', 'success', 'error', 'info');
             return;
         }
         el.textContent = msg;
         el.className = 'sim-feedback show ' + type;
-        if (type === 'success') {
-            setTimeout(function () { el.classList.remove('show'); }, 4000);
+        if (type === 'success' || type === 'info') {
+            setTimeout(function () { el.classList.remove('show'); }, 3000);
         }
     }
 

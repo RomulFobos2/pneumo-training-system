@@ -31,6 +31,19 @@
         .sim-feedback.show { display: block; }
         .sim-feedback.success { background: #d1e7dd; color: #0f5132; }
         .sim-feedback.error { background: #f8d7da; color: #842029; }
+        .sim-feedback.info { background: #cff4fc; color: #055160; }
+
+        /* Tooltip */
+        .sim-tooltip { position: fixed; z-index: 9999; pointer-events: none;
+            background: #fff; border: 1px solid #dee2e6; border-radius: 8px;
+            padding: 10px 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            font-size: 0.85rem; line-height: 1.5; max-width: 220px; }
+        .sim-tooltip-name { font-weight: 700; font-size: 0.95rem; margin-bottom: 2px; }
+        .sim-tooltip-type { color: #6c757d; margin-bottom: 4px; }
+        .sim-tooltip-state { font-weight: 600; padding: 2px 8px; border-radius: 4px; display: inline-block; }
+        .sim-tooltip-on { background: #d4edda; color: #155724; }
+        .sim-tooltip-off { background: #f8d7da; color: #721c24; }
+        .sim-tooltip-hint { color: #adb5bd; font-size: 0.75rem; margin-top: 4px; font-style: italic; }
     </style>
 </head>
 <body>

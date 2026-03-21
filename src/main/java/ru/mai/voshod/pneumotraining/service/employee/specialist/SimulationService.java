@@ -192,26 +192,36 @@ public class SimulationService {
 
             Map<String, Boolean> currentState = deserializeState(session.getCurrentState());
             List<ScenarioStep> steps = session.getScenario().getSteps();
-
-            // Кумулятивная проверка: проверяем ВСЕ шаги от 1 до currentStep
             int currentStepNum = session.getCurrentStep();
+
+            // 1. Собрать полное ожидаемое состояние: начальное + кумулятивные шаги
+            // Базис — initialState из элементов схемы
+            Map<String, Boolean> fullExpected = new LinkedHashMap<>();
+            MnemoSchema schema = session.getScenario().getSchema();
+            if (schema != null && schema.getElements() != null) {
+                schema.getElements().forEach(el ->
+                        fullExpected.put(el.getName(), el.isInitialState()));
+            }
+
+            // Наложить ожидаемые состояния всех шагов от 1 до currentStep
             for (ScenarioStep step : steps) {
                 if (step.getStepNumber() > currentStepNum) break;
+                Map<String, Boolean> stepExpected = deserializeState(step.getExpectedState());
+                fullExpected.putAll(stepExpected);
+            }
 
-                Map<String, Boolean> expected = deserializeState(step.getExpectedState());
-                for (Map.Entry<String, Boolean> entry : expected.entrySet()) {
-                    Boolean actual = currentState.get(entry.getKey());
-                    if (actual == null || !actual.equals(entry.getValue())) {
-                        log.info("Шаг {}: ошибка на элементе {}, ожидалось={}, факт={}",
-                                step.getStepNumber(), entry.getKey(), entry.getValue(), actual);
-                        Map<String, Object> result = new LinkedHashMap<>();
-                        result.put("status", "wrong");
-                        result.put("failedStep", step.getStepNumber());
-                        result.put("failedElement", entry.getKey());
-                        result.put("expected", entry.getValue());
-                        result.put("actual", actual);
-                        return Optional.of(result);
-                    }
+            // 2. Проверить ВСЕ элементы (и из шагов, и не затронутые — должны быть в initialState)
+            for (Map.Entry<String, Boolean> entry : fullExpected.entrySet()) {
+                Boolean actual = currentState.get(entry.getKey());
+                if (actual == null || !actual.equals(entry.getValue())) {
+                    log.info("Ошибка на элементе {}: ожидалось={}, факт={}",
+                            entry.getKey(), entry.getValue(), actual);
+                    Map<String, Object> result = new LinkedHashMap<>();
+                    result.put("status", "wrong");
+                    result.put("failedElement", entry.getKey());
+                    result.put("expected", entry.getValue());
+                    result.put("actual", actual);
+                    return Optional.of(result);
                 }
             }
 
