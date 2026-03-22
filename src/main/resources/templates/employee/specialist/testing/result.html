@@ -145,6 +145,52 @@
                         </div>
                     </div>
 
+                    <!-- Рекомендации по обучению -->
+                    <div th:if="${recommendations != null && recommendations.wrongCount > 0}" class="profile-card p-4 mb-3">
+                        <h5 class="mb-3"><i class="bi bi-lightbulb"></i> Рекомендации по обучению</h5>
+
+                        <div th:if="${#lists.isEmpty(recommendations.weakTopics)}" class="text-center text-muted p-3">
+                            <p class="mb-0">Вопросы с ошибками не привязаны к разделам теории.</p>
+                        </div>
+
+                        <div th:each="topic : ${recommendations.weakTopics}"
+                             class="profile-card p-3 mb-2 border-start border-warning border-3">
+                            <h6 class="mb-1">
+                                <i class="bi bi-bookmark"></i>
+                                <span th:text="${topic.sectionTitle}"></span>
+                            </h6>
+                            <p class="text-muted small mb-2">
+                                Ошибок: <span class="text-danger fw-bold" th:text="${topic.wrongCount}"></span>
+                                из <span th:text="${topic.totalInSection}"></span> вопросов по этой теме
+                            </p>
+
+                            <div th:if="${!#lists.isEmpty(topic.materials)}" class="mb-2">
+                                <span class="small fw-bold">Изучите:</span>
+                                <ul class="mb-1">
+                                    <li th:each="m : ${topic.materials}">
+                                        <a th:href="@{/employee/specialist/theory/viewMaterial/{id}(id=${m.id})}"
+                                           th:text="${m.title}"></a>
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <div th:if="${!#lists.isEmpty(topic.suggestedTests)}">
+                                <span class="small fw-bold">Пройдите тесты:</span>
+                                <ul class="mb-0">
+                                    <li th:each="t : ${topic.suggestedTests}">
+                                        <a th:href="@{/employee/specialist/testing/startTest/{id}(id=${t.id})}"
+                                           th:text="${t.title}"></a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div th:if="${recommendations != null && recommendations.wrongCount == 0}" class="profile-card p-4 mb-3 text-center">
+                        <i class="bi bi-emoji-smile text-success fs-3"></i>
+                        <p class="mt-2 mb-0 fw-bold text-success">Отлично! Слабых тем не выявлено.</p>
+                    </div>
+
                     <!-- Кнопки -->
                     <div class="d-flex justify-content-between mb-4">
                         <a href="/employee/specialist/testing/availableTests" class="btn btn-outline-secondary">

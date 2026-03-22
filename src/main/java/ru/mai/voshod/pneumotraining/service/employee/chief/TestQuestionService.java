@@ -15,6 +15,7 @@ import ru.mai.voshod.pneumotraining.models.TestQuestion;
 import ru.mai.voshod.pneumotraining.repo.TestAnswerRepository;
 import ru.mai.voshod.pneumotraining.repo.TestQuestionRepository;
 import ru.mai.voshod.pneumotraining.repo.TestRepository;
+import ru.mai.voshod.pneumotraining.repo.TheorySectionRepository;
 
 import java.util.List;
 import java.util.Optional;
@@ -27,13 +28,16 @@ public class TestQuestionService {
     private final TestQuestionRepository testQuestionRepository;
     private final TestAnswerRepository testAnswerRepository;
     private final TestRepository testRepository;
+    private final TheorySectionRepository theorySectionRepository;
 
     public TestQuestionService(TestQuestionRepository testQuestionRepository,
                                TestAnswerRepository testAnswerRepository,
-                               TestRepository testRepository) {
+                               TestRepository testRepository,
+                               TheorySectionRepository theorySectionRepository) {
         this.testQuestionRepository = testQuestionRepository;
         this.testAnswerRepository = testAnswerRepository;
         this.testRepository = testRepository;
+        this.theorySectionRepository = theorySectionRepository;
     }
 
     // ========== Валидация ==========
@@ -86,7 +90,7 @@ public class TestQuestionService {
 
     @Transactional
     public Optional<Long> saveQuestion(Long testId, String questionText, Integer sortOrder,
-                                        String questionTypeName, List<TestAnswerDTO> answerDTOs) {
+                                        String questionTypeName, Long theorySectionId, List<TestAnswerDTO> answerDTOs) {
         log.info("Создание вопроса для теста id={}", testId);
 
         Optional<Test> testOptional = testRepository.findById(testId);
@@ -109,6 +113,9 @@ public class TestQuestionService {
             question.setSortOrder(sortOrder);
             question.setQuestionType(questionType);
             question.setTest(testOptional.get());
+            if (theorySectionId != null) {
+                question.setTheorySection(theorySectionRepository.findById(theorySectionId).orElse(null));
+            }
 
             testQuestionRepository.save(question);
 
@@ -142,7 +149,7 @@ public class TestQuestionService {
 
     @Transactional
     public Optional<Long> editQuestion(Long questionId, String questionText, Integer sortOrder,
-                                        String questionTypeName, List<TestAnswerDTO> answerDTOs) {
+                                        String questionTypeName, Long theorySectionId, List<TestAnswerDTO> answerDTOs) {
         log.info("Редактирование вопроса: id={}", questionId);
 
         Optional<TestQuestion> questionOptional = testQuestionRepository.findById(questionId);
@@ -164,6 +171,11 @@ public class TestQuestionService {
             question.setQuestionText(questionText);
             question.setSortOrder(sortOrder);
             question.setQuestionType(questionType);
+            if (theorySectionId != null) {
+                question.setTheorySection(theorySectionRepository.findById(theorySectionId).orElse(null));
+            } else {
+                question.setTheorySection(null);
+            }
             testQuestionRepository.save(question);
 
             // Удаляем старые ответы и создаём новые

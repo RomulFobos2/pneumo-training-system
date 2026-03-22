@@ -10,6 +10,7 @@ import ru.mai.voshod.pneumotraining.dto.TestAnswerDTO;
 import ru.mai.voshod.pneumotraining.dto.TestDTO;
 import ru.mai.voshod.pneumotraining.dto.TestQuestionDTO;
 import ru.mai.voshod.pneumotraining.enumeration.QuestionType;
+import ru.mai.voshod.pneumotraining.repo.TheorySectionRepository;
 import ru.mai.voshod.pneumotraining.service.employee.chief.TestQuestionService;
 import ru.mai.voshod.pneumotraining.service.employee.chief.TestService;
 
@@ -21,11 +22,14 @@ public class TestQuestionController {
 
     private final TestQuestionService testQuestionService;
     private final TestService testService;
+    private final TheorySectionRepository theorySectionRepository;
 
     public TestQuestionController(TestQuestionService testQuestionService,
-                                   TestService testService) {
+                                   TestService testService,
+                                   TheorySectionRepository theorySectionRepository) {
         this.testQuestionService = testQuestionService;
         this.testService = testService;
+        this.theorySectionRepository = theorySectionRepository;
     }
 
     // ========== Добавление вопроса ==========
@@ -38,6 +42,7 @@ public class TestQuestionController {
         }
         model.addAttribute("testDTO", testOptional.get());
         model.addAttribute("allQuestionTypes", QuestionType.values());
+        model.addAttribute("allSections", theorySectionRepository.findAllByOrderBySortOrderAsc());
         return "employee/chief/tests/addQuestion";
     }
 
@@ -46,6 +51,7 @@ public class TestQuestionController {
                               @RequestParam String inputQuestionText,
                               @RequestParam Integer inputSortOrder,
                               @RequestParam String inputQuestionType,
+                              @RequestParam(required = false) Long inputTheorySectionId,
                               @RequestParam(required = false) List<String> answerText,
                               @RequestParam(required = false) List<String> answerCorrect,
                               @RequestParam(required = false) List<String> answerSortOrder,
@@ -56,12 +62,13 @@ public class TestQuestionController {
                 answerCorrect, answerSortOrder, answerMatchTarget);
 
         Optional<Long> result = testQuestionService.saveQuestion(testId, inputQuestionText,
-                inputSortOrder, inputQuestionType, answerDTOs);
+                inputSortOrder, inputQuestionType, inputTheorySectionId, answerDTOs);
 
         if (result.isEmpty()) {
             model.addAttribute("questionError", "Ошибка при сохранении. Проверьте варианты ответа и правильные ответы.");
             model.addAttribute("testDTO", testService.getTestById(testId).orElse(null));
             model.addAttribute("allQuestionTypes", QuestionType.values());
+            model.addAttribute("allSections", theorySectionRepository.findAllByOrderBySortOrderAsc());
             return "employee/chief/tests/addQuestion";
         }
         return "redirect:/employee/chief/tests/detailsTest/" + testId;
@@ -77,6 +84,7 @@ public class TestQuestionController {
         }
         model.addAttribute("questionDTO", questionOptional.get());
         model.addAttribute("allQuestionTypes", QuestionType.values());
+        model.addAttribute("allSections", theorySectionRepository.findAllByOrderBySortOrderAsc());
         return "employee/chief/tests/editQuestion";
     }
 
@@ -85,6 +93,7 @@ public class TestQuestionController {
                                @RequestParam String inputQuestionText,
                                @RequestParam Integer inputSortOrder,
                                @RequestParam String inputQuestionType,
+                               @RequestParam(required = false) Long inputTheorySectionId,
                                @RequestParam(required = false) List<String> answerText,
                                @RequestParam(required = false) List<String> answerCorrect,
                                @RequestParam(required = false) List<String> answerSortOrder,
@@ -96,7 +105,7 @@ public class TestQuestionController {
                 answerCorrect, answerSortOrder, answerMatchTarget);
 
         Optional<Long> result = testQuestionService.editQuestion(questionId, inputQuestionText,
-                inputSortOrder, inputQuestionType, answerDTOs);
+                inputSortOrder, inputQuestionType, inputTheorySectionId, answerDTOs);
 
         if (result.isEmpty()) {
             redirectAttributes.addFlashAttribute("questionError", "Ошибка при сохранении. Проверьте варианты ответа и правильные ответы.");
