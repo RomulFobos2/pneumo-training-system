@@ -24,9 +24,14 @@ public class TestAssignment {
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "test_id", nullable = false)
+    @JoinColumn(name = "test_id")
     @ToString.Exclude
     private Test test;
+
+    @ManyToOne
+    @JoinColumn(name = "scenario_id")
+    @ToString.Exclude
+    private SimulationScenario scenario;
 
     @NotNull
     @Column(nullable = false)
@@ -50,5 +55,26 @@ public class TestAssignment {
         this.deadline = deadline;
         this.createdBy = createdBy;
         this.createdAt = LocalDateTime.now();
+    }
+
+    public TestAssignment(SimulationScenario scenario, LocalDate deadline, Employee createdBy) {
+        this.scenario = scenario;
+        this.deadline = deadline;
+        this.createdBy = createdBy;
+        this.createdAt = LocalDateTime.now();
+    }
+
+    /** Returns display title: test title or scenario title */
+    public String getAssignmentTitle() {
+        if (test != null) return test.getTitle();
+        if (scenario != null) return scenario.getTitle();
+        return "—";
+    }
+
+    /** Returns type label */
+    public String getAssignmentType() {
+        if (test != null) return "Тест";
+        if (scenario != null) return "Мнемосхема";
+        return "—";
     }
 }

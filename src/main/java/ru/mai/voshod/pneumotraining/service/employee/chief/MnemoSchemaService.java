@@ -16,9 +16,11 @@ import ru.mai.voshod.pneumotraining.models.Employee;
 import ru.mai.voshod.pneumotraining.models.MnemoSchema;
 import ru.mai.voshod.pneumotraining.models.SchemaConnection;
 import ru.mai.voshod.pneumotraining.models.SchemaElement;
+import ru.mai.voshod.pneumotraining.models.SimulationScenario;
 import ru.mai.voshod.pneumotraining.repo.MnemoSchemaRepository;
 import ru.mai.voshod.pneumotraining.repo.SchemaConnectionRepository;
 import ru.mai.voshod.pneumotraining.repo.SchemaElementRepository;
+import ru.mai.voshod.pneumotraining.repo.SimulationScenarioRepository;
 
 import java.util.HashMap;
 import java.util.List;
@@ -32,13 +34,16 @@ public class MnemoSchemaService {
     private final MnemoSchemaRepository mnemoSchemaRepository;
     private final SchemaElementRepository elementRepository;
     private final SchemaConnectionRepository connectionRepository;
+    private final SimulationScenarioRepository scenarioRepository;
 
     public MnemoSchemaService(MnemoSchemaRepository mnemoSchemaRepository,
                               SchemaElementRepository elementRepository,
-                              SchemaConnectionRepository connectionRepository) {
+                              SchemaConnectionRepository connectionRepository,
+                              SimulationScenarioRepository scenarioRepository) {
         this.mnemoSchemaRepository = mnemoSchemaRepository;
         this.elementRepository = elementRepository;
         this.connectionRepository = connectionRepository;
+        this.scenarioRepository = scenarioRepository;
     }
 
     // ========== CRUD ==========
@@ -106,18 +111,32 @@ public class MnemoSchemaService {
         }
     }
 
+    /**
+     * @return null — удалена, строка — причина отказа
+     */
     @Transactional
-    public boolean deleteSchema(Long id) {
+    public String deleteSchema(Long id) {
         log.info("Удаление схемы: id={}", id);
+        Optional<MnemoSchema> schemaOpt = mnemoSchemaRepository.findById(id);
+        if (schemaOpt.isEmpty()) return "Схема не найдена.";
+
+        // Проверка: есть ли сценарии, ссылающиеся на схему
+        List<SimulationScenario> scenarios = scenarioRepository.findBySchemaId(id);
+        if (!scenarios.isEmpty()) {
+            String titles = scenarios.stream()
+                    .map(SimulationScenario::getTitle)
+                    .collect(java.util.stream.Collectors.joining(", "));
+            return "Невозможно удалить схему: на неё ссылаются сценарии: " + titles
+                    + ". Сначала удалите эти сценарии.";
+        }
+
         try {
-            Optional<MnemoSchema> schemaOpt = mnemoSchemaRepository.findById(id);
-            if (schemaOpt.isEmpty()) return false;
             mnemoSchemaRepository.delete(schemaOpt.get());
             log.info("Схема удалена: id={}", id);
-            return true;
+            return null; // успех
         } catch (Exception e) {
             log.error("Ошибка удаления схемы", e);
-            return false;
+            return "Ошибка при удалении схемы.";
         }
     }
 

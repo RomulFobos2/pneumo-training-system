@@ -33,8 +33,9 @@ public class AnalyticsController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateTo,
             @RequestParam(required = false) Long testId,
             @RequestParam(required = false) Long employeeId,
+            @RequestParam(required = false) Long departmentId,
             Model model) {
-        model.addAllAttributes(analyticsService.getDashboardData(dateFrom, dateTo, testId, employeeId));
+        model.addAllAttributes(analyticsService.getDashboardData(dateFrom, dateTo, testId, employeeId, departmentId));
         return "employee/chief/analytics/dashboard";
     }
 
@@ -43,9 +44,10 @@ public class AnalyticsController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateFrom,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateTo,
             @RequestParam(required = false) Long testId,
-            @RequestParam(required = false) Long employeeId) {
+            @RequestParam(required = false) Long employeeId,
+            @RequestParam(required = false) Long departmentId) {
 
-        byte[] docx = analyticsService.exportDashboardDocx(dateFrom, dateTo, testId, employeeId);
+        byte[] docx = analyticsService.exportDashboardDocx(dateFrom, dateTo, testId, employeeId, departmentId);
 
         String filename = "analytics_" + LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")) + ".docx";
 

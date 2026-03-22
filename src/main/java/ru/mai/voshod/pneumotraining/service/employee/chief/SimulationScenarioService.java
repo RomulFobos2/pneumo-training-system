@@ -181,6 +181,17 @@ public class SimulationScenarioService {
         return scenarioRepository.findById(id);
     }
 
+    @Transactional(readOnly = true)
+    public List<SimulationScenarioDTO> getScenariosForDepartment(Long departmentId) {
+        List<Long> ancestorIds = departmentService.getAncestorIds(departmentId);
+        List<SimulationScenario> allActive = scenarioRepository.findByIsActiveTrueOrderByTitleAsc();
+        return allActive.stream()
+                .filter(s -> s.getAllowedDepartments().stream()
+                        .anyMatch(d -> ancestorIds.contains(d.getId())))
+                .map(this::toScenarioDTO)
+                .toList();
+    }
+
     // ========== Вспомогательные ==========
 
     private void setAllowedDepartments(SimulationScenario scenario, List<Long> departmentIds) {

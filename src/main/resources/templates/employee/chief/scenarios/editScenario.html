@@ -82,17 +82,18 @@
                     </div>
                     <div class="row g-3 mb-3">
                         <div class="col-md-8">
-                            <label class="form-label">Подразделения</label>
-                            <div class="border rounded p-2" style="max-height: 150px; overflow-y: auto;">
-                                <div th:each="dept : ${allDepartments}" class="form-check">
-                                    <input type="checkbox" class="form-check-input"
-                                           name="inputDepartmentIds"
-                                           th:value="${dept.id}"
-                                           th:id="'dept_' + ${dept.id}"
-                                           th:checked="${scenario.departmentIds != null and scenario.departmentIds.contains(dept.id)}"/>
-                                    <label class="form-check-label" th:for="'dept_' + ${dept.id}"
-                                           th:text="${'— '.repeat(dept.level) + dept.name}"></label>
-                                </div>
+                            <label class="form-label fw-bold">Подразделения</label>
+                            <div class="form-text text-muted mb-2">Выберите подразделения, для которых будет доступен сценарий</div>
+                            <div th:each="dept : ${allDepartments}" class="form-check"
+                                 th:style="'padding-left:' + (${dept.level} * 24 + 16) + 'px'">
+                                <input type="checkbox" class="form-check-input dept-checkbox"
+                                       name="inputDepartmentIds"
+                                       th:value="${dept.id}"
+                                       th:data-parent="${dept.parentId}"
+                                       th:id="'dept_' + ${dept.id}"
+                                       th:checked="${scenario.departmentIds != null and scenario.departmentIds.contains(dept.id)}"/>
+                                <label class="form-check-label" th:for="'dept_' + ${dept.id}"
+                                       th:text="${dept.name}"></label>
                             </div>
                         </div>
                         <div class="col-md-4 d-flex align-items-end">
