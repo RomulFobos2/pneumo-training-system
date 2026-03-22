@@ -96,5 +96,56 @@
         <div th:insert="~{blocks/footer :: footer}"></div>
     </div>
 </div>
+<script>
+    (function() {
+        var deptCheckboxes = document.querySelectorAll('.dept-checkbox');
+
+        deptCheckboxes.forEach(function(cb) {
+            cb.addEventListener('change', function() {
+                if (this.checked) {
+                    checkChildren(this.value, true);
+                } else {
+                    checkChildren(this.value, false);
+                }
+                updateParentState(this.getAttribute('data-parent'));
+            });
+        });
+
+        function checkChildren(parentId, checked) {
+            deptCheckboxes.forEach(function(child) {
+                if (child.getAttribute('data-parent') === parentId) {
+                    child.checked = checked;
+                    child.indeterminate = false;
+                    checkChildren(child.value, checked);
+                }
+            });
+        }
+
+        function updateParentState(parentId) {
+            if (!parentId) return;
+            var parent = document.getElementById('dept_' + parentId);
+            if (!parent) return;
+            var children = document.querySelectorAll('.dept-checkbox[data-parent="' + parentId + '"]');
+            if (children.length === 0) return;
+            var checkedCount = 0;
+            var indeterminateCount = 0;
+            children.forEach(function(c) {
+                if (c.checked) checkedCount++;
+                if (c.indeterminate) indeterminateCount++;
+            });
+            if (checkedCount === 0 && indeterminateCount === 0) {
+                parent.checked = false;
+                parent.indeterminate = false;
+            } else if (checkedCount === children.length) {
+                parent.checked = true;
+                parent.indeterminate = false;
+            } else {
+                parent.checked = false;
+                parent.indeterminate = true;
+            }
+            updateParentState(parent.getAttribute('data-parent'));
+        }
+    })();
+</script>
 </body>
 </html>
