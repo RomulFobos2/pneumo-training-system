@@ -6,12 +6,14 @@ import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTblWidth;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.STTblWidth;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.mai.voshod.pneumotraining.dto.DepartmentDTO;
 import ru.mai.voshod.pneumotraining.enumeration.TestSessionStatus;
 import ru.mai.voshod.pneumotraining.models.Employee;
 import ru.mai.voshod.pneumotraining.models.Test;
 import ru.mai.voshod.pneumotraining.models.TestSession;
 import ru.mai.voshod.pneumotraining.models.TestSessionAnswer;
 import ru.mai.voshod.pneumotraining.repo.*;
+import ru.mai.voshod.pneumotraining.service.employee.admin.DepartmentService;
 
 import java.io.ByteArrayOutputStream;
 import java.math.BigInteger;
@@ -29,20 +31,23 @@ public class AnalyticsService {
     private final TestRepository testRepository;
     private final TestSessionRepository testSessionRepository;
     private final TestSessionAnswerRepository testSessionAnswerRepository;
+    private final DepartmentService departmentService;
 
     public AnalyticsService(EmployeeRepository employeeRepository,
                             TestRepository testRepository,
                             TestSessionRepository testSessionRepository,
-                            TestSessionAnswerRepository testSessionAnswerRepository) {
+                            TestSessionAnswerRepository testSessionAnswerRepository,
+                            DepartmentService departmentService) {
         this.employeeRepository = employeeRepository;
         this.testRepository = testRepository;
         this.testSessionRepository = testSessionRepository;
         this.testSessionAnswerRepository = testSessionAnswerRepository;
+        this.departmentService = departmentService;
     }
 
     @Transactional(readOnly = true)
     public Map<String, Object> getDashboardData(LocalDate dateFrom, LocalDate dateTo,
-                                                 Long testId, Long employeeId) {
+                                                 Long testId, Long employeeId, Long departmentId) {
         Map<String, Object> data = new HashMap<>();
 
         // === Обзорные метрики ===
@@ -82,6 +87,15 @@ public class AnalyticsService {
         if (employeeId != null) {
             filteredSessions = filteredSessions.stream()
                     .filter(s -> s.getEmployee().getId().equals(employeeId))
+                    .toList();
+        }
+
+        // Фильтрация по подразделению (включая дочерние)
+        if (departmentId != null) {
+            List<Long> deptIds = departmentService.getDescendantIdsIncludingSelf(departmentId);
+            filteredSessions = filteredSessions.stream()
+                    .filter(s -> s.getEmployee().getDepartment() != null
+                            && deptIds.contains(s.getEmployee().getDepartment().getId()))
                     .toList();
         }
 
@@ -183,18 +197,20 @@ public class AnalyticsService {
         // Данные для фильтров
         data.put("allEmployees", employeeRepository.findAllByOrderByLastNameAsc());
         data.put("allTests", testRepository.findAllByOrderByTitleAsc());
+        data.put("allDepartments", departmentService.getAllDepartmentsFlat());
         data.put("dateFrom", effectiveFrom);
         data.put("dateTo", effectiveTo);
         data.put("selectedTestId", testId);
         data.put("selectedEmployeeId", employeeId);
+        data.put("selectedDepartmentId", departmentId);
 
         return data;
     }
 
     @Transactional(readOnly = true)
     public byte[] exportDashboardDocx(LocalDate dateFrom, LocalDate dateTo,
-                                       Long testId, Long employeeId) {
-        Map<String, Object> data = getDashboardData(dateFrom, dateTo, testId, employeeId);
+                                       Long testId, Long employeeId, Long departmentId) {
+        Map<String, Object> data = getDashboardData(dateFrom, dateTo, testId, employeeId, departmentId);
         DateTimeFormatter dateFmt = DateTimeFormatter.ofPattern("dd.MM.yyyy");
 
         try (XWPFDocument doc = new XWPFDocument();

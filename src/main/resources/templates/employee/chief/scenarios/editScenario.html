@@ -82,17 +82,18 @@
                     </div>
                     <div class="row g-3 mb-3">
                         <div class="col-md-8">
-                            <label class="form-label">Подразделения</label>
-                            <div class="border rounded p-2" style="max-height: 150px; overflow-y: auto;">
-                                <div th:each="dept : ${allDepartments}" class="form-check">
-                                    <input type="checkbox" class="form-check-input"
-                                           name="inputDepartmentIds"
-                                           th:value="${dept.id}"
-                                           th:id="'dept_' + ${dept.id}"
-                                           th:checked="${scenario.departmentIds != null and scenario.departmentIds.contains(dept.id)}"/>
-                                    <label class="form-check-label" th:for="'dept_' + ${dept.id}"
-                                           th:text="${'— '.repeat(dept.level) + dept.name}"></label>
-                                </div>
+                            <label class="form-label fw-bold">Подразделения</label>
+                            <div class="form-text text-muted mb-2">Выберите подразделения, для которых будет доступен сценарий</div>
+                            <div th:each="dept : ${allDepartments}" class="form-check"
+                                 th:style="'padding-left:' + (${dept.level} * 24 + 16) + 'px'">
+                                <input type="checkbox" class="form-check-input dept-checkbox"
+                                       name="inputDepartmentIds"
+                                       th:value="${dept.id}"
+                                       th:data-parent="${dept.parentId}"
+                                       th:id="'dept_' + ${dept.id}"
+                                       th:checked="${scenario.departmentIds != null and scenario.departmentIds.contains(dept.id)}"/>
+                                <label class="form-check-label" th:for="'dept_' + ${dept.id}"
+                                       th:text="${dept.name}"></label>
                             </div>
                         </div>
                         <div class="col-md-4 d-flex align-items-end">
@@ -162,6 +163,64 @@
     </div>
 </div>
 
+<script>
+    (function() {
+        var deptCheckboxes = document.querySelectorAll('.dept-checkbox');
+
+        deptCheckboxes.forEach(function(cb) {
+            cb.addEventListener('change', function() {
+                if (this.checked) {
+                    checkChildren(this.value, true);
+                } else {
+                    checkChildren(this.value, false);
+                }
+                updateParentState(this.getAttribute('data-parent'));
+            });
+        });
+
+        function checkChildren(parentId, checked) {
+            deptCheckboxes.forEach(function(child) {
+                if (child.getAttribute('data-parent') === parentId) {
+                    child.checked = checked;
+                    child.indeterminate = false;
+                    checkChildren(child.value, checked);
+                }
+            });
+        }
+
+        function updateParentState(parentId) {
+            if (!parentId) return;
+            var parent = document.getElementById('dept_' + parentId);
+            if (!parent) return;
+            var children = document.querySelectorAll('.dept-checkbox[data-parent="' + parentId + '"]');
+            if (children.length === 0) return;
+            var checkedCount = 0;
+            var indeterminateCount = 0;
+            children.forEach(function(c) {
+                if (c.checked) checkedCount++;
+                if (c.indeterminate) indeterminateCount++;
+            });
+            if (checkedCount === 0 && indeterminateCount === 0) {
+                parent.checked = false;
+                parent.indeterminate = false;
+            } else if (checkedCount === children.length) {
+                parent.checked = true;
+                parent.indeterminate = false;
+            } else {
+                parent.checked = false;
+                parent.indeterminate = true;
+            }
+            updateParentState(parent.getAttribute('data-parent'));
+        }
+
+        // Инициализация: вычислить indeterminate для уже отмеченных чекбоксов
+        deptCheckboxes.forEach(function(cb) {
+            if (cb.checked) {
+                updateParentState(cb.getAttribute('data-parent'));
+            }
+        });
+    })();
+</script>
 <script th:inline="javascript">
     var scenarioId = [[${scenario.id}]];
     var currentSchemaId = [[${scenario.schemaId}]];

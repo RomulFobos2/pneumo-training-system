@@ -34,7 +34,7 @@
                             <span id="stepLabel2" class="text-muted me-3">Сотрудники</span>
                             <i class="bi bi-chevron-right text-muted me-3"></i>
                             <span id="stepBadge3" class="badge bg-secondary me-2">3</span>
-                            <span id="stepLabel3" class="text-muted">Тест и срок</span>
+                            <span id="stepLabel3" class="text-muted">Задание и срок</span>
                         </div>
 
                         <form method="post" th:action="@{/employee/chief/assignments/addAssignment}" id="assignmentForm" class="auth-form">
@@ -118,20 +118,50 @@
                                 </div>
                             </div>
 
-                            <!-- ===== ШАГ 3: Выбор теста и срока ===== -->
+                            <!-- ===== ШАГ 3: Выбор теста/сценария и срока ===== -->
                             <div id="step3" style="display:none">
-                                <h5 class="mb-3">Шаг 3. Выберите тест и срок сдачи</h5>
+                                <h5 class="mb-3">Шаг 3. Выберите задание и срок сдачи</h5>
 
                                 <div id="step3Summary" class="alert alert-info mb-3"></div>
 
+                                <!-- Выбор типа назначения -->
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Тип назначения</label>
+                                    <div class="d-flex gap-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="assignmentType" id="typeTest" value="test" checked onchange="onAssignmentTypeChanged()">
+                                            <label class="form-check-label" for="typeTest">
+                                                <i class="bi bi-list-check"></i> Тест
+                                            </label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="assignmentType" id="typeScenario" value="scenario" onchange="onAssignmentTypeChanged()">
+                                            <label class="form-check-label" for="typeScenario">
+                                                <i class="bi bi-diagram-3"></i> Сценарий мнемосхемы
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <div class="row g-3 mb-4">
-                                    <div class="col-md-6">
+                                    <!-- Тест -->
+                                    <div class="col-md-6" id="testSelectBlock">
                                         <label class="form-label">Тест <span class="text-danger">*</span></label>
-                                        <select name="inputTestId" id="testSelect" class="form-select" required onchange="validateStep3()">
+                                        <select name="inputTestId" id="testSelect" class="form-select" onchange="validateStep3()">
                                             <option value="">— Загрузка тестов... —</option>
                                         </select>
                                         <div id="noTestsWarning" class="form-text text-warning mt-1" style="display:none">
-                                            <i class="bi bi-exclamation-triangle"></i> Нет доступных тестов для выбранного подразделения
+                                            <i class="bi bi-exclamation-triangle"></i> Нет доступных тестов
+                                        </div>
+                                    </div>
+                                    <!-- Сценарий -->
+                                    <div class="col-md-6" id="scenarioSelectBlock" style="display:none">
+                                        <label class="form-label">Сценарий мнемосхемы <span class="text-danger">*</span></label>
+                                        <select name="inputScenarioId" id="scenarioSelect2" class="form-select" onchange="validateStep3()">
+                                            <option value="">— Загрузка сценариев... —</option>
+                                        </select>
+                                        <div id="noScenariosWarning" class="form-text text-warning mt-1" style="display:none">
+                                            <i class="bi bi-exclamation-triangle"></i> Нет доступных сценариев
                                         </div>
                                     </div>
                                     <div class="col-md-6">
@@ -310,7 +340,25 @@
         return ids;
     }
 
-    // ========== Шаг 3: Загрузка тестов ==========
+    // ========== Шаг 3: Загрузка тестов и сценариев ==========
+
+    var currentAssignmentType = 'test'; // 'test' | 'scenario'
+
+    function onAssignmentTypeChanged() {
+        currentAssignmentType = document.querySelector('input[name="assignmentType"]:checked').value;
+        if (currentAssignmentType === 'test') {
+            document.getElementById('testSelectBlock').style.display = 'block';
+            document.getElementById('scenarioSelectBlock').style.display = 'none';
+            document.getElementById('testSelect').name = 'inputTestId';
+            document.getElementById('scenarioSelect2').name = '';
+        } else {
+            document.getElementById('testSelectBlock').style.display = 'none';
+            document.getElementById('scenarioSelectBlock').style.display = 'block';
+            document.getElementById('testSelect').name = '';
+            document.getElementById('scenarioSelect2').name = 'inputScenarioId';
+        }
+        validateStep3();
+    }
 
     function loadTestsForStep3() {
         // Формируем сводку
@@ -325,13 +373,10 @@
         }
         document.getElementById('step3Summary').innerHTML = summary;
 
-        // Определяем URL для загрузки тестов
-        var testsUrl;
-        if (currentMode === 'department') {
-            testsUrl = '/employee/chief/assignments/testsByDepartment/' + selectedDepartmentId;
-        } else {
-            testsUrl = '/employee/chief/assignments/testsByEmployee/' + selectedEmployeeIds[0];
-        }
+        // Загрузка тестов
+        var testsUrl = currentMode === 'department'
+            ? '/employee/chief/assignments/testsByDepartment/' + selectedDepartmentId
+            : '/employee/chief/assignments/testsByEmployee/' + selectedEmployeeIds[0];
 
         var testSelect = document.getElementById('testSelect');
         testSelect.innerHTML = '<option value="">— Загрузка... —</option>';
@@ -354,6 +399,32 @@
                 validateStep3();
             });
 
+        // Загрузка сценариев
+        var scenariosUrl = currentMode === 'department'
+            ? '/employee/chief/assignments/scenariosByDepartment/' + selectedDepartmentId
+            : '/employee/chief/assignments/scenariosByEmployee/' + selectedEmployeeIds[0];
+
+        var scenarioSelect = document.getElementById('scenarioSelect2');
+        scenarioSelect.innerHTML = '<option value="">— Загрузка... —</option>';
+        document.getElementById('noScenariosWarning').style.display = 'none';
+
+        fetch(scenariosUrl)
+            .then(function(r) { return r.json(); })
+            .then(function(scenarios) {
+                scenarioSelect.innerHTML = '<option value="">— Выберите сценарий —</option>';
+                if (scenarios.length === 0) {
+                    document.getElementById('noScenariosWarning').style.display = 'block';
+                } else {
+                    scenarios.forEach(function(s) {
+                        var opt = document.createElement('option');
+                        opt.value = s.id;
+                        opt.textContent = s.title + (s.timeLimit > 0 ? ' (' + s.timeLimit + ' мин)' : '');
+                        scenarioSelect.appendChild(opt);
+                    });
+                }
+                validateStep3();
+            });
+
         // Заполняем скрытые поля с ID сотрудников
         var hidden = document.getElementById('hiddenEmployeeInputs');
         hidden.innerHTML = '';
@@ -367,9 +438,14 @@
     }
 
     function validateStep3() {
-        var testSelected = document.getElementById('testSelect').value !== '';
         var deadlineFilled = document.getElementById('deadlineInput').value !== '';
-        document.getElementById('submitBtn').disabled = !(testSelected && deadlineFilled);
+        var itemSelected = false;
+        if (currentAssignmentType === 'test') {
+            itemSelected = document.getElementById('testSelect').value !== '';
+        } else {
+            itemSelected = document.getElementById('scenarioSelect2').value !== '';
+        }
+        document.getElementById('submitBtn').disabled = !(itemSelected && deadlineFilled);
     }
 </script>
 </body>

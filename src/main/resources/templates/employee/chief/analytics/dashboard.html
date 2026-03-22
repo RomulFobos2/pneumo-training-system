@@ -54,6 +54,17 @@
                             </select>
                         </div>
                     </div>
+                    <div class="row g-3 mt-1">
+                        <div class="col-md-3 col-sm-6">
+                            <label class="form-label">Подразделение</label>
+                            <select class="form-select" name="departmentId">
+                                <option value="">— Все подразделения —</option>
+                                <option th:each="dept : ${allDepartments}" th:value="${dept.id}"
+                                        th:text="${'— '.repeat(dept.level) + dept.name}"
+                                        th:selected="${selectedDepartmentId != null and selectedDepartmentId == dept.id}"></option>
+                            </select>
+                        </div>
+                    </div>
                     <div class="mt-3 d-flex gap-2">
                         <button type="submit" class="btn btn-primary">
                             <i class="bi bi-search"></i> Применить
@@ -216,6 +227,7 @@
                     <input type="hidden" name="dateTo" th:value="${dateTo}"/>
                     <input type="hidden" name="testId" th:value="${selectedTestId}"/>
                     <input type="hidden" name="employeeId" th:value="${selectedEmployeeId}"/>
+                    <input type="hidden" name="departmentId" th:value="${selectedDepartmentId}"/>
                     <button type="submit" class="btn btn-primary">
                         <i class="bi bi-download"></i> Скачать DOCX-отчёт
                     </button>

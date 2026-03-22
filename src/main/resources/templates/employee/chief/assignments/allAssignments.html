@@ -20,7 +20,7 @@
 
             <div class="profile-card mb-4">
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                    <h1 class="page-title mb-0">Назначения тестов</h1>
+                    <h1 class="page-title mb-0">Назначения</h1>
                     <div class="profile-actions">
                         <a th:href="@{/employee/chief/assignments/addAssignment}" class="btn btn-success btn-profile">
                             <i class="bi bi-plus-lg"></i> Новое назначение
@@ -37,7 +37,8 @@
                     <thead>
                     <tr>
                         <th>#</th>
-                        <th>Тест</th>
+                        <th>Тип</th>
+                        <th>Название</th>
                         <th>Дедлайн</th>
                         <th>Назначено</th>
                         <th>Выполнено</th>
@@ -49,7 +50,11 @@
                     <tbody>
                     <tr th:each="a, index : ${allAssignments}">
                         <td th:text="${index.index + 1}"></td>
-                        <td th:text="${a.testTitle}"></td>
+                        <td>
+                            <span class="badge" th:classappend="${a.scenarioId != null ? 'bg-info' : 'bg-primary'}"
+                                  th:text="${a.assignmentType}"></span>
+                        </td>
+                        <td th:text="${a.assignmentTitle}"></td>
                         <td>
                             <span th:text="${#temporals.format(a.deadline, 'dd.MM.yyyy')}"></span>
                         </td>
@@ -75,7 +80,7 @@
                         </td>
                     </tr>
                     <tr th:if="${#lists.isEmpty(allAssignments)}">
-                        <td colspan="8" class="text-center text-muted">Нет назначений</td>
+                        <td colspan="9" class="text-center text-muted">Нет назначений</td>
                     </tr>
                     </tbody>
                 </table>

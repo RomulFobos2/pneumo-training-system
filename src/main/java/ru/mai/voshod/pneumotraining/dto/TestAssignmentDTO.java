@@ -10,6 +10,10 @@ public class TestAssignmentDTO {
     private Long id;
     private Long testId;
     private String testTitle;
+    private Long scenarioId;
+    private String scenarioTitle;
+    private String assignmentType;
+    private String assignmentTitle;
     private LocalDate deadline;
     private String createdByFullName;
     private LocalDateTime createdAt;

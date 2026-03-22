@@ -8,14 +8,12 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
-import ru.mai.voshod.pneumotraining.dto.DepartmentDTO;
-import ru.mai.voshod.pneumotraining.dto.EmployeeDTO;
-import ru.mai.voshod.pneumotraining.dto.TestAssignmentDTO;
-import ru.mai.voshod.pneumotraining.dto.TestDTO;
+import ru.mai.voshod.pneumotraining.dto.*;
 import ru.mai.voshod.pneumotraining.mapper.EmployeeMapper;
 import ru.mai.voshod.pneumotraining.models.Employee;
 import ru.mai.voshod.pneumotraining.repo.EmployeeRepository;
 import ru.mai.voshod.pneumotraining.service.employee.admin.DepartmentService;
+import ru.mai.voshod.pneumotraining.service.employee.chief.SimulationScenarioService;
 import ru.mai.voshod.pneumotraining.service.employee.chief.TestAssignmentService;
 import ru.mai.voshod.pneumotraining.service.employee.chief.TestService;
 
@@ -31,15 +29,18 @@ public class TestAssignmentController {
 
     private final TestAssignmentService testAssignmentService;
     private final TestService testService;
+    private final SimulationScenarioService scenarioService;
     private final DepartmentService departmentService;
     private final EmployeeRepository employeeRepository;
 
     public TestAssignmentController(TestAssignmentService testAssignmentService,
                                     TestService testService,
+                                    SimulationScenarioService scenarioService,
                                     DepartmentService departmentService,
                                     EmployeeRepository employeeRepository) {
         this.testAssignmentService = testAssignmentService;
         this.testService = testService;
+        this.scenarioService = scenarioService;
         this.departmentService = departmentService;
         this.employeeRepository = employeeRepository;
     }
@@ -58,12 +59,21 @@ public class TestAssignmentController {
     }
 
     @PostMapping("/addAssignment")
-    public String addAssignment(@RequestParam Long inputTestId,
+    public String addAssignment(@RequestParam(required = false) Long inputTestId,
+                                @RequestParam(required = false) Long inputScenarioId,
                                 @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate inputDeadline,
                                 @RequestParam(name = "inputEmployeeIds") List<Long> inputEmployeeIds,
                                 @AuthenticationPrincipal Employee currentUser,
                                 RedirectAttributes redirectAttributes) {
-        Optional<Long> result = testAssignmentService.createAssignment(inputTestId, inputDeadline, inputEmployeeIds, currentUser);
+        Optional<Long> result;
+        if (inputScenarioId != null) {
+            result = testAssignmentService.createScenarioAssignment(inputScenarioId, inputDeadline, inputEmployeeIds, currentUser);
+        } else if (inputTestId != null) {
+            result = testAssignmentService.createAssignment(inputTestId, inputDeadline, inputEmployeeIds, currentUser);
+        } else {
+            redirectAttributes.addFlashAttribute("errorMessage", "Выберите тест или сценарий.");
+            return "redirect:/employee/chief/assignments/addAssignment";
+        }
         if (result.isEmpty()) {
             redirectAttributes.addFlashAttribute("errorMessage", "Ошибка при создании назначения.");
             return "redirect:/employee/chief/assignments/addAssignment";
@@ -121,6 +131,22 @@ public class TestAssignmentController {
             return ResponseEntity.ok(List.of());
         }
         return ResponseEntity.ok(testService.getTestsForDepartment(empOpt.get().getDepartment().getId()));
+    }
+
+    @GetMapping("/scenariosByDepartment/{departmentId}")
+    @ResponseBody
+    public ResponseEntity<List<SimulationScenarioDTO>> scenariosByDepartment(@PathVariable Long departmentId) {
+        return ResponseEntity.ok(scenarioService.getScenariosForDepartment(departmentId));
+    }
+
+    @GetMapping("/scenariosByEmployee/{employeeId}")
+    @ResponseBody
+    public ResponseEntity<List<SimulationScenarioDTO>> scenariosByEmployee(@PathVariable Long employeeId) {
+        Optional<Employee> empOpt = employeeRepository.findById(employeeId);
+        if (empOpt.isEmpty() || empOpt.get().getDepartment() == null) {
+            return ResponseEntity.ok(List.of());
+        }
+        return ResponseEntity.ok(scenarioService.getScenariosForDepartment(empOpt.get().getDepartment().getId()));
     }
 
     private List<EmployeeDTO> getSpecialistOperatorEmployees() {

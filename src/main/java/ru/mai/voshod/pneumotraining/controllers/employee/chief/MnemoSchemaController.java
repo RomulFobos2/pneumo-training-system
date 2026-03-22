@@ -92,10 +92,11 @@ public class MnemoSchemaController {
 
     @GetMapping("/deleteSchema/{id}")
     public String deleteSchema(@PathVariable Long id, RedirectAttributes redirectAttributes) {
-        if (mnemoSchemaService.deleteSchema(id)) {
+        String error = mnemoSchemaService.deleteSchema(id);
+        if (error == null) {
             redirectAttributes.addFlashAttribute("successMessage", "Схема удалена.");
         } else {
-            redirectAttributes.addFlashAttribute("errorMessage", "Ошибка при удалении схемы.");
+            redirectAttributes.addFlashAttribute("errorMessage", error);
         }
         return "redirect:/employee/chief/schemas/allSchemas";
     }

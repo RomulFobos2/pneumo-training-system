@@ -10,6 +10,7 @@ import ru.mai.voshod.pneumotraining.enumeration.AssignmentStatus;
 import ru.mai.voshod.pneumotraining.mapper.TestAssignmentMapper;
 import ru.mai.voshod.pneumotraining.models.*;
 import ru.mai.voshod.pneumotraining.repo.*;
+import ru.mai.voshod.pneumotraining.repo.SimulationScenarioRepository;
 import ru.mai.voshod.pneumotraining.service.general.NotificationService;
 
 import java.time.LocalDate;
@@ -26,6 +27,7 @@ public class TestAssignmentService {
     private final TestAssignmentRepository testAssignmentRepository;
     private final TestAssignmentEmployeeRepository testAssignmentEmployeeRepository;
     private final TestRepository testRepository;
+    private final SimulationScenarioRepository scenarioRepository;
     private final EmployeeRepository employeeRepository;
     private final TestQuestionRepository testQuestionRepository;
     private final NotificationService notificationService;
@@ -33,12 +35,14 @@ public class TestAssignmentService {
     public TestAssignmentService(TestAssignmentRepository testAssignmentRepository,
                                  TestAssignmentEmployeeRepository testAssignmentEmployeeRepository,
                                  TestRepository testRepository,
+                                 SimulationScenarioRepository scenarioRepository,
                                  EmployeeRepository employeeRepository,
                                  TestQuestionRepository testQuestionRepository,
                                  NotificationService notificationService) {
         this.testAssignmentRepository = testAssignmentRepository;
         this.testAssignmentEmployeeRepository = testAssignmentEmployeeRepository;
         this.testRepository = testRepository;
+        this.scenarioRepository = scenarioRepository;
         this.employeeRepository = employeeRepository;
         this.testQuestionRepository = testQuestionRepository;
         this.notificationService = notificationService;
@@ -110,6 +114,38 @@ public class TestAssignmentService {
         }
 
         log.info("Назначение создано: id={}, testId={}, employees={}", assignment.getId(), testId, employeeIds.size());
+        return Optional.of(assignment.getId());
+    }
+
+    @Transactional
+    public Optional<Long> createScenarioAssignment(Long scenarioId, LocalDate deadline, List<Long> employeeIds, Employee createdBy) {
+        log.info("Создание назначения сценария: scenarioId={}, deadline={}, employees={}", scenarioId, deadline, employeeIds.size());
+
+        Optional<SimulationScenario> scenarioOpt = scenarioRepository.findById(scenarioId);
+        if (scenarioOpt.isEmpty()) {
+            log.error("Сценарий не найден: id={}", scenarioId);
+            return Optional.empty();
+        }
+
+        SimulationScenario scenario = scenarioOpt.get();
+        TestAssignment assignment = new TestAssignment(scenario, deadline, createdBy);
+        testAssignmentRepository.save(assignment);
+
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+        String scenarioLink = "/employee/specialist/mnemo/scenarios";
+
+        for (Long empId : employeeIds) {
+            employeeRepository.findById(empId).ifPresent(employee -> {
+                TestAssignmentEmployee ae = new TestAssignmentEmployee(assignment, employee);
+                testAssignmentEmployeeRepository.save(ae);
+
+                notificationService.createNotification(employee,
+                        "Вам назначен сценарий мнемосхемы «" + scenario.getTitle() + "». Срок сдачи: " + deadline.format(fmt),
+                        scenarioLink);
+            });
+        }
+
+        log.info("Назначение сценария создано: id={}, scenarioId={}, employees={}", assignment.getId(), scenarioId, employeeIds.size());
         return Optional.of(assignment.getId());
     }
 
