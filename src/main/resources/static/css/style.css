@@ -769,3 +769,21 @@ tr.dragging {
 tr.drag-over {
     border-top: 2px solid var(--accent);
 }
+
+/* ---- Sortable table headers ---- */
+th[data-sortable] {
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+}
+th[data-sortable]:hover {
+    background: rgba(0,0,0,.04);
+}
+th[data-sortable] .sort-icon {
+    font-size: .8em;
+}
+
+/* ---- Pagination wrapper ---- */
+.pagination-wrapper {
+    font-size: .875rem;
+}
