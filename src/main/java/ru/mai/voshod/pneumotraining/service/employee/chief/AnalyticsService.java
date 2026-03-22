@@ -7,11 +7,9 @@ import org.openxmlformats.schemas.wordprocessingml.x2006.main.STTblWidth;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.mai.voshod.pneumotraining.dto.DepartmentDTO;
+import ru.mai.voshod.pneumotraining.enumeration.SimulationSessionStatus;
 import ru.mai.voshod.pneumotraining.enumeration.TestSessionStatus;
-import ru.mai.voshod.pneumotraining.models.Employee;
-import ru.mai.voshod.pneumotraining.models.Test;
-import ru.mai.voshod.pneumotraining.models.TestSession;
-import ru.mai.voshod.pneumotraining.models.TestSessionAnswer;
+import ru.mai.voshod.pneumotraining.models.*;
 import ru.mai.voshod.pneumotraining.repo.*;
 import ru.mai.voshod.pneumotraining.service.employee.admin.DepartmentService;
 
@@ -31,17 +29,20 @@ public class AnalyticsService {
     private final TestRepository testRepository;
     private final TestSessionRepository testSessionRepository;
     private final TestSessionAnswerRepository testSessionAnswerRepository;
+    private final SimulationSessionRepository simulationSessionRepository;
     private final DepartmentService departmentService;
 
     public AnalyticsService(EmployeeRepository employeeRepository,
                             TestRepository testRepository,
                             TestSessionRepository testSessionRepository,
                             TestSessionAnswerRepository testSessionAnswerRepository,
+                            SimulationSessionRepository simulationSessionRepository,
                             DepartmentService departmentService) {
         this.employeeRepository = employeeRepository;
         this.testRepository = testRepository;
         this.testSessionRepository = testSessionRepository;
         this.testSessionAnswerRepository = testSessionAnswerRepository;
+        this.simulationSessionRepository = simulationSessionRepository;
         this.departmentService = departmentService;
     }
 
@@ -107,6 +108,27 @@ public class AnalyticsService {
         double passRate = filteredSessions.isEmpty() ? 0.0
                 : (passedCount * 100.0) / filteredSessions.size();
         data.put("passRate", Math.round(passRate * 10.0) / 10.0);
+
+        // === Метрики симуляций ===
+        List<SimulationSession> allSimSessions = simulationSessionRepository
+                .findAllBySessionStatusNotOrderByStartedAtDesc(SimulationSessionStatus.IN_PROGRESS);
+        List<SimulationSession> filteredSimSessions = allSimSessions.stream()
+                .filter(s -> !s.getStartedAt().isBefore(dtFrom))
+                .filter(s -> !s.getStartedAt().isAfter(dtTo))
+                .toList();
+        if (departmentId != null) {
+            List<Long> deptIds = departmentService.getDescendantIdsIncludingSelf(departmentId);
+            filteredSimSessions = filteredSimSessions.stream()
+                    .filter(s -> s.getEmployee().getDepartment() != null
+                            && deptIds.contains(s.getEmployee().getDepartment().getId()))
+                    .toList();
+        }
+        long simSessionsCount = filteredSimSessions.size();
+        long simCompleted = filteredSimSessions.stream()
+                .filter(s -> s.getSessionStatus() == SimulationSessionStatus.COMPLETED).count();
+        double simPassRate = simSessionsCount > 0 ? (double) simCompleted / simSessionsCount * 100 : 0;
+        data.put("simSessionsCount", simSessionsCount);
+        data.put("simPassRate", Math.round(simPassRate * 10.0) / 10.0);
 
         // === Статистика по тестам ===
         Map<Long, List<TestSession>> byTest = filteredSessions.stream()

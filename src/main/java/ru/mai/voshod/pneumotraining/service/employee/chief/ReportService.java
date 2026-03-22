@@ -8,17 +8,15 @@ import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.mai.voshod.pneumotraining.dto.SimulationSessionDTO;
 import ru.mai.voshod.pneumotraining.dto.TestSessionAnswerDTO;
 import ru.mai.voshod.pneumotraining.dto.TestSessionDTO;
+import ru.mai.voshod.pneumotraining.enumeration.SimulationSessionStatus;
 import ru.mai.voshod.pneumotraining.enumeration.TestSessionStatus;
+import ru.mai.voshod.pneumotraining.mapper.SimulationSessionMapper;
 import ru.mai.voshod.pneumotraining.mapper.TestSessionMapper;
-import ru.mai.voshod.pneumotraining.models.Employee;
-import ru.mai.voshod.pneumotraining.models.Test;
-import ru.mai.voshod.pneumotraining.models.TestSession;
-import ru.mai.voshod.pneumotraining.repo.EmployeeRepository;
-import ru.mai.voshod.pneumotraining.repo.TestRepository;
-import ru.mai.voshod.pneumotraining.repo.TestSessionAnswerRepository;
-import ru.mai.voshod.pneumotraining.repo.TestSessionRepository;
+import ru.mai.voshod.pneumotraining.models.*;
+import ru.mai.voshod.pneumotraining.repo.*;
 import ru.mai.voshod.pneumotraining.service.employee.specialist.TestingService;
 
 import java.io.ByteArrayOutputStream;
@@ -34,6 +32,8 @@ public class ReportService {
 
     private final TestSessionRepository testSessionRepository;
     private final TestSessionAnswerRepository testSessionAnswerRepository;
+    private final SimulationSessionRepository simulationSessionRepository;
+    private final SimulationScenarioRepository simulationScenarioRepository;
     private final EmployeeRepository employeeRepository;
     private final TestRepository testRepository;
     private final TestingService testingService;
@@ -41,11 +41,15 @@ public class ReportService {
 
     public ReportService(TestSessionRepository testSessionRepository,
                          TestSessionAnswerRepository testSessionAnswerRepository,
+                         SimulationSessionRepository simulationSessionRepository,
+                         SimulationScenarioRepository simulationScenarioRepository,
                          EmployeeRepository employeeRepository,
                          TestRepository testRepository,
                          TestingService testingService) {
         this.testSessionRepository = testSessionRepository;
         this.testSessionAnswerRepository = testSessionAnswerRepository;
+        this.simulationSessionRepository = simulationSessionRepository;
+        this.simulationScenarioRepository = simulationScenarioRepository;
         this.employeeRepository = employeeRepository;
         this.testRepository = testRepository;
         this.testingService = testingService;
@@ -297,6 +301,265 @@ public class ReportService {
             return baos.toByteArray();
         } catch (Exception e) {
             log.error("Ошибка при создании журнала Excel: {}", e.getMessage(), e);
+            return null;
+        }
+    }
+
+    // ========== Результаты симуляций ==========
+
+    @Transactional(readOnly = true)
+    public List<SimulationSessionDTO> getAllSimulationResults(Long employeeId, Long scenarioId,
+                                                              LocalDate dateFrom, LocalDate dateTo) {
+        List<SimulationSession> sessions = simulationSessionRepository
+                .findAllBySessionStatusNotOrderByStartedAtDesc(SimulationSessionStatus.IN_PROGRESS);
+
+        Stream<SimulationSession> stream = sessions.stream();
+
+        if (employeeId != null) {
+            stream = stream.filter(s -> s.getEmployee().getId().equals(employeeId));
+        }
+        if (scenarioId != null) {
+            stream = stream.filter(s -> s.getScenario().getId().equals(scenarioId));
+        }
+        if (dateFrom != null) {
+            stream = stream.filter(s -> !s.getStartedAt().toLocalDate().isBefore(dateFrom));
+        }
+        if (dateTo != null) {
+            stream = stream.filter(s -> !s.getStartedAt().toLocalDate().isAfter(dateTo));
+        }
+
+        return stream.map(s -> {
+            SimulationSessionDTO dto = SimulationSessionMapper.INSTANCE.toDTO(s);
+            dto.setStepResults(s.getStepResults());
+            return dto;
+        }).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<SimulationSessionDTO> getSimulationSessionResult(Long sessionId) {
+        return simulationSessionRepository.findById(sessionId)
+                .map(s -> {
+                    SimulationSessionDTO dto = SimulationSessionMapper.INSTANCE.toDTO(s);
+                    dto.setStepResults(s.getStepResults());
+                    dto.setScenarioTitle(s.getScenario().getTitle());
+                    return dto;
+                });
+    }
+
+    public byte[] exportSimulationProtocol(Long scenarioId) {
+        List<SimulationSession> sessions = simulationSessionRepository
+                .findAllBySessionStatusNotOrderByStartedAtDesc(SimulationSessionStatus.IN_PROGRESS)
+                .stream()
+                .filter(s -> s.getScenario().getId().equals(scenarioId))
+                .toList();
+
+        if (sessions.isEmpty()) return null;
+
+        String scenarioTitle = sessions.get(0).getScenario().getTitle();
+
+        try (XSSFWorkbook workbook = new XSSFWorkbook();
+             ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+
+            Sheet sheet = workbook.createSheet("Протокол симуляции");
+            CellStyle boldStyle = createBoldStyle(workbook);
+            CellStyle headerStyle = createHeaderStyle(workbook);
+            DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
+
+            Row r0 = sheet.createRow(0);
+            Cell c0 = r0.createCell(0);
+            c0.setCellValue("ПРОТОКОЛ прохождения сценария мнемосхемы");
+            c0.setCellStyle(boldStyle);
+
+            sheet.createRow(2).createCell(0).setCellValue("Сценарий:");
+            sheet.getRow(2).createCell(1).setCellValue(scenarioTitle);
+            sheet.createRow(3).createCell(0).setCellValue("Дата формирования:");
+            sheet.getRow(3).createCell(1).setCellValue(LocalDate.now().format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
+
+            Row headerRow = sheet.createRow(5);
+            String[] headers = {"#", "ФИО", "Должность", "Дата", "Шагов пройдено", "Всего шагов", "Статус"};
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+                cell.setCellStyle(headerStyle);
+            }
+
+            for (int i = 0; i < sessions.size(); i++) {
+                SimulationSession s = sessions.get(i);
+                Row row = sheet.createRow(6 + i);
+                row.createCell(0).setCellValue(i + 1);
+                row.createCell(1).setCellValue(s.getEmployee().getFullName());
+                row.createCell(2).setCellValue(s.getEmployee().getPosition());
+                row.createCell(3).setCellValue(s.getStartedAt().format(dtf));
+                row.createCell(4).setCellValue(s.getCompletedSteps());
+                row.createCell(5).setCellValue(s.getTotalSteps());
+                row.createCell(6).setCellValue(s.getSessionStatus().getDisplayName());
+            }
+
+            sheet.setColumnWidth(0, 2000);
+            sheet.setColumnWidth(1, 8000);
+            sheet.setColumnWidth(2, 6000);
+            sheet.setColumnWidth(3, 5000);
+            sheet.setColumnWidth(4, 5000);
+            sheet.setColumnWidth(5, 4000);
+            sheet.setColumnWidth(6, 4000);
+
+            workbook.write(baos);
+            return baos.toByteArray();
+        } catch (Exception e) {
+            log.error("Ошибка при создании протокола симуляции: {}", e.getMessage(), e);
+            return null;
+        }
+    }
+
+    public byte[] exportSimulationResultToExcel(Long sessionId) {
+        Optional<SimulationSession> sessionOpt = simulationSessionRepository.findById(sessionId);
+        if (sessionOpt.isEmpty()) return null;
+
+        SimulationSession session = sessionOpt.get();
+
+        try (XSSFWorkbook workbook = new XSSFWorkbook();
+             ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+
+            Sheet sheet = workbook.createSheet("Результат симуляции");
+            CellStyle boldStyle = createBoldStyle(workbook);
+            CellStyle headerStyle = createHeaderStyle(workbook);
+
+            CellStyle wrapStyle = workbook.createCellStyle();
+            wrapStyle.setWrapText(true);
+            wrapStyle.setVerticalAlignment(VerticalAlignment.TOP);
+
+            DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
+
+            Row r0 = sheet.createRow(0);
+            Cell c0 = r0.createCell(0);
+            c0.setCellValue("Результат прохождения симуляции мнемосхемы");
+            c0.setCellStyle(boldStyle);
+
+            sheet.createRow(2).createCell(0).setCellValue("Сотрудник:");
+            sheet.getRow(2).createCell(1).setCellValue(session.getEmployee().getFullName());
+            sheet.createRow(3).createCell(0).setCellValue("Сценарий:");
+            sheet.getRow(3).createCell(1).setCellValue(session.getScenario().getTitle());
+            sheet.createRow(4).createCell(0).setCellValue("Дата:");
+            sheet.getRow(4).createCell(1).setCellValue(session.getStartedAt().format(dtf));
+            sheet.createRow(5).createCell(0).setCellValue("Статус:");
+            sheet.getRow(5).createCell(1).setCellValue(session.getSessionStatus().getDisplayName());
+            sheet.createRow(6).createCell(0).setCellValue("Пройдено шагов:");
+            sheet.getRow(6).createCell(1).setCellValue(
+                    session.getCompletedSteps() + " из " + session.getTotalSteps());
+
+            Row headerRow = sheet.createRow(8);
+            String[] headers = {"#", "Инструкция", "Результат"};
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+                cell.setCellStyle(headerStyle);
+            }
+
+            if (session.getStepResults() != null && !session.getStepResults().isBlank()) {
+                List<Map<String, Object>> stepResults = objectMapper.readValue(
+                        session.getStepResults(), new TypeReference<>() {});
+                for (int i = 0; i < stepResults.size(); i++) {
+                    Map<String, Object> sr = stepResults.get(i);
+                    Row row = sheet.createRow(9 + i);
+                    row.createCell(0).setCellValue(((Number) sr.get("step")).intValue());
+                    Cell instrCell = row.createCell(1);
+                    instrCell.setCellValue((String) sr.get("instruction"));
+                    instrCell.setCellStyle(wrapStyle);
+                    row.createCell(2).setCellValue(
+                            Boolean.TRUE.equals(sr.get("passed")) ? "Выполнен" : "Ошибка");
+                }
+            }
+
+            sheet.setColumnWidth(0, 2000);
+            sheet.setColumnWidth(1, 12000);
+            sheet.setColumnWidth(2, 4000);
+
+            workbook.write(baos);
+            return baos.toByteArray();
+        } catch (Exception e) {
+            log.error("Ошибка при создании Excel симуляции: {}", e.getMessage(), e);
+            return null;
+        }
+    }
+
+    public byte[] exportSimulationJournal() {
+        List<Employee> employees = employeeRepository.findAllByOrderByLastNameAsc().stream()
+                .filter(Employee::isActive)
+                .toList();
+        List<SimulationScenario> scenarios = simulationScenarioRepository.findByIsActiveTrueOrderByTitleAsc();
+
+        List<SimulationSession> allSessions = simulationSessionRepository
+                .findAllBySessionStatusNotOrderByStartedAtDesc(SimulationSessionStatus.IN_PROGRESS);
+
+        // Группируем: empId_scenarioId → последняя сессия
+        Map<String, SimulationSession> latestByKey = new LinkedHashMap<>();
+        for (SimulationSession s : allSessions) {
+            String key = s.getEmployee().getId() + "_" + s.getScenario().getId();
+            latestByKey.putIfAbsent(key, s); // первая = последняя (сортировка DESC)
+        }
+
+        try (XSSFWorkbook workbook = new XSSFWorkbook();
+             ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+
+            Sheet sheet = workbook.createSheet("Журнал симуляций");
+            CellStyle boldStyle = createBoldStyle(workbook);
+            CellStyle headerStyle = createHeaderStyle(workbook);
+
+            CellStyle passStyle = workbook.createCellStyle();
+            passStyle.setFillForegroundColor(IndexedColors.LIGHT_GREEN.getIndex());
+            passStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+            passStyle.setAlignment(HorizontalAlignment.CENTER);
+
+            CellStyle failStyle = workbook.createCellStyle();
+            failStyle.setFillForegroundColor(IndexedColors.ROSE.getIndex());
+            failStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+            failStyle.setAlignment(HorizontalAlignment.CENTER);
+
+            Row r0 = sheet.createRow(0);
+            Cell c0 = r0.createCell(0);
+            c0.setCellValue("Журнал прохождения симуляций мнемосхемы");
+            c0.setCellStyle(boldStyle);
+
+            // Заголовок: ФИО | Сценарий1 | Сценарий2 | ...
+            Row headerRow = sheet.createRow(2);
+            Cell fioHeader = headerRow.createCell(0);
+            fioHeader.setCellValue("ФИО");
+            fioHeader.setCellStyle(headerStyle);
+            for (int i = 0; i < scenarios.size(); i++) {
+                Cell cell = headerRow.createCell(i + 1);
+                cell.setCellValue(scenarios.get(i).getTitle());
+                cell.setCellStyle(headerStyle);
+            }
+
+            for (int e = 0; e < employees.size(); e++) {
+                Employee emp = employees.get(e);
+                Row row = sheet.createRow(3 + e);
+                row.createCell(0).setCellValue(emp.getFullName());
+
+                for (int s = 0; s < scenarios.size(); s++) {
+                    String key = emp.getId() + "_" + scenarios.get(s).getId();
+                    SimulationSession session = latestByKey.get(key);
+                    Cell cell = row.createCell(s + 1);
+                    if (session != null) {
+                        String value = session.getCompletedSteps() + "/" + session.getTotalSteps();
+                        cell.setCellValue(value);
+                        cell.setCellStyle(session.getSessionStatus() == SimulationSessionStatus.COMPLETED
+                                ? passStyle : failStyle);
+                    } else {
+                        cell.setCellValue("—");
+                    }
+                }
+            }
+
+            sheet.setColumnWidth(0, 8000);
+            for (int i = 0; i < scenarios.size(); i++) {
+                sheet.setColumnWidth(i + 1, 5000);
+            }
+
+            workbook.write(baos);
+            return baos.toByteArray();
+        } catch (Exception e) {
+            log.error("Ошибка при создании журнала симуляций: {}", e.getMessage(), e);
             return null;
         }
     }

@@ -10,4 +10,5 @@ public class TestAssignmentEmployeeDTO {
     private String statusName;
     private String statusDisplayName;
     private Long completedSessionId;
+    private Long completedSimulationSessionId;
 }

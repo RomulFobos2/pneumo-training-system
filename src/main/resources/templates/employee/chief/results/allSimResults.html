@@ -1,0 +1,152 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Результаты симуляций | АОС ПИ</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/javascript.js"></script>
+</head>
+<body>
+<div id="wrapper">
+    <div th:insert="~{blocks/header :: sidebar}"></div>
+    <div id="content-wrapper">
+        <div th:insert="~{blocks/header :: topbar}"></div>
+        <div th:insert="~{blocks/header :: overlay}"></div>
+        <main class="container-fluid">
+
+            <div class="profile-card mb-4 d-flex justify-content-between align-items-center">
+                <h1 class="page-title mb-0">Результаты симуляций</h1>
+            </div>
+
+            <!-- Фильтры -->
+            <div class="profile-card p-4 mb-3">
+                <form method="get" th:action="@{/employee/chief/results/allSimResults}">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-3">
+                            <label class="form-label">Сотрудник</label>
+                            <select name="employeeId" class="form-select form-select-sm">
+                                <option value="">Все сотрудники</option>
+                                <option th:each="emp : ${allEmployees}"
+                                        th:value="${emp.id}"
+                                        th:text="${emp.fullName}"
+                                        th:selected="${emp.id == selectedEmployeeId}"></option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Сценарий</label>
+                            <select name="scenarioId" class="form-select form-select-sm">
+                                <option value="">Все сценарии</option>
+                                <option th:each="sc : ${allScenarios}"
+                                        th:value="${sc.id}"
+                                        th:text="${sc.title}"
+                                        th:selected="${sc.id == selectedScenarioId}"></option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Дата с</label>
+                            <input type="date" name="dateFrom" class="form-control form-control-sm"
+                                   th:value="${dateFrom}">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Дата по</label>
+                            <input type="date" name="dateTo" class="form-control form-control-sm"
+                                   th:value="${dateTo}">
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-primary btn-sm w-100">
+                                <i class="bi bi-funnel"></i> Фильтр
+                            </button>
+                            <a th:href="@{/employee/chief/results/allSimResults}" class="btn btn-outline-secondary btn-sm w-100 mt-1">
+                                Сбросить
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Таблица результатов -->
+            <div class="profile-card p-4 mb-3">
+                <div class="table-responsive">
+                    <table class="table table-modern">
+                        <thead>
+                        <tr>
+                            <th style="width: 50px">#</th>
+                            <th>Сотрудник</th>
+                            <th>Сценарий</th>
+                            <th style="width: 140px">Дата</th>
+                            <th style="width: 120px">Шагов</th>
+                            <th style="width: 120px">Статус</th>
+                            <th style="width: 80px">Действия</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="s, index : ${simSessions}">
+                            <td class="row-number" th:text="${index.index + 1}"></td>
+                            <td th:text="${s.employeeFullName}"></td>
+                            <td>
+                                <a th:href="@{/employee/chief/results/detailsSimResult/{id}(id=${s.id})}"
+                                   th:text="${s.scenarioTitle}"></a>
+                            </td>
+                            <td th:text="${#temporals.format(s.startedAt, 'dd.MM.yyyy HH:mm')}"></td>
+                            <td th:text="${s.completedSteps + ' / ' + s.totalSteps}"></td>
+                            <td>
+                                <span class="badge"
+                                      th:classappend="${s.sessionStatus == 'COMPLETED' ? 'bg-success' : (s.sessionStatus == 'EXPIRED' ? 'bg-warning text-dark' : 'bg-danger')}"
+                                      th:text="${s.sessionStatusDisplayName}"></span>
+                            </td>
+                            <td>
+                                <a th:href="@{/employee/chief/results/detailsSimResult/{id}(id=${s.id})}"
+                                   class="btn btn-sm btn-outline-primary" title="Подробнее">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(simSessions)}">
+                            <td colspan="7" class="text-center text-muted">Результаты не найдены</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Экспорт -->
+            <div class="profile-card p-4 mb-3">
+                <h5 class="mb-3"><i class="bi bi-file-earmark-excel"></i> Экспорт</h5>
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-4">
+                        <form method="post" th:action="@{/employee/chief/results/exportSimProtocol}">
+                            <label class="form-label">Протокол по сценарию</label>
+                            <div class="input-group input-group-sm">
+                                <select name="scenarioId" class="form-select form-select-sm" required>
+                                    <option value="">Выберите сценарий</option>
+                                    <option th:each="sc : ${allScenarios}"
+                                            th:value="${sc.id}"
+                                            th:text="${sc.title}"></option>
+                                </select>
+                                <button type="submit" class="btn btn-success btn-sm">
+                                    <i class="bi bi-download"></i> Скачать
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="col-md-4">
+                        <form method="post" th:action="@{/employee/chief/results/exportSimJournal}">
+                            <label class="form-label">Журнал симуляций</label>
+                            <button type="submit" class="btn btn-success btn-sm">
+                                <i class="bi bi-download"></i> Скачать журнал
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+        <div th:insert="~{blocks/footer :: footer}"></div>
+    </div>
+</div>
+</body>
+</html>

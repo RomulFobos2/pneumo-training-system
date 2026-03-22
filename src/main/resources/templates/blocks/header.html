@@ -58,6 +58,11 @@
             </a>
         </li>
         <li class="nav-item" sec:authorize="hasRole('ROLE_EMPLOYEE_CHIEF')">
+            <a th:href="@{/employee/chief/results/allSimResults}">
+                <i class="bi bi-diagram-3-fill"></i> <span>Результаты симуляций</span>
+            </a>
+        </li>
+        <li class="nav-item" sec:authorize="hasRole('ROLE_EMPLOYEE_CHIEF')">
             <a th:href="@{/employee/chief/analytics/dashboard}">
                 <i class="bi bi-bar-chart-line"></i> <span>Аналитика</span>
             </a>
