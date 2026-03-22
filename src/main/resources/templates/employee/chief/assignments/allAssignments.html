@@ -9,6 +9,8 @@
     <link href="/css/style.css" rel="stylesheet">
     <script src="/js/bootstrap.bundle.min.js"></script>
     <script src="/js/javascript.js"></script>
+    <script src="/js/tablePagination.js"></script>
+    <script src="/js/tableSort.js"></script>
 </head>
 <body>
 <div id="wrapper">
@@ -33,23 +35,23 @@
             <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
 
             <div class="table-container">
-                <table class="table table-modern">
+                <table id="assignmentsTable" class="table table-modern">
                     <thead>
                     <tr>
                         <th>#</th>
                         <th>Тип</th>
-                        <th>Название</th>
-                        <th>Дедлайн</th>
-                        <th>Назначено</th>
-                        <th>Выполнено</th>
-                        <th>Просрочено</th>
-                        <th>Автор</th>
+                        <th data-sortable data-sort-type="text">Название</th>
+                        <th data-sortable data-sort-type="date">Дедлайн</th>
+                        <th data-sortable data-sort-type="number">Назначено</th>
+                        <th data-sortable data-sort-type="number">Выполнено</th>
+                        <th data-sortable data-sort-type="number">Просрочено</th>
+                        <th data-sortable data-sort-type="text">Автор</th>
                         <th style="width: 120px">Действия</th>
                     </tr>
                     </thead>
                     <tbody>
                     <tr th:each="a, index : ${allAssignments}">
-                        <td th:text="${index.index + 1}"></td>
+                        <td class="row-number" th:text="${index.index + 1}"></td>
                         <td>
                             <span class="badge" th:classappend="${a.scenarioId != null ? 'bg-info' : 'bg-primary'}"
                                   th:text="${a.assignmentType}"></span>
@@ -90,5 +92,9 @@
         <div th:insert="~{blocks/footer :: footer}"></div>
     </div>
 </div>
+<script>
+    initPagination('assignmentsTable', { perPage: 20 });
+    initSortable('assignmentsTable');
+</script>
 </body>
 </html>

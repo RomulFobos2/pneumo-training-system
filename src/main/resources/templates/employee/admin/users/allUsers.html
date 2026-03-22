@@ -9,6 +9,8 @@
     <link href="/css/style.css" rel="stylesheet">
     <script src="/js/bootstrap.bundle.min.js"></script>
     <script src="/js/javascript.js"></script>
+    <script src="/js/tablePagination.js"></script>
+    <script src="/js/tableSort.js"></script>
 </head>
 <body>
 <div id="wrapper">
@@ -33,21 +35,21 @@
             <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
 
             <div class="table-container">
-                <table class="table table-modern">
+                <table id="usersTable" class="table table-modern">
                     <thead>
                     <tr>
                         <th>#</th>
-                        <th>ФИО</th>
-                        <th>Роль</th>
-                        <th>Подразделение</th>
-                        <th>Должность</th>
-                        <th>Логин</th>
+                        <th data-sortable data-sort-type="text">ФИО</th>
+                        <th data-sortable data-sort-type="text">Роль</th>
+                        <th data-sortable data-sort-type="text">Подразделение</th>
+                        <th data-sortable data-sort-type="text">Должность</th>
+                        <th data-sortable data-sort-type="text">Логин</th>
                         <th>Статус</th>
                     </tr>
                     </thead>
                     <tbody>
                     <tr th:each="user, index : ${allUsers}">
-                        <td th:text="${index.index + 1}"></td>
+                        <td class="row-number" th:text="${index.index + 1}"></td>
                         <td>
                             <a th:href="@{/employee/admin/users/detailsUser/{id}(id=${user.id})}"
                                th:text="${user.fullName}"></a>
@@ -69,5 +71,9 @@
         <div th:insert="~{blocks/footer :: footer}"></div>
     </div>
 </div>
+<script>
+    initPagination('usersTable', { perPage: 20 });
+    initSortable('usersTable');
+</script>
 </body>
 </html>

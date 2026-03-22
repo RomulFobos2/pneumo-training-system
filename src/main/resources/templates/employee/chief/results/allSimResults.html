@@ -9,6 +9,8 @@
     <link href="/css/style.css" rel="stylesheet">
     <script src="/js/bootstrap.bundle.min.js"></script>
     <script src="/js/javascript.js"></script>
+    <script src="/js/tablePagination.js"></script>
+    <script src="/js/tableSort.js"></script>
 </head>
 <body>
 <div id="wrapper">
@@ -71,13 +73,13 @@
             <!-- Таблица результатов -->
             <div class="profile-card p-4 mb-3">
                 <div class="table-responsive">
-                    <table class="table table-modern">
+                    <table id="simResultsTable" class="table table-modern">
                         <thead>
                         <tr>
                             <th style="width: 50px">#</th>
-                            <th>Сотрудник</th>
-                            <th>Сценарий</th>
-                            <th style="width: 140px">Дата</th>
+                            <th data-sortable data-sort-type="text">Сотрудник</th>
+                            <th data-sortable data-sort-type="text">Сценарий</th>
+                            <th style="width: 140px" data-sortable data-sort-type="date">Дата</th>
                             <th style="width: 120px">Шагов</th>
                             <th style="width: 120px">Статус</th>
                             <th style="width: 80px">Действия</th>
@@ -148,5 +150,9 @@
         <div th:insert="~{blocks/footer :: footer}"></div>
     </div>
 </div>
+<script>
+    initPagination('simResultsTable', { perPage: 20 });
+    initSortable('simResultsTable');
+</script>
 </body>
 </html>
