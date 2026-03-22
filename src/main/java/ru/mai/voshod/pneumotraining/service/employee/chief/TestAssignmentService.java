@@ -201,4 +201,18 @@ public class TestAssignmentService {
                     ae.getId(), testId, employeeId);
         }
     }
+
+    @Transactional
+    public void markScenarioAssignmentCompleted(Long employeeId, Long scenarioId, ru.mai.voshod.pneumotraining.models.SimulationSession session) {
+        List<TestAssignmentEmployee> pending = testAssignmentEmployeeRepository
+                .findByEmployeeIdAndAssignment_ScenarioIdAndStatus(employeeId, scenarioId, AssignmentStatus.PENDING);
+
+        for (TestAssignmentEmployee ae : pending) {
+            ae.setStatus(AssignmentStatus.COMPLETED);
+            ae.setCompletedSimulationSession(session);
+            testAssignmentEmployeeRepository.save(ae);
+            log.info("Назначение сценария выполнено: assignmentEmployeeId={}, scenarioId={}, employeeId={}",
+                    ae.getId(), scenarioId, employeeId);
+        }
+    }
 }

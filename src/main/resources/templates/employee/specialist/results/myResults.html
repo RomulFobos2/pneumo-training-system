@@ -100,7 +100,7 @@
                     <tr th:each="s, index : ${simSessions}">
                         <td class="row-number" th:text="${index.index + 1}"></td>
                         <td>
-                            <a th:href="@{/employee/specialist/mnemo/result/{id}(id=${s.id})}"
+                            <a th:href="@{/employee/specialist/results/detailsSimResult/{id}(id=${s.id})}"
                                th:text="${s.scenarioTitle}"></a>
                         </td>
                         <td th:text="${#temporals.format(s.startedAt, 'dd.MM.yyyy HH:mm')}"></td>

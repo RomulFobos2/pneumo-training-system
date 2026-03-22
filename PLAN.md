@@ -399,3 +399,551 @@ templates/employee/specialist/mnemo/
 static/svg/pneumo-scheme.svg
 static/js/mnemo.js          — логика взаимодействия с SVG, таймер, fetch-запросы
 ```
+
+---
+
+## Новый функционал
+
+### Статус новых функций
+
+| # | Название | Сложность | Статус |
+|---|----------|-----------|--------|
+| Н1 | Результаты симуляций (специалист) | SMALL | 🔲 Не начат |
+| Н2 | Результаты симуляций (начальник) + Excel | MEDIUM | 🔲 Не начат |
+| Н3 | Автозавершение назначения сценария | SMALL | 🔲 Не начат |
+| Н4 | Экспорт результатов симуляций в DOCX/Excel | SMALL | 🔲 Не начат |
+| Н5 | Адаптивная траектория обучения | MEDIUM | 🔲 Не начат |
+| Н6 | Режим ошибок в симуляции | LARGE | 🔲 Не начат |
+| Н7 | Конструктор экзамена из банка вопросов | MEDIUM | 🔲 Не начат |
+| Н8 | Пагинация таблиц | SMALL | 🔲 Не начат |
+| Н9 | Сортировка таблиц | SMALL | 🔲 Не начат |
+
+### Порядок реализации по этапам
+
+| Этап | Ветка | Функции | Статус |
+|------|-------|---------|--------|
+| A | `claude/etap-a-simulation-results` | Н1→Н3→Н2→Н4 | 🔲 Не начат |
+| B | `claude/etap-b-pagination-sorting` | Н8+Н9 | 🔲 Не начат |
+| C | `claude/etap-c-adaptive-learning` | Н5 | 🔲 Не начат |
+| D | `claude/etap-d-exam-generator` | Н7 | 🔲 Не начат |
+| E | `claude/etap-e-fault-simulation` | Н6 | 🔲 Не начат |
+
+### Граф зависимостей
+
+```
+Н1 → Н2 → Н4       (результаты симуляций → начальник видит → экспорт)
+Н1 → Н3             (результаты → автозавершение назначения)
+Н5                   (независимый, но нужны данные по результатам тестов)
+Н6                   (независимый, расширение симуляции)
+Н7                   (независимый, расширение тестирования)
+Н8, Н9               (независимые, UI-улучшения, можно в любой момент)
+```
+
+---
+
+### Н1. Результаты симуляций для специалиста (SMALL)
+
+**Цель:** специалист видит историю своих прохождений симуляций и детали каждой попытки.
+
+**Текущее состояние:**
+- `ResultController.myResults` уже загружает `simSessions` в модель
+- `myResults.html` уже содержит вкладку «Симуляции» с таблицей
+- `SimulationService.getMyResults(employee)` уже возвращает `List<SimulationSessionDTO>`
+- Не хватает: страницы детального просмотра, данных о шагах в DTO
+
+**Что нужно:**
+
+1. **`SimulationSessionDTO`** — добавить поля:
+   - `scenarioDescription` (String)
+   - `schemaTitle` (String)
+   - `stepDetails` (List<StepResultDTO>) — для детального просмотра
+
+2. **Новый DTO `StepResultDTO`**:
+   ```
+   stepNumber, instructionText, isPassed (boolean)
+   ```
+
+3. **`SimulationSession`** — добавить поле:
+   - `stepResults` (String, TEXT) — JSON: `[{"step":1,"passed":true},{"step":2,"passed":false}]`
+   - Заполняется в `SimulationService.checkStep()` при каждой проверке
+
+4. **`SimulationService`** — новый метод:
+   - `getSessionResult(sessionId, employee)` → Optional<SimulationSessionDTO> с проверкой ownership
+   - В `checkStep()` — записывать результат каждого шага в `stepResults` JSON
+
+5. **`ResultController`** — новые эндпоинты:
+   - `GET /employee/specialist/results/detailsSimResult/{sessionId}` → страница деталей
+   - Проверка: сессия принадлежит текущему пользователю
+
+6. **`detailsSimResult.html`** — новый шаблон:
+   - Карточка: сценарий, схема, статус, время начала/окончания, шагов пройдено / всего
+   - Таблица шагов: #, инструкция, статус (✅/❌)
+   - Визуальный прогресс-бар: `completedSteps / totalSteps`
+   - Паттерн: аналог `specialist/results/detailsResult.html`
+
+**Файлы: 1 новый шаблон, ~4 изменённых** (DTO, entity, service, controller)
+
+---
+
+### Н2. Результаты симуляций для начальника + Excel (MEDIUM)
+
+**Цель:** начальник видит все результаты симуляций с фильтрами и может экспортировать.
+
+**Что нужно:**
+
+1. **`SimulationReportService`** (новый сервис `service/employee/chief/`):
+   - `getAllSimulationResults(employeeId, scenarioId, dateFrom, dateTo)` — фильтрация потоком
+   - `getSimulationJournalData()` — матрица: сотрудник × сценарий → последний результат
+   - `exportSimulationProtocol(scenarioId)` — Excel: шапка + таблица сессий
+   - `exportSimulationJournal()` — Excel матрица
+
+2. **`ReportController`** — новые эндпоинты:
+   - `GET /employee/chief/results/allSimResults` — таблица с фильтрами
+   - `GET /employee/chief/results/detailsSimResult/{sessionId}` — детали сессии
+   - `POST /employee/chief/results/exportSimProtocol` — скачивание Excel
+   - `POST /employee/chief/results/exportSimJournal` — скачивание Excel
+
+3. **Шаблоны:**
+   - `allSimResults.html` — таблица: #, ФИО, Сценарий, Дата, Шагов, Статус, Действия
+     - Фильтры: дата с/по, сценарий (select), сотрудник (select)
+     - Кнопки экспорта
+   - `detailsSimResult.html` (chief) — аналог specialist, но без проверки ownership
+
+4. **`AnalyticsService`** — интеграция:
+   - Новые метрики на дашборде: `simulationSessionsCount`, `simulationPassRate`
+   - В `getDashboardData()` добавить: кол-во симуляций за период, % успешных
+   - `dashboard.html` — новые карточки метрик + строка в таблице статистики
+
+5. **Sidebar** (`header.html`):
+   - В меню начальника добавить вкладку или объединить с существующими результатами
+
+**Excel-протокол симуляций (паттерн ReportService):**
+```
+Заголовок: "ПРОТОКОЛ прохождения сценария мнемосхемы"
+Сценарий: {title}
+Схема: {schemaTitle}
+Дата: {today}
+
+| # | ФИО | Должность | Дата | Шагов пройдено | Всего шагов | Статус | Время (мин) |
+```
+
+**Файлы: 3 новых (сервис + 2 шаблона), ~4 изменённых**
+
+---
+
+### Н3. Автоматическое завершение назначения сценария (SMALL)
+
+**Цель:** при успешном завершении симуляции система помечает назначение как выполненное.
+
+**Текущее состояние:**
+- `TestAssignmentService.markAssignmentCompleted(employeeId, testId, session)` — находит PENDING назначения по testId и помечает COMPLETED
+- `TestAssignment` уже поддерживает `scenario` (nullable)
+- `TestAssignmentEmployee.completedSession` ссылается на `TestSession` — нужна аналогичная ссылка для `SimulationSession`
+
+**Что нужно:**
+
+1. **`TestAssignmentEmployee`** — добавить поле:
+   - `completedSimulationSession` (ManyToOne SimulationSession, nullable)
+
+2. **`TestAssignmentService`** — новый метод:
+   ```java
+   void markScenarioAssignmentCompleted(Long employeeId, Long scenarioId, SimulationSession session)
+   ```
+   - Находит PENDING записи по `assignment.scenario.id == scenarioId`
+   - Ставит `status = COMPLETED`, `completedSimulationSession = session`
+
+3. **`SimulationService.checkStep()`** — при статусе COMPLETED:
+   ```java
+   if (session.getSessionStatus() == SimulationSessionStatus.COMPLETED) {
+       testAssignmentService.markScenarioAssignmentCompleted(
+           employee.getId(), session.getScenario().getId(), session);
+   }
+   ```
+
+4. **`TestAssignmentEmployeeRepository`** — новый метод:
+   ```java
+   List<TestAssignmentEmployee> findByEmployeeIdAndAssignment_ScenarioIdAndStatus(
+       Long employeeId, Long scenarioId, AssignmentStatus status);
+   ```
+
+5. **`detailsAssignment.html`** — в таблице сотрудников:
+   - Если `completedSimulationSession != null` → ссылка на результат симуляции
+
+**Файлы: ~5 изменённых** (entity, repo, 2 service, template)
+
+---
+
+### Н4. Экспорт результатов симуляций в DOCX/Excel (SMALL)
+
+**Цель:** специалист и начальник могут скачать протокол прохождения сценария.
+
+**Зависимость:** Н1 (нужен `stepResults` JSON в SimulationSession)
+
+**Что нужно:**
+
+1. **`SimulationReportService`** (из Н2, либо в `ResultService`) — метод:
+   ```java
+   byte[] exportSimulationResultToExcel(Long sessionId, Employee employee)
+   ```
+   **Структура Excel:**
+   ```
+   Заголовок: "Результат прохождения сценария мнемосхемы"
+   ФИО: {fullName}
+   Сценарий: {scenario.title}
+   Мнемосхема: {schema.title}
+   Дата: {startedAt}     Время: {duration мин}
+   Статус: {COMPLETED/FAILED/EXPIRED}
+   Шагов пройдено: {completedSteps} из {totalSteps}
+
+   | # | Инструкция | Результат |
+   | 1 | Откройте VP1, включите N1 | ✓ Выполнен |
+   | 2 | Откройте VP2 | ✗ Ошибка |
+   ```
+
+2. **`ResultController`** — новый эндпоинт:
+   - `GET /employee/specialist/results/exportSimResult/{sessionId}` → скачивание Excel
+
+3. **`ReportController`** — аналогичный эндпоинт для начальника (без ownership check)
+
+**Файлы: ~3 изменённых** (сервис + 2 контроллера)
+
+---
+
+### Н5. Адаптивная траектория обучения (MEDIUM)
+
+**Цель:** после завершения теста система анализирует ошибки и рекомендует теоретические материалы + повторные тесты по слабым темам. Связывает модули «теория → тесты → аналитика».
+
+**Ключевое решение — связь вопросов с теорией:**
+Сейчас `TestQuestion` не связан с `TheorySection`. Нужно добавить связь.
+
+**Что нужно:**
+
+1. **`TestQuestion`** — добавить поле:
+   - `theorySection` (ManyToOne TheorySection, nullable) — к какому разделу теории относится вопрос
+
+2. **`addQuestion.html` / `editQuestion.html`** — добавить:
+   - `<select>` «Раздел теории» (опционально) — список TheorySection
+
+3. **`TestQuestionController`** — передавать `allSections` в модель
+
+4. **Новый сервис `LearningPathService`** (`service/employee/specialist/`):
+   ```java
+   LearningRecommendationDTO getRecommendations(Long sessionId, Employee employee)
+   ```
+   **Алгоритм:**
+   - Загрузить `TestSessionAnswer` для сессии
+   - Найти неправильные ответы → достать их `TestQuestion.theorySection`
+   - Сгруппировать по разделам теории
+   - Для каждого слабого раздела:
+     - Список материалов из этого раздела (ссылки)
+     - Другие тесты, содержащие вопросы из этого раздела (рекомендация к прохождению)
+   - Если 100% правильных → "Отлично, слабых тем не выявлено"
+
+5. **Новый DTO `LearningRecommendationDTO`**:
+   ```
+   totalQuestions, correctCount, wrongCount
+   List<WeakTopicDTO>:
+       sectionId, sectionTitle
+       wrongCount, totalInSection
+       List<TheoryMaterialDTO> materials   — рекомендованные материалы
+       List<TestDTO> suggestedTests        — тесты по этой теме
+   ```
+
+6. **`result.html` (specialist/testing)** — добавить блок:
+   - Секция «Рекомендации по обучению» (после основных результатов)
+   - Для каждой слабой темы:
+     - Название раздела + кол-во ошибок
+     - Ссылки на материалы: `<a href="/employee/specialist/theory/viewMaterial/{id}">`
+     - Ссылка на рекомендуемый тест: `<a href="/employee/specialist/testing/startTest/{id}">`
+   - Если ошибок нет → "Поздравляем! Ошибок не выявлено."
+
+7. **`ResultController`** / **`TestingController`** — в `result()` добавить:
+   ```java
+   model.addAttribute("recommendations", learningPathService.getRecommendations(sessionId, currentUser));
+   ```
+
+8. **Sidebar** — опционально: пункт «Мои рекомендации» со списком всех незакрытых слабых тем
+
+**Файлы: 1 новый сервис, 2 новых DTO, ~6 изменённых** (entity, controller, templates)
+
+---
+
+### Н6. Режим ошибок в симуляции (LARGE)
+
+**Цель:** добавить аварийные события в сценарии: отказ клапана, неверное давление, ограничение по времени на шаг, штрафы за опасные действия. Делает тренажёр реалистичным.
+
+**Ключевые подфичи:**
+
+#### Н6.1. Аварийные события на шаге
+
+**`ScenarioStep`** — новые поля:
+- `faultEvent` (String, TEXT, nullable) — JSON описания аварии:
+  ```json
+  {
+    "type": "ELEMENT_FAILURE",
+    "elementName": "VP7",
+    "message": "Клапан VP7 заклинил в закрытом положении!",
+    "lockElement": true
+  }
+  ```
+- `stepTimeLimit` (Integer, nullable) — ограничение по времени на шаг (секунды), null = без ограничения
+
+**Типы аварийных событий (enum `FaultEventType`):**
+| Тип | Описание | Эффект |
+|-----|----------|--------|
+| `ELEMENT_FAILURE` | Отказ элемента | Элемент заблокирован (не переключается), подсвечен красным |
+| `PRESSURE_ANOMALY` | Аномальное давление | Датчик показывает критическое значение, нужно среагировать |
+| `OVERHEAT` | Перегрев | Датчик температуры выше нормы, нужно отключить нагреватель |
+| `FALSE_ALARM` | Ложное срабатывание | Индикатор мигает, но реальной аварии нет (проверка на хладнокровие) |
+
+#### Н6.2. Штрафы за опасные действия
+
+**`ScenarioStep`** — новое поле:
+- `forbiddenActions` (String, TEXT, nullable) — JSON:
+  ```json
+  [
+    {"elementName": "VP5", "action": "on", "penalty": "FAIL", "message": "Открытие VP5 при работающем N1 вызовет гидроудар!"},
+    {"elementName": "NR1", "action": "off", "penalty": "WARNING", "message": "Отключение NR1 без сброса давления опасно"}
+  ]
+  ```
+
+**Типы штрафов (enum `PenaltyType`):**
+| Тип | Эффект |
+|-----|--------|
+| `FAIL` | Немедленный провал сценария |
+| `WARNING` | Предупреждение + запись в лог сессии (не блокирует) |
+| `TIME_PENALTY` | Уменьшение оставшегося времени на N секунд |
+
+#### Н6.3. Реализация на бэкенде
+
+**`SimulationService`** — изменения:
+
+- `toggleElement()`:
+  1. Проверить `forbiddenActions` текущего шага
+  2. Если действие запрещено → применить штраф, вернуть `{"forbidden": true, "penalty": "FAIL", "message": "..."}`
+  3. Если элемент заблокирован `faultEvent.lockElement` → вернуть `{"locked": true, "message": "Элемент неисправен"}`
+
+- `checkStep()`:
+  1. Проверить `stepTimeLimit` — если время шага истекло → FAILED
+  2. Стандартная кумулятивная проверка
+
+- `advanceToStep()` (вызывается при переходе к следующему шагу):
+  1. Если новый шаг содержит `faultEvent` → применить эффект:
+     - `ELEMENT_FAILURE`: заблокировать элемент в `currentState`, записать в сессию
+     - `PRESSURE_ANOMALY`: передать клиенту значение для отображения
+  2. Вернуть информацию об аварии клиенту
+
+**`SimulationSession`** — новые поля:
+- `lockedElements` (String, TEXT) — JSON список заблокированных элементов
+- `warnings` (String, TEXT) — JSON лог предупреждений `[{"step":2, "message":"..."}]`
+- `stepStartedAt` (LocalDateTime) — время начала текущего шага (для stepTimeLimit)
+
+#### Н6.4. Реализация на фронтенде (`simulation.js`)
+
+- **Заблокированный элемент**: красная рамка + иконка ⚠️, при клике → сообщение «Элемент неисправен»
+- **Аварийное событие**: модальное окно / alert-banner с описанием аварии при переходе на шаг
+- **Штраф WARNING**: toast-уведомление жёлтого цвета
+- **Штраф FAIL**: модальное окно → redirect на result
+- **Таймер шага**: дополнительный мини-таймер рядом с инструкцией (если `stepTimeLimit` задан)
+- **Аномальные показания датчиков**: мигающий красный цвет значения
+
+#### Н6.5. Конструктор (editScenario.html / scenarioEditor.js)
+
+- В каждом шаге добавить секции:
+  - «Аварийное событие» — выбор типа + элемент + сообщение
+  - «Запрещённые действия» — список: элемент + действие + тип штрафа + сообщение
+  - «Ограничение времени на шаг» — input number (секунды)
+
+**Файлы: ~3 новых (enum, DTO), ~8 изменённых** (entity, service, JS, templates)
+
+---
+
+### Н7. Конструктор экзамена из банка вопросов (MEDIUM)
+
+**Цель:** система автоматически собирает тест из банка вопросов по заданным критериям (темы, сложность, количество). Не заменяет ручное создание тестов, а дополняет.
+
+**Ключевое решение — сложность и темы:**
+Нужно добавить к вопросам метаданные.
+
+**Что нужно:**
+
+1. **`TestQuestion`** — новые поля:
+   - `difficulty` (Integer, default 1) — сложность 1-5
+   - `theorySection` (ManyToOne TheorySection, nullable) — раздел теории (если не добавлен в Н5)
+   - `isShared` (boolean, default false) — доступен для включения в генерируемые тесты
+
+2. **Новый enum `ExamGenerationMode`**:
+   - `RANDOM` — случайная выборка из банка
+   - `BALANCED` — равномерно по темам
+   - `DIFFICULTY_PROGRESSIVE` — от лёгких к сложным
+
+3. **Новый сервис `ExamGeneratorService`** (`service/employee/chief/`):
+   ```java
+   Test generateExam(ExamGenerationParams params, Employee createdBy)
+   ```
+
+4. **DTO `ExamGenerationParams`**:
+   ```
+   title, description, timeLimit, passingScore, isExam
+   generationMode (ExamGenerationMode)
+   totalQuestions (int)
+   sectionCriteria (List<SectionCriterion>):
+       sectionId, questionCount, minDifficulty, maxDifficulty
+   departmentIds (List<Long>)
+   ```
+
+5. **Алгоритм генерации:**
+   ```
+   1. Собрать пул: все вопросы с isShared=true
+   2. Фильтровать по sectionCriteria (раздел + сложность)
+   3. Применить режим:
+      - RANDOM: shuffle + take(N)
+      - BALANCED: из каждого раздела по N/sections штук
+      - DIFFICULTY_PROGRESSIVE: сортировка по difficulty, take(N)
+   4. Создать новый Test с копиями вопросов (не ссылками, чтобы оригиналы можно было менять)
+   5. Назначить allowedDepartments
+   ```
+
+6. **Controller** — новые эндпоинты в `TestController`:
+   - `GET /employee/chief/tests/generateExam` — форма параметров генерации
+   - `POST /employee/chief/tests/generateExam` — генерация → redirect на editTest/{id}
+
+7. **`generateExam.html`** — новый шаблон:
+   - Основные поля (название, описание, лимит, проходной балл)
+   - Режим генерации (radio)
+   - Количество вопросов (input number)
+   - Настройка по разделам: для каждого TheorySection — кол-во вопросов, мин/макс сложность
+   - Кнопка «Сгенерировать» → создаёт тест → открывает его в editTest для ручной правки
+
+8. **`addQuestion.html` / `editQuestion.html`** — добавить:
+   - `<select>` сложности (1-5 звёзд)
+   - `<select>` раздела теории
+   - `<checkbox>` «Доступен для банка вопросов»
+
+9. **`allTests.html`** — кнопка «Сгенерировать экзамен» рядом с «Добавить тест»
+
+**Файлы: 1 новый сервис, 2 новых DTO/enum, 1 новый шаблон, ~6 изменённых**
+
+---
+
+### Н8. Пагинация таблиц (SMALL)
+
+**Цель:** клиентская пагинация для таблиц с большим количеством строк.
+
+**Подход:** единый JS-компонент, без изменений бэкенда. Thymeleaf рендерит все строки, JS скрывает лишние и показывает навигацию.
+
+**Что нужно:**
+
+1. **`static/js/tablePagination.js`** (~80 строк):
+   ```javascript
+   function initPagination(tableId, options) {
+       // options: { perPage: 20, showInfo: true }
+       // 1. Найти <tbody> таблицы
+       // 2. Скрыть все строки кроме первых perPage
+       // 3. Создать навигацию: « 1 2 3 ... N »
+       // 4. Кнопки переключения: показать/скрыть строки
+       // 5. Инфо: "Показано 1-20 из 157"
+   }
+   ```
+
+2. **Подключение** — добавить в нужные страницы:
+   ```html
+   <script src="/js/tablePagination.js"></script>
+   <script>initPagination('resultsTable', {perPage: 20});</script>
+   ```
+
+3. **Целевые таблицы:**
+   - `chief/results/allResults.html`
+   - `chief/assignments/allAssignments.html`
+   - `admin/users/allUsers.html`
+   - `specialist/results/myResults.html`
+   - `chief/results/allSimResults.html` (из Н2)
+
+4. **Стили** (`style.css`):
+   - `.pagination-wrapper` — flex, gap, align-center
+   - `.pagination-btn` — стиль кнопок (active, disabled)
+   - `.pagination-info` — text-muted small
+
+**Файлы: 1 новый JS, ~5 изменённых шаблонов, CSS**
+
+---
+
+### Н9. Сортировка таблиц (SMALL)
+
+**Цель:** клик по заголовку колонки → сортировка таблицы (по возрастанию/убыванию).
+
+**Подход:** клиентский JS, без бэкенда. Совместим с пагинацией из Н8.
+
+**Что нужно:**
+
+1. **`static/js/tableSort.js`** (~60 строк):
+   ```javascript
+   function initSortable(tableId) {
+       // 1. Найти все <th> с атрибутом data-sortable
+       // 2. Добавить иконку ↕ и cursor:pointer
+       // 3. По клику:
+       //    - Определить тип данных: data-sort-type="text|number|date|percent"
+       //    - Собрать значения из <td> по индексу колонки
+       //    - Отсортировать строки <tr> в <tbody>
+       //    - Переключить направление (asc ↔ desc)
+       //    - Обновить иконку: ↑ или ↓
+       //    - Если есть пагинация → пересчитать
+   }
+   ```
+
+2. **Разметка в шаблонах** — добавить `data-sortable` и `data-sort-type`:
+   ```html
+   <th data-sortable data-sort-type="text">ФИО</th>
+   <th data-sortable data-sort-type="date">Дата</th>
+   <th data-sortable data-sort-type="number">Баллы</th>
+   <th data-sortable data-sort-type="percent">%</th>
+   ```
+
+3. **Типы сортировки:**
+   - `text` — `localeCompare('ru')`
+   - `number` — `parseFloat()`
+   - `date` — парсинг `dd.MM.yyyy` → Date
+   - `percent` — извлечение числа из `85%` → parseFloat
+
+4. **Стили** (`style.css`):
+   - `th[data-sortable]` — cursor:pointer, user-select:none
+   - `th[data-sortable]:hover` — background чуть темнее
+   - `.sort-icon` — margin-left:4px, opacity:0.5
+   - `.sort-asc .sort-icon`, `.sort-desc .sort-icon` — opacity:1
+
+5. **Целевые таблицы:** те же, что в Н8
+
+**Файлы: 1 новый JS, ~5 изменённых шаблонов, CSS**
+
+---
+
+### Рекомендуемый порядок реализации
+
+```
+Этап A (базовые результаты):  Н1 → Н3 → Н2 → Н4
+Этап B (UI-улучшения):        Н8 + Н9 (параллельно)
+Этап C (обучение):            Н5 (адаптивная траектория)
+Этап D (тесты):               Н7 (конструктор экзамена)
+Этап E (симуляция):            Н6 (режим ошибок)
+```
+
+**Этап A** закрывает логический пробел — сценарии назначаются, но результаты не отслеживаются.
+**Этап B** — быстрые визуальные улучшения, можно делать в любой момент.
+**Этап C** — связывает теорию и тесты, сильный аргумент на защите.
+**Этап D** — расширяет тестирование, автоматизация.
+**Этап E** — самый объёмный, но самый впечатляющий для комиссии.
+
+### Итого файлов по новому функционалу
+
+| Функция | Новых | Изменённых | Сложность |
+|---------|-------|------------|-----------|
+| Н1 Результаты симуляций (спец.) | 1 | 4 | SMALL |
+| Н2 Результаты симуляций (chief) | 3 | 4 | MEDIUM |
+| Н3 Автозавершение назначения | 0 | 5 | SMALL |
+| Н4 Экспорт симуляций | 0 | 3 | SMALL |
+| Н5 Адаптивная траектория | 3 | 6 | MEDIUM |
+| Н6 Режим ошибок | 3 | 8 | LARGE |
+| Н7 Конструктор экзамена | 4 | 6 | MEDIUM |
+| Н8 Пагинация | 1 | 6 | SMALL |
+| Н9 Сортировка | 1 | 6 | SMALL |
+| **Итого** | **~16** | **~48** | |

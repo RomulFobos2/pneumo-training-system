@@ -1,0 +1,130 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Детали симуляции | АОС ПИ</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/javascript.js"></script>
+</head>
+<body>
+<div id="wrapper">
+    <div th:insert="~{blocks/header :: sidebar}"></div>
+    <div id="content-wrapper">
+        <div th:insert="~{blocks/header :: topbar}"></div>
+        <div th:insert="~{blocks/header :: overlay}"></div>
+        <main class="container-fluid">
+
+            <div class="row justify-content-center">
+                <div class="col-12 col-lg-9">
+
+                    <!-- Заголовок -->
+                    <div class="profile-card p-4 mb-3 text-center">
+                        <h1 class="page-title mb-2" th:text="${simSession.scenarioTitle}"></h1>
+                        <span class="badge"
+                              th:classappend="${simSession.sessionStatus == 'COMPLETED' ? 'bg-success' : (simSession.sessionStatus == 'EXPIRED' ? 'bg-warning text-dark' : 'bg-danger')}"
+                              th:text="${simSession.sessionStatusDisplayName}"></span>
+                    </div>
+
+                    <!-- Результат -->
+                    <div class="profile-card p-4 mb-3">
+                        <div class="text-center mb-4">
+                            <div class="mb-2">
+                                <i class="bi fs-1"
+                                   th:classappend="${simSession.sessionStatus == 'COMPLETED' ? 'bi-check-circle-fill text-success' : (simSession.sessionStatus == 'EXPIRED' ? 'bi-clock-fill text-warning' : 'bi-x-circle-fill text-danger')}"></i>
+                            </div>
+                            <h3 th:if="${simSession.sessionStatus == 'COMPLETED'}" class="text-success">Симуляция пройдена успешно</h3>
+                            <h3 th:if="${simSession.sessionStatus == 'EXPIRED'}" class="text-warning">Время истекло</h3>
+                            <h3 th:if="${simSession.sessionStatus == 'FAILED'}" class="text-danger">Симуляция не пройдена</h3>
+                        </div>
+
+                        <div class="row g-3 justify-content-center mb-4">
+                            <div class="col-auto">
+                                <div class="profile-card p-3 text-center">
+                                    <div class="text-muted small">Статус</div>
+                                    <div class="fs-5 fw-bold" th:text="${simSession.sessionStatusDisplayName}"></div>
+                                </div>
+                            </div>
+                            <div class="col-auto">
+                                <div class="profile-card p-3 text-center">
+                                    <div class="text-muted small">Пройдено шагов</div>
+                                    <div class="fs-4 fw-bold"
+                                         th:text="${simSession.completedSteps + ' / ' + simSession.totalSteps}"></div>
+                                </div>
+                            </div>
+                            <div class="col-auto">
+                                <div class="profile-card p-3 text-center">
+                                    <div class="text-muted small">Начало</div>
+                                    <div class="fw-bold"
+                                         th:text="${#temporals.format(simSession.startedAt, 'dd.MM.yyyy HH:mm')}"></div>
+                                </div>
+                            </div>
+                            <div class="col-auto" th:if="${simSession.finishedAt}">
+                                <div class="profile-card p-3 text-center">
+                                    <div class="text-muted small">Завершение</div>
+                                    <div class="fw-bold"
+                                         th:text="${#temporals.format(simSession.finishedAt, 'dd.MM.yyyy HH:mm')}"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Прогресс-бар -->
+                        <th:block th:with="pct=${simSession.totalSteps > 0 ? (simSession.completedSteps * 100 / simSession.totalSteps) : 0}">
+                            <div class="progress mb-2" style="height: 10px;">
+                                <div class="progress-bar"
+                                     th:classappend="${simSession.sessionStatus == 'COMPLETED' ? 'bg-success' : 'bg-warning'}"
+                                     role="progressbar"
+                                     th:style="'width: ' + ${pct} + '%'"></div>
+                            </div>
+                            <div class="d-flex justify-content-between small text-muted">
+                                <span>0%</span>
+                                <span th:text="${pct} + '%'"></span>
+                                <span>100%</span>
+                            </div>
+                        </th:block>
+                    </div>
+
+                    <!-- Разбор шагов -->
+                    <div class="profile-card p-4 mb-3" th:if="${!#lists.isEmpty(stepResultsList)}">
+                        <h5 class="mb-3"><i class="bi bi-list-ol"></i> Разбор шагов</h5>
+
+                        <div th:each="sr, stat : ${stepResultsList}" class="mb-3">
+                            <div class="profile-card p-3"
+                                 th:classappend="${sr['passed'] == true ? 'border-start border-success border-3' : 'border-start border-danger border-3'}">
+
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <span class="badge bg-light text-dark"
+                                          th:text="'Шаг ' + ${sr['step']}"></span>
+                                    <span class="badge"
+                                          th:classappend="${sr['passed'] == true ? 'bg-success' : 'bg-danger'}"
+                                          th:text="${sr['passed'] == true ? 'Выполнен' : 'Ошибка'}"></span>
+                                </div>
+
+                                <p class="mb-0" th:text="${sr['instruction']}"></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Кнопки -->
+                    <div class="d-flex justify-content-between mb-4">
+                        <a th:href="@{/employee/specialist/results/myResults}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left"></i> К списку результатов
+                        </a>
+                        <a th:href="@{/employee/specialist/results/exportSimResult/{id}(id=${simSession.id})}"
+                           class="btn btn-success">
+                            <i class="bi bi-file-earmark-excel"></i> Экспорт в Excel
+                        </a>
+                    </div>
+
+                </div>
+            </div>
+
+        </main>
+        <div th:insert="~{blocks/footer :: footer}"></div>
+    </div>
+</div>
+</body>
+</html>

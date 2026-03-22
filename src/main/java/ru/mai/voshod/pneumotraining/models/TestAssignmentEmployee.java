@@ -38,6 +38,11 @@ public class TestAssignmentEmployee {
     @ToString.Exclude
     private TestSession completedSession;
 
+    @ManyToOne
+    @JoinColumn(name = "completed_simulation_session_id")
+    @ToString.Exclude
+    private SimulationSession completedSimulationSession;
+
     public TestAssignmentEmployee(TestAssignment assignment, Employee employee) {
         this.assignment = assignment;
         this.employee = employee;

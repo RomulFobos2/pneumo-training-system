@@ -64,6 +64,13 @@ public class SimulationSession {
     @Column(columnDefinition = "TEXT")
     private String currentState;
 
+    /**
+     * Результаты прохождения каждого шага.
+     * JSON: [{"step":1,"instruction":"...","passed":true,"timestamp":"..."}, ...]
+     */
+    @Column(columnDefinition = "TEXT")
+    private String stepResults;
+
     /** Сотрудник, проходящий симуляцию */
     @ManyToOne
     @JoinColumn(name = "employee_id", nullable = false)

@@ -8,12 +8,16 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import ru.mai.voshod.pneumotraining.dto.SimulationSessionDTO;
 import ru.mai.voshod.pneumotraining.dto.TestSessionAnswerDTO;
 import ru.mai.voshod.pneumotraining.dto.TestSessionDTO;
 import ru.mai.voshod.pneumotraining.repo.EmployeeRepository;
+import ru.mai.voshod.pneumotraining.repo.SimulationScenarioRepository;
 import ru.mai.voshod.pneumotraining.repo.TestRepository;
 import ru.mai.voshod.pneumotraining.service.employee.chief.ReportService;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -27,13 +31,16 @@ public class ReportController {
     private final ReportService reportService;
     private final EmployeeRepository employeeRepository;
     private final TestRepository testRepository;
+    private final SimulationScenarioRepository simulationScenarioRepository;
 
     public ReportController(ReportService reportService,
                             EmployeeRepository employeeRepository,
-                            TestRepository testRepository) {
+                            TestRepository testRepository,
+                            SimulationScenarioRepository simulationScenarioRepository) {
         this.reportService = reportService;
         this.employeeRepository = employeeRepository;
         this.testRepository = testRepository;
+        this.simulationScenarioRepository = simulationScenarioRepository;
     }
 
     @GetMapping("/allResults")
@@ -96,6 +103,93 @@ public class ReportController {
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=journal.xlsx")
+                .contentType(MediaType.parseMediaType(
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(data);
+    }
+
+    // ========== Результаты симуляций ==========
+
+    @GetMapping("/allSimResults")
+    public String allSimResults(@RequestParam(required = false) Long employeeId,
+                                @RequestParam(required = false) Long scenarioId,
+                                @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate dateFrom,
+                                @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate dateTo,
+                                Model model) {
+        model.addAttribute("simSessions", reportService.getAllSimulationResults(employeeId, scenarioId, dateFrom, dateTo));
+        model.addAttribute("allEmployees", employeeRepository.findAllByOrderByLastNameAsc());
+        model.addAttribute("allScenarios", simulationScenarioRepository.findByIsActiveTrueOrderByTitleAsc());
+        model.addAttribute("selectedEmployeeId", employeeId);
+        model.addAttribute("selectedScenarioId", scenarioId);
+        model.addAttribute("dateFrom", dateFrom);
+        model.addAttribute("dateTo", dateTo);
+        return "employee/chief/results/allSimResults";
+    }
+
+    @GetMapping("/detailsSimResult/{sessionId}")
+    public String detailsSimResult(@PathVariable Long sessionId, Model model) {
+        Optional<SimulationSessionDTO> sessionOpt = reportService.getSimulationSessionResult(sessionId);
+        if (sessionOpt.isEmpty()) {
+            return "redirect:/employee/chief/results/allSimResults";
+        }
+
+        SimulationSessionDTO simSession = sessionOpt.get();
+        model.addAttribute("simSession", simSession);
+
+        if (simSession.getStepResults() != null && !simSession.getStepResults().isBlank()) {
+            try {
+                ObjectMapper om = new ObjectMapper();
+                List<Map<String, Object>> stepResultsList = om.readValue(
+                        simSession.getStepResults(), new TypeReference<>() {});
+                model.addAttribute("stepResultsList", stepResultsList);
+            } catch (Exception e) {
+                model.addAttribute("stepResultsList", List.of());
+            }
+        } else {
+            model.addAttribute("stepResultsList", List.of());
+        }
+        return "employee/chief/results/detailsSimResult";
+    }
+
+    @PostMapping("/exportSimProtocol")
+    public ResponseEntity<byte[]> exportSimProtocol(@RequestParam Long scenarioId) {
+        byte[] data = reportService.exportSimulationProtocol(scenarioId);
+        if (data == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=sim_protocol_" + scenarioId + ".xlsx")
+                .contentType(MediaType.parseMediaType(
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(data);
+    }
+
+    @GetMapping("/exportSimResult/{sessionId}")
+    public ResponseEntity<byte[]> exportSimResult(@PathVariable Long sessionId) {
+        byte[] data = reportService.exportSimulationResultToExcel(sessionId);
+        if (data == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=sim_result_" + sessionId + ".xlsx")
+                .contentType(MediaType.parseMediaType(
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(data);
+    }
+
+    @PostMapping("/exportSimJournal")
+    public ResponseEntity<byte[]> exportSimJournal() {
+        byte[] data = reportService.exportSimulationJournal();
+        if (data == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=sim_journal.xlsx")
                 .contentType(MediaType.parseMediaType(
                         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
                 .body(data);

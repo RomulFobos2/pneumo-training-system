@@ -10,13 +10,17 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import ru.mai.voshod.pneumotraining.dto.SimulationSessionDTO;
 import ru.mai.voshod.pneumotraining.dto.TestSessionAnswerDTO;
 import ru.mai.voshod.pneumotraining.dto.TestSessionDTO;
 import ru.mai.voshod.pneumotraining.models.Employee;
 import ru.mai.voshod.pneumotraining.service.employee.specialist.ResultService;
 import ru.mai.voshod.pneumotraining.service.employee.specialist.SimulationService;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Controller
@@ -39,6 +43,32 @@ public class ResultController {
         return "employee/specialist/results/myResults";
     }
 
+    @GetMapping("/detailsSimResult/{sessionId}")
+    public String detailsSimResult(@PathVariable Long sessionId,
+                                   @AuthenticationPrincipal Employee currentUser,
+                                   Model model) {
+        Optional<SimulationSessionDTO> sessionOpt = resultService.getSimulationResult(sessionId, currentUser);
+        if (sessionOpt.isEmpty()) {
+            return "redirect:/employee/specialist/results/myResults";
+        }
+        SimulationSessionDTO simSession = sessionOpt.get();
+        model.addAttribute("simSession", simSession);
+
+        if (simSession.getStepResults() != null && !simSession.getStepResults().isBlank()) {
+            try {
+                ObjectMapper om = new ObjectMapper();
+                List<Map<String, Object>> stepResultsList = om.readValue(
+                        simSession.getStepResults(), new TypeReference<>() {});
+                model.addAttribute("stepResultsList", stepResultsList);
+            } catch (Exception e) {
+                model.addAttribute("stepResultsList", List.of());
+            }
+        } else {
+            model.addAttribute("stepResultsList", List.of());
+        }
+        return "employee/specialist/results/detailsSimResult";
+    }
+
     @GetMapping("/detailsResult/{sessionId}")
     public String detailsResult(@PathVariable Long sessionId,
                                 @AuthenticationPrincipal Employee currentUser,
@@ -53,6 +83,22 @@ public class ResultController {
         model.addAttribute("sessionDTO", sessionOpt.get());
         model.addAttribute("answerDetails", answerDetails);
         return "employee/specialist/results/detailsResult";
+    }
+
+    @GetMapping("/exportSimResult/{sessionId}")
+    public ResponseEntity<byte[]> exportSimResult(@PathVariable Long sessionId,
+                                                   @AuthenticationPrincipal Employee currentUser) {
+        byte[] excelData = resultService.exportSimulationToExcel(sessionId, currentUser);
+        if (excelData == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=sim_result_" + sessionId + ".xlsx")
+                .contentType(MediaType.parseMediaType(
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(excelData);
     }
 
     @GetMapping("/exportResult/{sessionId}")

@@ -22,4 +22,5 @@ public class SimulationSessionDTO {
     private String currentState;
     private String currentInstruction;
     private Long schemaId;
+    private String stepResults;
 }

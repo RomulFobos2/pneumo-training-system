@@ -14,6 +14,7 @@ import ru.mai.voshod.pneumotraining.mapper.SimulationSessionMapper;
 import ru.mai.voshod.pneumotraining.models.*;
 import ru.mai.voshod.pneumotraining.repo.SimulationSessionRepository;
 import ru.mai.voshod.pneumotraining.service.employee.chief.SimulationScenarioService;
+import ru.mai.voshod.pneumotraining.service.employee.chief.TestAssignmentService;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -24,13 +25,16 @@ public class SimulationService {
 
     private final SimulationSessionRepository sessionRepository;
     private final SimulationScenarioService scenarioService;
+    private final TestAssignmentService testAssignmentService;
     private final ObjectMapper objectMapper;
 
     public SimulationService(SimulationSessionRepository sessionRepository,
                              SimulationScenarioService scenarioService,
+                             TestAssignmentService testAssignmentService,
                              ObjectMapper objectMapper) {
         this.sessionRepository = sessionRepository;
         this.scenarioService = scenarioService;
+        this.testAssignmentService = testAssignmentService;
         this.objectMapper = objectMapper;
     }
 
@@ -202,6 +206,7 @@ public class SimulationService {
 
             // Проверка таймера
             if (isExpired(session)) {
+                recordStepResult(session, session.getCurrentStep(), false);
                 expireSession(session);
                 return Optional.of(Map.of("status", "expired"));
             }
@@ -242,6 +247,8 @@ public class SimulationService {
                 if (actual == null || !actual.equals(entry.getValue())) {
                     log.info("Ошибка на элементе {}: ожидалось={}, факт={}",
                             entry.getKey(), entry.getValue(), actual);
+                    recordStepResult(session, currentStepNum, false);
+                    sessionRepository.save(session);
                     Map<String, Object> result = new LinkedHashMap<>();
                     result.put("status", "wrong");
                     result.put("failedElement", entry.getKey());
@@ -252,6 +259,7 @@ public class SimulationService {
             }
 
             // Все шаги до текущего верны — advance
+            recordStepResult(session, currentStepNum, true);
             session.setCompletedSteps(currentStepNum);
 
             Map<String, Object> result = new LinkedHashMap<>();
@@ -260,6 +268,8 @@ public class SimulationService {
                 session.setSessionStatus(SimulationSessionStatus.COMPLETED);
                 session.setFinishedAt(LocalDateTime.now());
                 sessionRepository.save(session);
+                testAssignmentService.markScenarioAssignmentCompleted(
+                        employee.getId(), session.getScenario().getId(), session);
                 log.info("Симуляция завершена успешно: sessionId={}", sessionId);
                 result.put("status", "completed");
             } else {
@@ -316,6 +326,7 @@ public class SimulationService {
     public List<SimulationSessionDTO> getMyResults(Employee employee) {
         return sessionRepository.findByEmployeeIdOrderByStartedAtDesc(employee.getId())
                 .stream()
+                .filter(s -> s.getSessionStatus() != SimulationSessionStatus.IN_PROGRESS)
                 .map(SimulationSessionMapper.INSTANCE::toDTO)
                 .toList();
     }
@@ -331,6 +342,33 @@ public class SimulationService {
         session.setFinishedAt(LocalDateTime.now());
         sessionRepository.save(session);
         log.info("Сессия истекла: id={}", session.getId());
+    }
+
+    private void recordStepResult(SimulationSession session, int stepNumber, boolean passed) {
+        try {
+            List<Map<String, Object>> results;
+            if (session.getStepResults() != null && !session.getStepResults().isBlank()) {
+                results = new ArrayList<>(objectMapper.readValue(session.getStepResults(),
+                        new TypeReference<List<Map<String, Object>>>() {}));
+            } else {
+                results = new ArrayList<>();
+            }
+            String instruction = session.getScenario().getSteps().stream()
+                    .filter(s -> s.getStepNumber() == stepNumber)
+                    .findFirst()
+                    .map(ScenarioStep::getInstructionText)
+                    .orElse("Шаг " + stepNumber);
+
+            Map<String, Object> entry = new LinkedHashMap<>();
+            entry.put("step", stepNumber);
+            entry.put("instruction", instruction);
+            entry.put("passed", passed);
+            entry.put("timestamp", LocalDateTime.now().toString());
+            results.add(entry);
+            session.setStepResults(objectMapper.writeValueAsString(results));
+        } catch (Exception e) {
+            log.error("Ошибка записи stepResults: {}", e.getMessage());
+        }
     }
 
     private boolean isNonToggleable(ElementType type) {
