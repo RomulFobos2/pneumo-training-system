@@ -11,9 +11,9 @@ import ru.mai.voshod.pneumotraining.enumeration.AssignmentStatus;
 @NoArgsConstructor
 @EqualsAndHashCode(of = "id")
 @Entity
-@Table(name = "t_testAssignmentEmployee",
+@Table(name = "t_simulationAssignmentEmployee",
         uniqueConstraints = @UniqueConstraint(columnNames = {"assignment_id", "employee_id"}))
-public class TestAssignmentEmployee {
+public class SimulationAssignmentEmployee {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -22,7 +22,7 @@ public class TestAssignmentEmployee {
     @ManyToOne
     @JoinColumn(name = "assignment_id", nullable = false)
     @ToString.Exclude
-    private TestAssignment assignment;
+    private SimulationAssignment assignment;
 
     @ManyToOne
     @JoinColumn(name = "employee_id", nullable = false)
@@ -34,11 +34,11 @@ public class TestAssignmentEmployee {
     private AssignmentStatus status = AssignmentStatus.PENDING;
 
     @ManyToOne
-    @JoinColumn(name = "completed_session_id")
+    @JoinColumn(name = "completed_simulation_session_id")
     @ToString.Exclude
-    private TestSession completedSession;
+    private SimulationSession completedSimulationSession;
 
-    public TestAssignmentEmployee(TestAssignment assignment, Employee employee) {
+    public SimulationAssignmentEmployee(SimulationAssignment assignment, Employee employee) {
         this.assignment = assignment;
         this.employee = employee;
         this.status = AssignmentStatus.PENDING;

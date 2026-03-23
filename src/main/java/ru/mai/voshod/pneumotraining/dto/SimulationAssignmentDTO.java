@@ -6,10 +6,10 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Data
-public class TestAssignmentDTO {
+public class SimulationAssignmentDTO {
     private Long id;
-    private Long testId;
-    private String testTitle;
+    private Long scenarioId;
+    private String scenarioTitle;
     private String assignmentTitle;
     private LocalDate deadline;
     private String createdByFullName;

@@ -40,6 +40,7 @@ public class TestingController {
     public String availableTests(@AuthenticationPrincipal Employee currentUser, Model model) {
         model.addAttribute("availableTests", testingService.getAvailableTests(currentUser));
         model.addAttribute("assignedTests", testAssignmentService.getAssignedTestsForEmployee(currentUser.getId()));
+        model.addAttribute("failedTests", testAssignmentService.getFailedTestsForEmployee(currentUser.getId()));
         return "employee/specialist/testing/availableTests";
     }
 

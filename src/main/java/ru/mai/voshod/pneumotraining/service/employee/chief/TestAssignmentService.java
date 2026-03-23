@@ -10,7 +10,6 @@ import ru.mai.voshod.pneumotraining.enumeration.AssignmentStatus;
 import ru.mai.voshod.pneumotraining.mapper.TestAssignmentMapper;
 import ru.mai.voshod.pneumotraining.models.*;
 import ru.mai.voshod.pneumotraining.repo.*;
-import ru.mai.voshod.pneumotraining.repo.SimulationScenarioRepository;
 import ru.mai.voshod.pneumotraining.service.general.NotificationService;
 
 import java.time.LocalDate;
@@ -27,7 +26,6 @@ public class TestAssignmentService {
     private final TestAssignmentRepository testAssignmentRepository;
     private final TestAssignmentEmployeeRepository testAssignmentEmployeeRepository;
     private final TestRepository testRepository;
-    private final SimulationScenarioRepository scenarioRepository;
     private final EmployeeRepository employeeRepository;
     private final TestQuestionRepository testQuestionRepository;
     private final NotificationService notificationService;
@@ -35,14 +33,12 @@ public class TestAssignmentService {
     public TestAssignmentService(TestAssignmentRepository testAssignmentRepository,
                                  TestAssignmentEmployeeRepository testAssignmentEmployeeRepository,
                                  TestRepository testRepository,
-                                 SimulationScenarioRepository scenarioRepository,
                                  EmployeeRepository employeeRepository,
                                  TestQuestionRepository testQuestionRepository,
                                  NotificationService notificationService) {
         this.testAssignmentRepository = testAssignmentRepository;
         this.testAssignmentEmployeeRepository = testAssignmentEmployeeRepository;
         this.testRepository = testRepository;
-        this.scenarioRepository = scenarioRepository;
         this.employeeRepository = employeeRepository;
         this.testQuestionRepository = testQuestionRepository;
         this.notificationService = notificationService;
@@ -118,38 +114,6 @@ public class TestAssignmentService {
     }
 
     @Transactional
-    public Optional<Long> createScenarioAssignment(Long scenarioId, LocalDate deadline, List<Long> employeeIds, Employee createdBy) {
-        log.info("Создание назначения сценария: scenarioId={}, deadline={}, employees={}", scenarioId, deadline, employeeIds.size());
-
-        Optional<SimulationScenario> scenarioOpt = scenarioRepository.findById(scenarioId);
-        if (scenarioOpt.isEmpty()) {
-            log.error("Сценарий не найден: id={}", scenarioId);
-            return Optional.empty();
-        }
-
-        SimulationScenario scenario = scenarioOpt.get();
-        TestAssignment assignment = new TestAssignment(scenario, deadline, createdBy);
-        testAssignmentRepository.save(assignment);
-
-        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd.MM.yyyy");
-        String scenarioLink = "/employee/specialist/mnemo/scenarios";
-
-        for (Long empId : employeeIds) {
-            employeeRepository.findById(empId).ifPresent(employee -> {
-                TestAssignmentEmployee ae = new TestAssignmentEmployee(assignment, employee);
-                testAssignmentEmployeeRepository.save(ae);
-
-                notificationService.createNotification(employee,
-                        "Вам назначен сценарий мнемосхемы «" + scenario.getTitle() + "». Срок сдачи: " + deadline.format(fmt),
-                        scenarioLink);
-            });
-        }
-
-        log.info("Назначение сценария создано: id={}, scenarioId={}, employees={}", assignment.getId(), scenarioId, employeeIds.size());
-        return Optional.of(assignment.getId());
-    }
-
-    @Transactional
     public boolean deleteAssignment(Long id) {
         if (!testAssignmentRepository.existsById(id)) {
             return false;
@@ -188,6 +152,35 @@ public class TestAssignmentService {
         return result;
     }
 
+    @Transactional(readOnly = true)
+    public List<AssignedTestDTO> getFailedTestsForEmployee(Long employeeId) {
+        List<TestAssignmentEmployee> failed = testAssignmentEmployeeRepository
+                .findByEmployeeIdAndStatus(employeeId, AssignmentStatus.FAILED);
+
+        List<AssignedTestDTO> result = new ArrayList<>();
+        LocalDate today = LocalDate.now();
+
+        for (TestAssignmentEmployee ae : failed) {
+            Test test = ae.getAssignment().getTest();
+
+            AssignedTestDTO dto = new AssignedTestDTO();
+            dto.setAssignmentEmployeeId(ae.getId());
+            dto.setTestId(test.getId());
+            dto.setTestTitle(test.getTitle());
+            dto.setTestDescription(test.getDescription());
+            dto.setQuestionCount((int) testQuestionRepository.countByTestId(test.getId()));
+            dto.setTimeLimit(test.getTimeLimit() != null ? test.getTimeLimit() : 0);
+            dto.setPassingScore(test.getPassingScore() != null ? test.getPassingScore() : 60);
+            dto.setExam(test.isExam());
+            dto.setDeadline(ae.getAssignment().getDeadline());
+            dto.setStatusName(ae.getStatus().name());
+            dto.setStatusDisplayName(ae.getStatus().getDisplayName());
+            dto.setDaysUntilDeadline(ChronoUnit.DAYS.between(today, ae.getAssignment().getDeadline()));
+            result.add(dto);
+        }
+        return result;
+    }
+
     @Transactional
     public void markAssignmentCompleted(Long employeeId, Long testId, TestSession session) {
         List<TestAssignmentEmployee> pending = testAssignmentEmployeeRepository
@@ -203,16 +196,16 @@ public class TestAssignmentService {
     }
 
     @Transactional
-    public void markScenarioAssignmentCompleted(Long employeeId, Long scenarioId, ru.mai.voshod.pneumotraining.models.SimulationSession session) {
+    public void markAssignmentFailed(Long employeeId, Long testId, TestSession session) {
         List<TestAssignmentEmployee> pending = testAssignmentEmployeeRepository
-                .findByEmployeeIdAndAssignment_ScenarioIdAndStatus(employeeId, scenarioId, AssignmentStatus.PENDING);
+                .findByEmployeeIdAndAssignment_TestIdAndStatus(employeeId, testId, AssignmentStatus.PENDING);
 
         for (TestAssignmentEmployee ae : pending) {
-            ae.setStatus(AssignmentStatus.COMPLETED);
-            ae.setCompletedSimulationSession(session);
+            ae.setStatus(AssignmentStatus.FAILED);
+            ae.setCompletedSession(session);
             testAssignmentEmployeeRepository.save(ae);
-            log.info("Назначение сценария выполнено: assignmentEmployeeId={}, scenarioId={}, employeeId={}",
-                    ae.getId(), scenarioId, employeeId);
+            log.info("Назначение не сдано: assignmentEmployeeId={}, testId={}, employeeId={}",
+                    ae.getId(), testId, employeeId);
         }
     }
 }

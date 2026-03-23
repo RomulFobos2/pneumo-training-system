@@ -15,6 +15,7 @@ import ru.mai.voshod.pneumotraining.repo.EmployeeRepository;
 import ru.mai.voshod.pneumotraining.repo.SimulationScenarioRepository;
 import ru.mai.voshod.pneumotraining.repo.TestRepository;
 import ru.mai.voshod.pneumotraining.service.employee.chief.ReportService;
+import ru.mai.voshod.pneumotraining.service.employee.specialist.LearningPathService;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -32,15 +33,18 @@ public class ReportController {
     private final EmployeeRepository employeeRepository;
     private final TestRepository testRepository;
     private final SimulationScenarioRepository simulationScenarioRepository;
+    private final LearningPathService learningPathService;
 
     public ReportController(ReportService reportService,
                             EmployeeRepository employeeRepository,
                             TestRepository testRepository,
-                            SimulationScenarioRepository simulationScenarioRepository) {
+                            SimulationScenarioRepository simulationScenarioRepository,
+                            LearningPathService learningPathService) {
         this.reportService = reportService;
         this.employeeRepository = employeeRepository;
         this.testRepository = testRepository;
         this.simulationScenarioRepository = simulationScenarioRepository;
+        this.learningPathService = learningPathService;
     }
 
     @GetMapping("/allResults")
@@ -69,6 +73,7 @@ public class ReportController {
         List<TestSessionAnswerDTO> answerDetails = reportService.getSessionAnswerDetails(sessionId);
         model.addAttribute("sessionDTO", sessionOpt.get());
         model.addAttribute("answerDetails", answerDetails);
+        model.addAttribute("recommendations", learningPathService.getRecommendationsById(sessionId));
         return "employee/chief/results/detailsResult";
     }
 

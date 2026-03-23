@@ -14,6 +14,7 @@ import ru.mai.voshod.pneumotraining.dto.SimulationSessionDTO;
 import ru.mai.voshod.pneumotraining.dto.TestSessionAnswerDTO;
 import ru.mai.voshod.pneumotraining.dto.TestSessionDTO;
 import ru.mai.voshod.pneumotraining.models.Employee;
+import ru.mai.voshod.pneumotraining.service.employee.specialist.LearningPathService;
 import ru.mai.voshod.pneumotraining.service.employee.specialist.ResultService;
 import ru.mai.voshod.pneumotraining.service.employee.specialist.SimulationService;
 
@@ -30,10 +31,14 @@ public class ResultController {
 
     private final ResultService resultService;
     private final SimulationService simulationService;
+    private final LearningPathService learningPathService;
 
-    public ResultController(ResultService resultService, SimulationService simulationService) {
+    public ResultController(ResultService resultService,
+                            SimulationService simulationService,
+                            LearningPathService learningPathService) {
         this.resultService = resultService;
         this.simulationService = simulationService;
+        this.learningPathService = learningPathService;
     }
 
     @GetMapping("/myResults")
@@ -82,6 +87,7 @@ public class ResultController {
 
         model.addAttribute("sessionDTO", sessionOpt.get());
         model.addAttribute("answerDetails", answerDetails);
+        model.addAttribute("recommendations", learningPathService.getRecommendations(sessionId, currentUser));
         return "employee/specialist/results/detailsResult";
     }
 

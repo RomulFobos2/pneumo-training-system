@@ -13,8 +13,8 @@ import ru.mai.voshod.pneumotraining.enumeration.SimulationSessionStatus;
 import ru.mai.voshod.pneumotraining.mapper.SimulationSessionMapper;
 import ru.mai.voshod.pneumotraining.models.*;
 import ru.mai.voshod.pneumotraining.repo.SimulationSessionRepository;
+import ru.mai.voshod.pneumotraining.service.employee.chief.SimulationAssignmentService;
 import ru.mai.voshod.pneumotraining.service.employee.chief.SimulationScenarioService;
-import ru.mai.voshod.pneumotraining.service.employee.chief.TestAssignmentService;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -25,16 +25,16 @@ public class SimulationService {
 
     private final SimulationSessionRepository sessionRepository;
     private final SimulationScenarioService scenarioService;
-    private final TestAssignmentService testAssignmentService;
+    private final SimulationAssignmentService simulationAssignmentService;
     private final ObjectMapper objectMapper;
 
     public SimulationService(SimulationSessionRepository sessionRepository,
                              SimulationScenarioService scenarioService,
-                             TestAssignmentService testAssignmentService,
+                             SimulationAssignmentService simulationAssignmentService,
                              ObjectMapper objectMapper) {
         this.sessionRepository = sessionRepository;
         this.scenarioService = scenarioService;
-        this.testAssignmentService = testAssignmentService;
+        this.simulationAssignmentService = simulationAssignmentService;
         this.objectMapper = objectMapper;
     }
 
@@ -268,7 +268,7 @@ public class SimulationService {
                 session.setSessionStatus(SimulationSessionStatus.COMPLETED);
                 session.setFinishedAt(LocalDateTime.now());
                 sessionRepository.save(session);
-                testAssignmentService.markScenarioAssignmentCompleted(
+                simulationAssignmentService.markAssignmentCompleted(
                         employee.getId(), session.getScenario().getId(), session);
                 log.info("Симуляция завершена успешно: sessionId={}", sessionId);
                 result.put("status", "completed");
@@ -341,6 +341,8 @@ public class SimulationService {
         session.setSessionStatus(SimulationSessionStatus.EXPIRED);
         session.setFinishedAt(LocalDateTime.now());
         sessionRepository.save(session);
+        simulationAssignmentService.markAssignmentFailed(
+                session.getEmployee().getId(), session.getScenario().getId(), session);
         log.info("Сессия истекла: id={}", session.getId());
     }
 

@@ -35,17 +35,28 @@ public class LearningPathService {
 
     @Transactional(readOnly = true)
     public LearningRecommendationDTO getRecommendations(Long sessionId, Employee employee) {
-        LearningRecommendationDTO result = new LearningRecommendationDTO();
-
         Optional<TestSession> sessionOpt = testSessionRepository.findByIdAndEmployeeId(sessionId, employee.getId());
         if (sessionOpt.isEmpty()) {
-            return result;
+            return new LearningRecommendationDTO();
         }
+        return buildRecommendations(sessionOpt.get());
+    }
 
-        TestSession session = sessionOpt.get();
+    /** Для начальника — без проверки владельца сессии */
+    @Transactional(readOnly = true)
+    public LearningRecommendationDTO getRecommendationsById(Long sessionId) {
+        Optional<TestSession> sessionOpt = testSessionRepository.findById(sessionId);
+        if (sessionOpt.isEmpty()) {
+            return new LearningRecommendationDTO();
+        }
+        return buildRecommendations(sessionOpt.get());
+    }
+
+    private LearningRecommendationDTO buildRecommendations(TestSession session) {
+        LearningRecommendationDTO result = new LearningRecommendationDTO();
         Long currentTestId = session.getTest().getId();
 
-        List<TestSessionAnswer> answers = testSessionAnswerRepository.findByTestSessionIdOrderByIdAsc(sessionId);
+        List<TestSessionAnswer> answers = testSessionAnswerRepository.findByTestSessionIdOrderByIdAsc(session.getId());
 
         result.setTotalQuestions(answers.size());
         result.setCorrectCount((int) answers.stream().filter(TestSessionAnswer::isCorrect).count());

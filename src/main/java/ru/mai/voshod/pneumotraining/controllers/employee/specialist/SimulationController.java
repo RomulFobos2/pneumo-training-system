@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import ru.mai.voshod.pneumotraining.dto.SimulationSessionDTO;
 import ru.mai.voshod.pneumotraining.models.Employee;
 import ru.mai.voshod.pneumotraining.service.employee.chief.MnemoSchemaService;
+import ru.mai.voshod.pneumotraining.service.employee.chief.SimulationAssignmentService;
 import ru.mai.voshod.pneumotraining.service.employee.specialist.SimulationService;
 
 import java.util.Map;
@@ -21,16 +22,21 @@ public class SimulationController {
 
     private final SimulationService simulationService;
     private final MnemoSchemaService schemaService;
+    private final SimulationAssignmentService simulationAssignmentService;
 
     public SimulationController(SimulationService simulationService,
-                                MnemoSchemaService schemaService) {
+                                MnemoSchemaService schemaService,
+                                SimulationAssignmentService simulationAssignmentService) {
         this.simulationService = simulationService;
         this.schemaService = schemaService;
+        this.simulationAssignmentService = simulationAssignmentService;
     }
 
     @GetMapping("/scenarios")
     public String scenarios(Model model, @AuthenticationPrincipal Employee currentUser) {
         model.addAttribute("scenarios", simulationService.getAvailableScenarios(currentUser));
+        model.addAttribute("assignedScenarios", simulationAssignmentService.getAssignedScenariosForEmployee(currentUser.getId()));
+        model.addAttribute("failedScenarios", simulationAssignmentService.getFailedScenariosForEmployee(currentUser.getId()));
         return "employee/specialist/mnemo/scenarios";
     }
 

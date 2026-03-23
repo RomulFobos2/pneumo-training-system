@@ -323,9 +323,12 @@ public class TestingService {
             session.setSessionStatus(status);
             testSessionRepository.save(session);
 
-            // Если тест пройден — пометить назначение как выполненное
+            // Пометить назначение как выполненное или не сданное
             if (session.getIsPassed()) {
                 testAssignmentService.markAssignmentCompleted(
+                        employee.getId(), session.getTest().getId(), session);
+            } else {
+                testAssignmentService.markAssignmentFailed(
                         employee.getId(), session.getTest().getId(), session);
             }
 

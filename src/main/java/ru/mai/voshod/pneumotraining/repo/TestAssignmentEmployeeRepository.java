@@ -18,6 +18,4 @@ public interface TestAssignmentEmployeeRepository extends JpaRepository<TestAssi
     List<TestAssignmentEmployee> findByStatusAndAssignment_Deadline(AssignmentStatus status, LocalDate deadline);
 
     List<TestAssignmentEmployee> findByStatusAndAssignment_DeadlineBefore(AssignmentStatus status, LocalDate deadline);
-
-    List<TestAssignmentEmployee> findByEmployeeIdAndAssignment_ScenarioIdAndStatus(Long employeeId, Long scenarioId, AssignmentStatus status);
 }

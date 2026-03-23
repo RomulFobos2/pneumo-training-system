@@ -16,17 +16,17 @@ import java.util.List;
 @NoArgsConstructor
 @EqualsAndHashCode(of = "id")
 @Entity
-@Table(name = "t_testAssignment")
-public class TestAssignment {
+@Table(name = "t_simulationAssignment")
+public class SimulationAssignment {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "test_id")
+    @JoinColumn(name = "scenario_id")
     @ToString.Exclude
-    private Test test;
+    private SimulationScenario scenario;
 
     @NotNull
     @Column(nullable = false)
@@ -43,16 +43,16 @@ public class TestAssignment {
 
     @OneToMany(mappedBy = "assignment", cascade = CascadeType.ALL, orphanRemoval = true)
     @ToString.Exclude
-    private List<TestAssignmentEmployee> assignedEmployees = new ArrayList<>();
+    private List<SimulationAssignmentEmployee> assignedEmployees = new ArrayList<>();
 
-    public TestAssignment(Test test, LocalDate deadline, Employee createdBy) {
-        this.test = test;
+    public SimulationAssignment(SimulationScenario scenario, LocalDate deadline, Employee createdBy) {
+        this.scenario = scenario;
         this.deadline = deadline;
         this.createdBy = createdBy;
         this.createdAt = LocalDateTime.now();
     }
 
     public String getAssignmentTitle() {
-        return test != null ? test.getTitle() : "—";
+        return scenario != null ? scenario.getTitle() : "—";
     }
 }

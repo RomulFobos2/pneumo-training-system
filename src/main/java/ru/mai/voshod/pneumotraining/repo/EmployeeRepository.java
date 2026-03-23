@@ -16,7 +16,7 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
 
     List<Employee> findAllByOrderByLastNameAsc();
 
-    List<Employee> findAllByRoleName(String roleName);
+    List<Employee> findAllByRole_Name(String roleName);
 
     long countByIsActiveTrue();
 }
