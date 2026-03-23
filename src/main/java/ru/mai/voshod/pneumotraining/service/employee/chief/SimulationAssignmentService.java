@@ -8,7 +8,11 @@ import ru.mai.voshod.pneumotraining.dto.SimulationAssignmentDTO;
 import ru.mai.voshod.pneumotraining.dto.SimulationAssignmentEmployeeDTO;
 import ru.mai.voshod.pneumotraining.enumeration.AssignmentStatus;
 import ru.mai.voshod.pneumotraining.mapper.SimulationAssignmentMapper;
-import ru.mai.voshod.pneumotraining.models.*;
+import ru.mai.voshod.pneumotraining.models.Employee;
+import ru.mai.voshod.pneumotraining.models.SimulationAssignment;
+import ru.mai.voshod.pneumotraining.models.SimulationAssignmentEmployee;
+import ru.mai.voshod.pneumotraining.models.SimulationScenario;
+import ru.mai.voshod.pneumotraining.models.SimulationSession;
 import ru.mai.voshod.pneumotraining.repo.EmployeeRepository;
 import ru.mai.voshod.pneumotraining.repo.SimulationAssignmentEmployeeRepository;
 import ru.mai.voshod.pneumotraining.repo.SimulationAssignmentRepository;
@@ -16,10 +20,11 @@ import ru.mai.voshod.pneumotraining.repo.SimulationScenarioRepository;
 import ru.mai.voshod.pneumotraining.service.general.NotificationService;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 
 @Service
@@ -45,40 +50,39 @@ public class SimulationAssignmentService {
     }
 
     @Transactional(readOnly = true)
-    public List<SimulationAssignmentDTO> getAllAssignments() {
-        List<SimulationAssignment> assignments = assignmentRepository.findAllByOrderByCreatedAtDesc();
-        List<SimulationAssignmentDTO> dtos = new ArrayList<>();
-        for (SimulationAssignment a : assignments) {
-            SimulationAssignmentDTO dto = SimulationAssignmentMapper.INSTANCE.toDTO(a);
-            List<SimulationAssignmentEmployee> employees = a.getAssignedEmployees();
-            dto.setTotalAssigned(employees.size());
-            dto.setCompletedCount((int) employees.stream()
-                    .filter(e -> e.getStatus() == AssignmentStatus.COMPLETED).count());
-            dto.setOverdueCount((int) employees.stream()
-                    .filter(e -> e.getStatus() == AssignmentStatus.OVERDUE).count());
-            dtos.add(dto);
-        }
-        return dtos;
+    public List<SimulationAssignmentDTO> getAllAssignments(String q,
+                                                           String status,
+                                                           Boolean hideCompleted,
+                                                           LocalDate deadlineFrom,
+                                                           LocalDate deadlineTo,
+                                                           LocalDate createdFrom,
+                                                           LocalDate createdTo) {
+        return assignmentRepository.findAllByOrderByCreatedAtDesc()
+                .stream()
+                .map(this::toAssignmentDTO)
+                .filter(dto -> matchesAssignmentFilter(dto, q, status, hideCompleted, deadlineFrom, deadlineTo, createdFrom, createdTo))
+                .toList();
     }
 
     @Transactional(readOnly = true)
     public Optional<SimulationAssignmentDTO> getAssignmentById(Long id) {
-        return assignmentRepository.findById(id).map(a -> {
-            SimulationAssignmentDTO dto = SimulationAssignmentMapper.INSTANCE.toDTO(a);
-            List<SimulationAssignmentEmployee> employees = a.getAssignedEmployees();
-            dto.setTotalAssigned(employees.size());
-            dto.setCompletedCount((int) employees.stream()
-                    .filter(e -> e.getStatus() == AssignmentStatus.COMPLETED).count());
-            dto.setOverdueCount((int) employees.stream()
-                    .filter(e -> e.getStatus() == AssignmentStatus.OVERDUE).count());
-            return dto;
-        });
+        return assignmentRepository.findById(id).map(this::toAssignmentDTO);
     }
 
     @Transactional(readOnly = true)
-    public List<SimulationAssignmentEmployeeDTO> getAssignmentEmployees(Long assignmentId) {
-        List<SimulationAssignmentEmployee> employees = assignmentEmployeeRepository.findByAssignmentId(assignmentId);
-        return SimulationAssignmentMapper.INSTANCE.toEmployeeDTOList(employees);
+    public List<SimulationAssignmentEmployeeDTO> getAssignmentEmployees(Long assignmentId,
+                                                                        String q,
+                                                                        String status,
+                                                                        Boolean hideCompleted,
+                                                                        LocalDate deadlineFrom,
+                                                                        LocalDate deadlineTo,
+                                                                        LocalDate createdFrom,
+                                                                        LocalDate createdTo) {
+        return assignmentEmployeeRepository.findByAssignmentId(assignmentId)
+                .stream()
+                .map(SimulationAssignmentMapper.INSTANCE::toEmployeeDTO)
+                .filter(dto -> matchesEmployeeFilter(dto, q, status, hideCompleted, deadlineFrom, deadlineTo, createdFrom, createdTo))
+                .toList();
     }
 
     @Transactional
@@ -124,53 +128,19 @@ public class SimulationAssignmentService {
     }
 
     @Transactional(readOnly = true)
-    public List<AssignedScenarioDTO> getAssignedScenariosForEmployee(Long employeeId) {
-        List<SimulationAssignmentEmployee> pending = assignmentEmployeeRepository
-                .findByEmployeeIdAndStatus(employeeId, AssignmentStatus.PENDING);
-
-        List<AssignedScenarioDTO> result = new ArrayList<>();
-        LocalDate today = LocalDate.now();
-
-        for (SimulationAssignmentEmployee ae : pending) {
-            SimulationScenario scenario = ae.getAssignment().getScenario();
-
-            AssignedScenarioDTO dto = new AssignedScenarioDTO();
-            dto.setAssignmentEmployeeId(ae.getId());
-            dto.setScenarioId(scenario.getId());
-            dto.setScenarioTitle(scenario.getTitle());
-            dto.setScenarioDescription(scenario.getDescription());
-            dto.setDeadline(ae.getAssignment().getDeadline());
-            dto.setStatusName(ae.getStatus().name());
-            dto.setStatusDisplayName(ae.getStatus().getDisplayName());
-            dto.setDaysUntilDeadline(ChronoUnit.DAYS.between(today, ae.getAssignment().getDeadline()));
-            result.add(dto);
-        }
-        return result;
-    }
-
-    @Transactional(readOnly = true)
-    public List<AssignedScenarioDTO> getFailedScenariosForEmployee(Long employeeId) {
-        List<SimulationAssignmentEmployee> failed = assignmentEmployeeRepository
-                .findByEmployeeIdAndStatus(employeeId, AssignmentStatus.FAILED);
-
-        List<AssignedScenarioDTO> result = new ArrayList<>();
-        LocalDate today = LocalDate.now();
-
-        for (SimulationAssignmentEmployee ae : failed) {
-            SimulationScenario scenario = ae.getAssignment().getScenario();
-
-            AssignedScenarioDTO dto = new AssignedScenarioDTO();
-            dto.setAssignmentEmployeeId(ae.getId());
-            dto.setScenarioId(scenario.getId());
-            dto.setScenarioTitle(scenario.getTitle());
-            dto.setScenarioDescription(scenario.getDescription());
-            dto.setDeadline(ae.getAssignment().getDeadline());
-            dto.setStatusName(ae.getStatus().name());
-            dto.setStatusDisplayName(ae.getStatus().getDisplayName());
-            dto.setDaysUntilDeadline(ChronoUnit.DAYS.between(today, ae.getAssignment().getDeadline()));
-            result.add(dto);
-        }
-        return result;
+    public List<AssignedScenarioDTO> getAssignmentsForEmployee(Long employeeId,
+                                                               String q,
+                                                               String status,
+                                                               Boolean hideCompleted,
+                                                               LocalDate deadlineFrom,
+                                                               LocalDate deadlineTo,
+                                                               LocalDate createdFrom,
+                                                               LocalDate createdTo) {
+        return assignmentEmployeeRepository.findByEmployeeIdOrderByAssignment_CreatedAtDesc(employeeId)
+                .stream()
+                .map(this::toAssignedScenarioDTO)
+                .filter(dto -> matchesAssignedScenarioFilter(dto, q, status, hideCompleted, deadlineFrom, deadlineTo, createdFrom, createdTo))
+                .toList();
     }
 
     @Transactional
@@ -199,5 +169,185 @@ public class SimulationAssignmentService {
             log.info("Назначение сценария не сдано: assignmentEmployeeId={}, scenarioId={}, employeeId={}",
                     ae.getId(), scenarioId, employeeId);
         }
+    }
+
+    private SimulationAssignmentDTO toAssignmentDTO(SimulationAssignment assignment) {
+        SimulationAssignmentDTO dto = SimulationAssignmentMapper.INSTANCE.toDTO(assignment);
+        List<SimulationAssignmentEmployee> employees = assignment.getAssignedEmployees();
+        int completedCount = (int) employees.stream()
+                .filter(e -> e.getStatus() == AssignmentStatus.COMPLETED)
+                .count();
+        int overdueCount = (int) employees.stream()
+                .filter(e -> e.getStatus() == AssignmentStatus.OVERDUE)
+                .count();
+        int failedCount = (int) employees.stream()
+                .filter(e -> e.getStatus() == AssignmentStatus.FAILED)
+                .count();
+
+        dto.setTotalAssigned(employees.size());
+        dto.setCompletedCount(completedCount);
+        dto.setOverdueCount(overdueCount);
+        dto.setFailedCount(failedCount);
+        dto.setFullyCompleted(!employees.isEmpty() && completedCount == employees.size());
+        return dto;
+    }
+
+    private AssignedScenarioDTO toAssignedScenarioDTO(SimulationAssignmentEmployee ae) {
+        SimulationScenario scenario = ae.getAssignment().getScenario();
+        LocalDate today = LocalDate.now();
+
+        AssignedScenarioDTO dto = new AssignedScenarioDTO();
+        dto.setAssignmentEmployeeId(ae.getId());
+        dto.setScenarioId(scenario.getId());
+        dto.setScenarioTitle(scenario.getTitle());
+        dto.setScenarioDescription(scenario.getDescription());
+        dto.setDeadline(ae.getAssignment().getDeadline());
+        dto.setCreatedAt(ae.getAssignment().getCreatedAt());
+        dto.setStatusName(ae.getStatus().name());
+        dto.setStatusDisplayName(ae.getStatus().getDisplayName());
+        dto.setDaysUntilDeadline(ChronoUnit.DAYS.between(today, ae.getAssignment().getDeadline()));
+        dto.setCompletedSimulationSessionId(ae.getCompletedSimulationSession() != null
+                ? ae.getCompletedSimulationSession().getId() : null);
+        return dto;
+    }
+
+    private boolean matchesAssignmentFilter(SimulationAssignmentDTO dto,
+                                            String q,
+                                            String status,
+                                            Boolean hideCompleted,
+                                            LocalDate deadlineFrom,
+                                            LocalDate deadlineTo,
+                                            LocalDate createdFrom,
+                                            LocalDate createdTo) {
+        if (Boolean.TRUE.equals(defaultHideCompleted(hideCompleted)) && dto.isFullyCompleted()) {
+            return false;
+        }
+        if (!matchesAssignmentStatus(dto, status)) {
+            return false;
+        }
+        if (!matchesText(q, dto.getAssignmentTitle(), dto.getCreatedByFullName(), dto.getScenarioTitle())) {
+            return false;
+        }
+        if (!matchesDateRange(dto.getDeadline(), deadlineFrom, deadlineTo)) {
+            return false;
+        }
+        return matchesDateTimeRange(dto.getCreatedAt(), createdFrom, createdTo);
+    }
+
+    private boolean matchesEmployeeFilter(SimulationAssignmentEmployeeDTO dto,
+                                          String q,
+                                          String status,
+                                          Boolean hideCompleted,
+                                          LocalDate deadlineFrom,
+                                          LocalDate deadlineTo,
+                                          LocalDate createdFrom,
+                                          LocalDate createdTo) {
+        if (Boolean.TRUE.equals(defaultHideCompleted(hideCompleted)) && "COMPLETED".equals(dto.getStatusName())) {
+            return false;
+        }
+        if (!matchesStatusName(dto.getStatusName(), status)) {
+            return false;
+        }
+        if (!matchesText(q, dto.getEmployeeFullName())) {
+            return false;
+        }
+        if (!matchesDateRange(dto.getDeadline(), deadlineFrom, deadlineTo)) {
+            return false;
+        }
+        return matchesDateTimeRange(dto.getCreatedAt(), createdFrom, createdTo);
+    }
+
+    private boolean matchesAssignedScenarioFilter(AssignedScenarioDTO dto,
+                                                  String q,
+                                                  String status,
+                                                  Boolean hideCompleted,
+                                                  LocalDate deadlineFrom,
+                                                  LocalDate deadlineTo,
+                                                  LocalDate createdFrom,
+                                                  LocalDate createdTo) {
+        if (Boolean.TRUE.equals(defaultHideCompleted(hideCompleted)) && "COMPLETED".equals(dto.getStatusName())) {
+            return false;
+        }
+        if (!matchesStatusName(dto.getStatusName(), status)) {
+            return false;
+        }
+        if (!matchesText(q, dto.getScenarioTitle(), dto.getScenarioDescription())) {
+            return false;
+        }
+        if (!matchesDateRange(dto.getDeadline(), deadlineFrom, deadlineTo)) {
+            return false;
+        }
+        return matchesDateTimeRange(dto.getCreatedAt(), createdFrom, createdTo);
+    }
+
+    private Boolean defaultHideCompleted(Boolean hideCompleted) {
+        return hideCompleted == null ? Boolean.TRUE : hideCompleted;
+    }
+
+    private boolean matchesAssignmentStatus(SimulationAssignmentDTO dto, String status) {
+        AssignmentStatus parsedStatus = parseStatus(status);
+        if (parsedStatus == null) {
+            return true;
+        }
+
+        return switch (parsedStatus) {
+            case PENDING -> dto.getTotalAssigned() - dto.getCompletedCount() - dto.getOverdueCount() - dto.getFailedCount() > 0;
+            case COMPLETED -> dto.getCompletedCount() > 0;
+            case FAILED -> dto.getFailedCount() > 0;
+            case OVERDUE -> dto.getOverdueCount() > 0;
+        };
+    }
+
+    private boolean matchesStatusName(String actualStatus, String status) {
+        AssignmentStatus parsedStatus = parseStatus(status);
+        if (parsedStatus == null) {
+            return true;
+        }
+        return parsedStatus.name().equals(actualStatus);
+    }
+
+    private AssignmentStatus parseStatus(String status) {
+        if (status == null || status.isBlank() || "ALL".equalsIgnoreCase(status)) {
+            return null;
+        }
+        try {
+            return AssignmentStatus.valueOf(status.trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
+    }
+
+    private boolean matchesText(String q, String... values) {
+        if (q == null || q.isBlank()) {
+            return true;
+        }
+        String normalized = q.toLowerCase(Locale.ROOT).trim();
+        for (String value : values) {
+            if (value != null && value.toLowerCase(Locale.ROOT).contains(normalized)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean matchesDateRange(LocalDate value, LocalDate from, LocalDate to) {
+        if (value == null) {
+            return false;
+        }
+        if (from != null && value.isBefore(from)) {
+            return false;
+        }
+        return to == null || !value.isAfter(to);
+    }
+
+    private boolean matchesDateTimeRange(LocalDateTime value, LocalDate from, LocalDate to) {
+        if (value == null) {
+            return false;
+        }
+        LocalDate localDate = value.toLocalDate();
+        if (from != null && localDate.isBefore(from)) {
+            return false;
+        }
+        return to == null || !localDate.isAfter(to);
     }
 }

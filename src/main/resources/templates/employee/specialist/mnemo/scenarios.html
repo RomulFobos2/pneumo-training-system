@@ -23,67 +23,112 @@
                 <p class="text-muted">Выберите сценарий для прохождения</p>
             </div>
 
-            <!-- Назначенные сценарии -->
-            <div th:if="${assignedScenarios != null and !#lists.isEmpty(assignedScenarios)}" class="mb-4">
-                <h5 class="mb-3"><i class="bi bi-clipboard-check"></i> Назначенные сценарии</h5>
-                <div class="row g-3">
-                    <div class="col-12 col-md-6 col-lg-4" th:each="as : ${assignedScenarios}">
+            <div class="profile-card p-4 mb-4">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                    <h5 class="mb-0"><i class="bi bi-clipboard-check"></i> Мои назначения</h5>
+                    <span class="badge bg-primary" th:text="${#lists.size(myAssignments)} + ' шт.'"></span>
+                </div>
+                <form method="get" th:action="@{/employee/specialist/mnemo/scenarios}" class="mb-3">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-3">
+                            <label class="form-label">Поиск</label>
+                            <input type="text" name="q" class="form-control form-control-sm"
+                                   placeholder="Название или описание" th:value="${q}">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Статус</label>
+                            <select name="status" class="form-select form-select-sm">
+                                <option value="ALL" th:selected="${status == null or status == 'ALL'}">Все</option>
+                                <option value="PENDING" th:selected="${status == 'PENDING'}">Ожидает</option>
+                                <option value="FAILED" th:selected="${status == 'FAILED'}">Не сдан</option>
+                                <option value="OVERDUE" th:selected="${status == 'OVERDUE'}">Просрочен</option>
+                                <option value="COMPLETED" th:selected="${status == 'COMPLETED'}">Выполнен</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Дедлайн с</label>
+                            <input type="date" name="deadlineFrom" class="form-control form-control-sm" th:value="${deadlineFrom}">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Дедлайн по</label>
+                            <input type="date" name="deadlineTo" class="form-control form-control-sm" th:value="${deadlineTo}">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Создано с</label>
+                            <input type="date" name="createdFrom" class="form-control form-control-sm" th:value="${createdFrom}">
+                        </div>
+                        <div class="col-md-1">
+                            <label class="form-label">Создано по</label>
+                            <input type="date" name="createdTo" class="form-control form-control-sm" th:value="${createdTo}">
+                        </div>
+                        <div class="col-12 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                            <input type="hidden" name="hideCompleted" value="false">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="hideCompleted" name="hideCompleted" value="true"
+                                       th:checked="${hideCompleted}">
+                                <label class="form-check-label" for="hideCompleted">Скрыть пройденные</label>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary btn-sm">
+                                    <i class="bi bi-funnel"></i> Применить
+                                </button>
+                                <a th:href="@{/employee/specialist/mnemo/scenarios}" class="btn btn-outline-secondary btn-sm">
+                                    Сбросить
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+
+                <div class="row g-3" th:if="${!#lists.isEmpty(myAssignments)}">
+                    <div class="col-12 col-md-6 col-lg-4" th:each="as : ${myAssignments}">
                         <div class="profile-card p-4 h-100 d-flex flex-column border-start border-3"
-                             th:classappend="${as.daysUntilDeadline > 5 ? 'border-success' : (as.daysUntilDeadline >= 1 ? 'border-warning' : 'border-danger')}">
+                             th:classappend="${as.statusName == 'COMPLETED' ? 'border-success' : (as.statusName == 'FAILED' ? 'border-danger' : (as.statusName == 'OVERDUE' ? 'border-danger' : (as.daysUntilDeadline > 5 ? 'border-success' : (as.daysUntilDeadline >= 1 ? 'border-warning' : 'border-danger'))))}">
                             <div class="d-flex justify-content-between align-items-start mb-2">
                                 <h5 class="mb-0" th:text="${as.scenarioTitle}"></h5>
                                 <span class="badge"
-                                      th:classappend="${as.daysUntilDeadline > 5 ? 'bg-success' : (as.daysUntilDeadline >= 1 ? 'bg-warning text-dark' : 'bg-danger')}"
-                                      th:text="${as.daysUntilDeadline > 0 ? 'Осталось ' + as.daysUntilDeadline + ' дн.' : (as.daysUntilDeadline == 0 ? 'Сегодня!' : 'Просрочено')}"></span>
+                                      th:classappend="${as.statusName == 'COMPLETED' ? 'bg-success' : (as.statusName == 'FAILED' ? 'bg-danger' : (as.statusName == 'OVERDUE' ? 'bg-danger' : (as.daysUntilDeadline > 5 ? 'bg-success' : (as.daysUntilDeadline >= 1 ? 'bg-warning text-dark' : 'bg-danger'))))}"
+                                      th:text="${as.statusDisplayName}"></span>
                             </div>
                             <p class="text-muted small flex-grow-1"
                                th:if="${as.scenarioDescription}"
-                               th:text="${#strings.length(as.scenarioDescription) > 120
-                                   ? #strings.substring(as.scenarioDescription, 0, 120) + '...'
-                                   : as.scenarioDescription}"></p>
+                               th:text="${#strings.length(as.scenarioDescription) > 120 ? #strings.substring(as.scenarioDescription, 0, 120) + '...' : as.scenarioDescription}"></p>
                             <div class="mb-2">
-                                <span class="text-muted small">
-                                    <i class="bi bi-calendar-event"></i> Срок: <span th:text="${#temporals.format(as.deadline, 'dd.MM.yyyy')}"></span>
-                                </span>
+                                <div class="text-muted small">
+                                    <i class="bi bi-calendar-event"></i> Дедлайн:
+                                    <span th:text="${#temporals.format(as.deadline, 'dd.MM.yyyy')}"></span>
+                                </div>
+                                <div class="text-muted small">
+                                    <i class="bi bi-calendar-plus"></i> Назначено:
+                                    <span th:text="${#temporals.format(as.createdAt, 'dd.MM.yyyy HH:mm')}"></span>
+                                </div>
                             </div>
-                            <a th:href="@{/employee/specialist/mnemo/start/{id}(id=${as.scenarioId})}"
+                            <a th:if="${as.statusName == 'PENDING'}"
+                               th:href="@{/employee/specialist/mnemo/start/{id}(id=${as.scenarioId})}"
                                class="btn btn-primary btn-sm mt-auto">
                                 <i class="bi bi-play-fill"></i> Начать
                             </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Проваленные назначения -->
-            <div th:if="${failedScenarios != null and !#lists.isEmpty(failedScenarios)}" class="mb-4">
-                <h5 class="mb-3"><i class="bi bi-x-circle text-danger"></i> Не сданные назначения</h5>
-                <div class="row g-3">
-                    <div class="col-12 col-md-6 col-lg-4" th:each="fs : ${failedScenarios}">
-                        <div class="profile-card p-4 h-100 d-flex flex-column border-start border-3 border-danger" style="opacity: 0.8;">
-                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                <h5 class="mb-0" th:text="${fs.scenarioTitle}"></h5>
-                                <span class="badge bg-danger">Не сдан</span>
-                            </div>
-                            <p class="text-muted small flex-grow-1"
-                               th:if="${fs.scenarioDescription}"
-                               th:text="${#strings.length(fs.scenarioDescription) > 120
-                                   ? #strings.substring(fs.scenarioDescription, 0, 120) + '...'
-                                   : fs.scenarioDescription}"></p>
-                            <div class="mb-2">
-                                <span class="text-muted small">
-                                    <i class="bi bi-calendar-event"></i> Срок: <span th:text="${#temporals.format(fs.deadline, 'dd.MM.yyyy')}"></span>
-                                </span>
-                            </div>
-                            <span class="text-danger small mt-auto">
-                                <i class="bi bi-info-circle"></i> Для повторного прохождения необходимо новое назначение
+                            <a th:if="${as.statusName == 'COMPLETED' and as.completedSimulationSessionId != null}"
+                               th:href="@{/employee/specialist/results/detailsSimResult/{id}(id=${as.completedSimulationSessionId})}"
+                               class="btn btn-outline-success btn-sm mt-auto">
+                                <i class="bi bi-eye"></i> Результат
+                            </a>
+                            <a th:if="${as.statusName == 'FAILED' and as.completedSimulationSessionId != null}"
+                               th:href="@{/employee/specialist/results/detailsSimResult/{id}(id=${as.completedSimulationSessionId})}"
+                               class="btn btn-outline-danger btn-sm mt-auto">
+                                <i class="bi bi-eye"></i> Разбор
+                            </a>
+                            <span th:if="${as.statusName == 'OVERDUE'}" class="text-danger small mt-auto">
+                                <i class="bi bi-exclamation-circle"></i> Срок выполнения истёк
                             </span>
                         </div>
                     </div>
                 </div>
+                <div th:if="${#lists.isEmpty(myAssignments)}" class="text-center text-muted py-3">
+                    Назначения не найдены
+                </div>
             </div>
 
-            <!-- Все сценарии -->
             <h5 class="mb-3"><i class="bi bi-play-circle"></i> Доступные сценарии</h5>
 
             <div th:if="${#lists.isEmpty(scenarios)}" class="profile-card p-4 text-center text-muted">

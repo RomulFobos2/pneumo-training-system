@@ -42,8 +42,24 @@ public class TestAssignmentController {
     }
 
     @GetMapping("/allAssignments")
-    public String allAssignments(Model model) {
-        model.addAttribute("allAssignments", testAssignmentService.getAllAssignments());
+    public String allAssignments(@RequestParam(required = false) String q,
+                                 @RequestParam(required = false) String status,
+                                 @RequestParam(required = false) List<String> hideCompleted,
+                                 @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate deadlineFrom,
+                                 @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate deadlineTo,
+                                 @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate createdFrom,
+                                 @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate createdTo,
+                                 Model model) {
+        boolean resolvedHideCompleted = hideCompleted == null || hideCompleted.contains("true");
+        model.addAttribute("allAssignments", testAssignmentService.getAllAssignments(
+                q, status, resolvedHideCompleted, deadlineFrom, deadlineTo, createdFrom, createdTo));
+        model.addAttribute("q", q);
+        model.addAttribute("status", status);
+        model.addAttribute("hideCompleted", resolvedHideCompleted);
+        model.addAttribute("deadlineFrom", deadlineFrom);
+        model.addAttribute("deadlineTo", deadlineTo);
+        model.addAttribute("createdFrom", createdFrom);
+        model.addAttribute("createdTo", createdTo);
         return "employee/chief/assignments/allAssignments";
     }
 
@@ -70,13 +86,30 @@ public class TestAssignmentController {
     }
 
     @GetMapping("/detailsAssignment/{id}")
-    public String detailsAssignment(@PathVariable Long id, Model model) {
+    public String detailsAssignment(@PathVariable Long id,
+                                    @RequestParam(required = false) String q,
+                                    @RequestParam(required = false) String status,
+                                    @RequestParam(required = false) List<String> hideCompleted,
+                                    @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate deadlineFrom,
+                                    @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate deadlineTo,
+                                    @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate createdFrom,
+                                    @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate createdTo,
+                                    Model model) {
+        boolean resolvedHideCompleted = hideCompleted == null || hideCompleted.contains("true");
         Optional<TestAssignmentDTO> assignmentOptional = testAssignmentService.getAssignmentById(id);
         if (assignmentOptional.isEmpty()) {
             return "redirect:/employee/chief/assignments/allAssignments";
         }
         model.addAttribute("assignment", assignmentOptional.get());
-        model.addAttribute("assignmentEmployees", testAssignmentService.getAssignmentEmployees(id));
+        model.addAttribute("assignmentEmployees", testAssignmentService.getAssignmentEmployees(
+                id, q, status, resolvedHideCompleted, deadlineFrom, deadlineTo, createdFrom, createdTo));
+        model.addAttribute("q", q);
+        model.addAttribute("status", status);
+        model.addAttribute("hideCompleted", resolvedHideCompleted);
+        model.addAttribute("deadlineFrom", deadlineFrom);
+        model.addAttribute("deadlineTo", deadlineTo);
+        model.addAttribute("createdFrom", createdFrom);
+        model.addAttribute("createdTo", createdTo);
         return "employee/chief/assignments/detailsAssignment";
     }
 

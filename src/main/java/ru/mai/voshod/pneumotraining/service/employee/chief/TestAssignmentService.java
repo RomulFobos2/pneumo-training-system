@@ -8,15 +8,25 @@ import ru.mai.voshod.pneumotraining.dto.TestAssignmentDTO;
 import ru.mai.voshod.pneumotraining.dto.TestAssignmentEmployeeDTO;
 import ru.mai.voshod.pneumotraining.enumeration.AssignmentStatus;
 import ru.mai.voshod.pneumotraining.mapper.TestAssignmentMapper;
-import ru.mai.voshod.pneumotraining.models.*;
-import ru.mai.voshod.pneumotraining.repo.*;
+import ru.mai.voshod.pneumotraining.models.Employee;
+import ru.mai.voshod.pneumotraining.models.Test;
+import ru.mai.voshod.pneumotraining.models.TestAssignment;
+import ru.mai.voshod.pneumotraining.models.TestAssignmentEmployee;
+import ru.mai.voshod.pneumotraining.models.TestSession;
+import ru.mai.voshod.pneumotraining.repo.EmployeeRepository;
+import ru.mai.voshod.pneumotraining.repo.TestAssignmentEmployeeRepository;
+import ru.mai.voshod.pneumotraining.repo.TestAssignmentRepository;
+import ru.mai.voshod.pneumotraining.repo.TestQuestionRepository;
+import ru.mai.voshod.pneumotraining.repo.TestRepository;
 import ru.mai.voshod.pneumotraining.service.general.NotificationService;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 
 @Service
@@ -45,40 +55,39 @@ public class TestAssignmentService {
     }
 
     @Transactional(readOnly = true)
-    public List<TestAssignmentDTO> getAllAssignments() {
-        List<TestAssignment> assignments = testAssignmentRepository.findAllByOrderByCreatedAtDesc();
-        List<TestAssignmentDTO> dtos = new ArrayList<>();
-        for (TestAssignment a : assignments) {
-            TestAssignmentDTO dto = TestAssignmentMapper.INSTANCE.toDTO(a);
-            List<TestAssignmentEmployee> employees = a.getAssignedEmployees();
-            dto.setTotalAssigned(employees.size());
-            dto.setCompletedCount((int) employees.stream()
-                    .filter(e -> e.getStatus() == AssignmentStatus.COMPLETED).count());
-            dto.setOverdueCount((int) employees.stream()
-                    .filter(e -> e.getStatus() == AssignmentStatus.OVERDUE).count());
-            dtos.add(dto);
-        }
-        return dtos;
+    public List<TestAssignmentDTO> getAllAssignments(String q,
+                                                     String status,
+                                                     Boolean hideCompleted,
+                                                     LocalDate deadlineFrom,
+                                                     LocalDate deadlineTo,
+                                                     LocalDate createdFrom,
+                                                     LocalDate createdTo) {
+        return testAssignmentRepository.findAllByOrderByCreatedAtDesc()
+                .stream()
+                .map(this::toAssignmentDTO)
+                .filter(dto -> matchesAssignmentFilter(dto, q, status, hideCompleted, deadlineFrom, deadlineTo, createdFrom, createdTo))
+                .toList();
     }
 
     @Transactional(readOnly = true)
     public Optional<TestAssignmentDTO> getAssignmentById(Long id) {
-        return testAssignmentRepository.findById(id).map(a -> {
-            TestAssignmentDTO dto = TestAssignmentMapper.INSTANCE.toDTO(a);
-            List<TestAssignmentEmployee> employees = a.getAssignedEmployees();
-            dto.setTotalAssigned(employees.size());
-            dto.setCompletedCount((int) employees.stream()
-                    .filter(e -> e.getStatus() == AssignmentStatus.COMPLETED).count());
-            dto.setOverdueCount((int) employees.stream()
-                    .filter(e -> e.getStatus() == AssignmentStatus.OVERDUE).count());
-            return dto;
-        });
+        return testAssignmentRepository.findById(id).map(this::toAssignmentDTO);
     }
 
     @Transactional(readOnly = true)
-    public List<TestAssignmentEmployeeDTO> getAssignmentEmployees(Long assignmentId) {
-        List<TestAssignmentEmployee> employees = testAssignmentEmployeeRepository.findByAssignmentId(assignmentId);
-        return TestAssignmentMapper.INSTANCE.toEmployeeDTOList(employees);
+    public List<TestAssignmentEmployeeDTO> getAssignmentEmployees(Long assignmentId,
+                                                                  String q,
+                                                                  String status,
+                                                                  Boolean hideCompleted,
+                                                                  LocalDate deadlineFrom,
+                                                                  LocalDate deadlineTo,
+                                                                  LocalDate createdFrom,
+                                                                  LocalDate createdTo) {
+        return testAssignmentEmployeeRepository.findByAssignmentId(assignmentId)
+                .stream()
+                .map(TestAssignmentMapper.INSTANCE::toEmployeeDTO)
+                .filter(dto -> matchesEmployeeFilter(dto, q, status, hideCompleted, deadlineFrom, deadlineTo, createdFrom, createdTo))
+                .toList();
     }
 
     @Transactional
@@ -124,61 +133,19 @@ public class TestAssignmentService {
     }
 
     @Transactional(readOnly = true)
-    public List<AssignedTestDTO> getAssignedTestsForEmployee(Long employeeId) {
-        List<TestAssignmentEmployee> pending = testAssignmentEmployeeRepository
-                .findByEmployeeIdAndStatus(employeeId, AssignmentStatus.PENDING);
-
-        List<AssignedTestDTO> result = new ArrayList<>();
-        LocalDate today = LocalDate.now();
-
-        for (TestAssignmentEmployee ae : pending) {
-            Test test = ae.getAssignment().getTest();
-
-            AssignedTestDTO dto = new AssignedTestDTO();
-            dto.setAssignmentEmployeeId(ae.getId());
-            dto.setTestId(test.getId());
-            dto.setTestTitle(test.getTitle());
-            dto.setTestDescription(test.getDescription());
-            dto.setQuestionCount((int) testQuestionRepository.countByTestId(test.getId()));
-            dto.setTimeLimit(test.getTimeLimit() != null ? test.getTimeLimit() : 0);
-            dto.setPassingScore(test.getPassingScore() != null ? test.getPassingScore() : 60);
-            dto.setExam(test.isExam());
-            dto.setDeadline(ae.getAssignment().getDeadline());
-            dto.setStatusName(ae.getStatus().name());
-            dto.setStatusDisplayName(ae.getStatus().getDisplayName());
-            dto.setDaysUntilDeadline(ChronoUnit.DAYS.between(today, ae.getAssignment().getDeadline()));
-            result.add(dto);
-        }
-        return result;
-    }
-
-    @Transactional(readOnly = true)
-    public List<AssignedTestDTO> getFailedTestsForEmployee(Long employeeId) {
-        List<TestAssignmentEmployee> failed = testAssignmentEmployeeRepository
-                .findByEmployeeIdAndStatus(employeeId, AssignmentStatus.FAILED);
-
-        List<AssignedTestDTO> result = new ArrayList<>();
-        LocalDate today = LocalDate.now();
-
-        for (TestAssignmentEmployee ae : failed) {
-            Test test = ae.getAssignment().getTest();
-
-            AssignedTestDTO dto = new AssignedTestDTO();
-            dto.setAssignmentEmployeeId(ae.getId());
-            dto.setTestId(test.getId());
-            dto.setTestTitle(test.getTitle());
-            dto.setTestDescription(test.getDescription());
-            dto.setQuestionCount((int) testQuestionRepository.countByTestId(test.getId()));
-            dto.setTimeLimit(test.getTimeLimit() != null ? test.getTimeLimit() : 0);
-            dto.setPassingScore(test.getPassingScore() != null ? test.getPassingScore() : 60);
-            dto.setExam(test.isExam());
-            dto.setDeadline(ae.getAssignment().getDeadline());
-            dto.setStatusName(ae.getStatus().name());
-            dto.setStatusDisplayName(ae.getStatus().getDisplayName());
-            dto.setDaysUntilDeadline(ChronoUnit.DAYS.between(today, ae.getAssignment().getDeadline()));
-            result.add(dto);
-        }
-        return result;
+    public List<AssignedTestDTO> getAssignmentsForEmployee(Long employeeId,
+                                                           String q,
+                                                           String status,
+                                                           Boolean hideCompleted,
+                                                           LocalDate deadlineFrom,
+                                                           LocalDate deadlineTo,
+                                                           LocalDate createdFrom,
+                                                           LocalDate createdTo) {
+        return testAssignmentEmployeeRepository.findByEmployeeIdOrderByAssignment_CreatedAtDesc(employeeId)
+                .stream()
+                .map(this::toAssignedTestDTO)
+                .filter(dto -> matchesAssignedTestFilter(dto, q, status, hideCompleted, deadlineFrom, deadlineTo, createdFrom, createdTo))
+                .toList();
     }
 
     @Transactional
@@ -207,5 +174,188 @@ public class TestAssignmentService {
             log.info("Назначение не сдано: assignmentEmployeeId={}, testId={}, employeeId={}",
                     ae.getId(), testId, employeeId);
         }
+    }
+
+    private TestAssignmentDTO toAssignmentDTO(TestAssignment assignment) {
+        TestAssignmentDTO dto = TestAssignmentMapper.INSTANCE.toDTO(assignment);
+        List<TestAssignmentEmployee> employees = assignment.getAssignedEmployees();
+        int completedCount = (int) employees.stream()
+                .filter(e -> e.getStatus() == AssignmentStatus.COMPLETED)
+                .count();
+        int overdueCount = (int) employees.stream()
+                .filter(e -> e.getStatus() == AssignmentStatus.OVERDUE)
+                .count();
+        int failedCount = (int) employees.stream()
+                .filter(e -> e.getStatus() == AssignmentStatus.FAILED)
+                .count();
+
+        dto.setTotalAssigned(employees.size());
+        dto.setCompletedCount(completedCount);
+        dto.setOverdueCount(overdueCount);
+        dto.setFailedCount(failedCount);
+        dto.setFullyCompleted(!employees.isEmpty() && completedCount == employees.size());
+        return dto;
+    }
+
+    private AssignedTestDTO toAssignedTestDTO(TestAssignmentEmployee ae) {
+        Test test = ae.getAssignment().getTest();
+        LocalDate today = LocalDate.now();
+
+        AssignedTestDTO dto = new AssignedTestDTO();
+        dto.setAssignmentEmployeeId(ae.getId());
+        dto.setTestId(test.getId());
+        dto.setTestTitle(test.getTitle());
+        dto.setTestDescription(test.getDescription());
+        dto.setQuestionCount((int) testQuestionRepository.countByTestId(test.getId()));
+        dto.setTimeLimit(test.getTimeLimit() != null ? test.getTimeLimit() : 0);
+        dto.setPassingScore(test.getPassingScore() != null ? test.getPassingScore() : 60);
+        dto.setExam(test.isExam());
+        dto.setDeadline(ae.getAssignment().getDeadline());
+        dto.setCreatedAt(ae.getAssignment().getCreatedAt());
+        dto.setStatusName(ae.getStatus().name());
+        dto.setStatusDisplayName(ae.getStatus().getDisplayName());
+        dto.setDaysUntilDeadline(ChronoUnit.DAYS.between(today, ae.getAssignment().getDeadline()));
+        dto.setCompletedSessionId(ae.getCompletedSession() != null ? ae.getCompletedSession().getId() : null);
+        return dto;
+    }
+
+    private boolean matchesAssignmentFilter(TestAssignmentDTO dto,
+                                            String q,
+                                            String status,
+                                            Boolean hideCompleted,
+                                            LocalDate deadlineFrom,
+                                            LocalDate deadlineTo,
+                                            LocalDate createdFrom,
+                                            LocalDate createdTo) {
+        if (Boolean.TRUE.equals(defaultHideCompleted(hideCompleted)) && dto.isFullyCompleted()) {
+            return false;
+        }
+        if (!matchesAssignmentStatus(dto, status)) {
+            return false;
+        }
+        if (!matchesText(q, dto.getAssignmentTitle(), dto.getCreatedByFullName(), dto.getTestTitle())) {
+            return false;
+        }
+        if (!matchesDateRange(dto.getDeadline(), deadlineFrom, deadlineTo)) {
+            return false;
+        }
+        return matchesDateTimeRange(dto.getCreatedAt(), createdFrom, createdTo);
+    }
+
+    private boolean matchesEmployeeFilter(TestAssignmentEmployeeDTO dto,
+                                          String q,
+                                          String status,
+                                          Boolean hideCompleted,
+                                          LocalDate deadlineFrom,
+                                          LocalDate deadlineTo,
+                                          LocalDate createdFrom,
+                                          LocalDate createdTo) {
+        if (Boolean.TRUE.equals(defaultHideCompleted(hideCompleted)) && "COMPLETED".equals(dto.getStatusName())) {
+            return false;
+        }
+        if (!matchesStatusName(dto.getStatusName(), status)) {
+            return false;
+        }
+        if (!matchesText(q, dto.getEmployeeFullName())) {
+            return false;
+        }
+        if (!matchesDateRange(dto.getDeadline(), deadlineFrom, deadlineTo)) {
+            return false;
+        }
+        return matchesDateTimeRange(dto.getCreatedAt(), createdFrom, createdTo);
+    }
+
+    private boolean matchesAssignedTestFilter(AssignedTestDTO dto,
+                                              String q,
+                                              String status,
+                                              Boolean hideCompleted,
+                                              LocalDate deadlineFrom,
+                                              LocalDate deadlineTo,
+                                              LocalDate createdFrom,
+                                              LocalDate createdTo) {
+        if (Boolean.TRUE.equals(defaultHideCompleted(hideCompleted)) && "COMPLETED".equals(dto.getStatusName())) {
+            return false;
+        }
+        if (!matchesStatusName(dto.getStatusName(), status)) {
+            return false;
+        }
+        if (!matchesText(q, dto.getTestTitle(), dto.getTestDescription())) {
+            return false;
+        }
+        if (!matchesDateRange(dto.getDeadline(), deadlineFrom, deadlineTo)) {
+            return false;
+        }
+        return matchesDateTimeRange(dto.getCreatedAt(), createdFrom, createdTo);
+    }
+
+    private Boolean defaultHideCompleted(Boolean hideCompleted) {
+        return hideCompleted == null ? Boolean.TRUE : hideCompleted;
+    }
+
+    private boolean matchesAssignmentStatus(TestAssignmentDTO dto, String status) {
+        AssignmentStatus parsedStatus = parseStatus(status);
+        if (parsedStatus == null) {
+            return true;
+        }
+
+        return switch (parsedStatus) {
+            case PENDING -> dto.getTotalAssigned() - dto.getCompletedCount() - dto.getOverdueCount() - dto.getFailedCount() > 0;
+            case COMPLETED -> dto.getCompletedCount() > 0;
+            case FAILED -> dto.getFailedCount() > 0;
+            case OVERDUE -> dto.getOverdueCount() > 0;
+        };
+    }
+
+    private boolean matchesStatusName(String actualStatus, String status) {
+        AssignmentStatus parsedStatus = parseStatus(status);
+        if (parsedStatus == null) {
+            return true;
+        }
+        return parsedStatus.name().equals(actualStatus);
+    }
+
+    private AssignmentStatus parseStatus(String status) {
+        if (status == null || status.isBlank() || "ALL".equalsIgnoreCase(status)) {
+            return null;
+        }
+        try {
+            return AssignmentStatus.valueOf(status.trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
+    }
+
+    private boolean matchesText(String q, String... values) {
+        if (q == null || q.isBlank()) {
+            return true;
+        }
+        String normalized = q.toLowerCase(Locale.ROOT).trim();
+        for (String value : values) {
+            if (value != null && value.toLowerCase(Locale.ROOT).contains(normalized)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean matchesDateRange(LocalDate value, LocalDate from, LocalDate to) {
+        if (value == null) {
+            return false;
+        }
+        if (from != null && value.isBefore(from)) {
+            return false;
+        }
+        return to == null || !value.isAfter(to);
+    }
+
+    private boolean matchesDateTimeRange(LocalDateTime value, LocalDate from, LocalDate to) {
+        if (value == null) {
+            return false;
+        }
+        LocalDate localDate = value.toLocalDate();
+        if (from != null && localDate.isBefore(from)) {
+            return false;
+        }
+        return to == null || !localDate.isAfter(to);
     }
 }

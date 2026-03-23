@@ -10,6 +10,7 @@ import java.util.List;
 public interface TestAssignmentEmployeeRepository extends JpaRepository<TestAssignmentEmployee, Long> {
 
     List<TestAssignmentEmployee> findByEmployeeIdAndStatus(Long employeeId, AssignmentStatus status);
+    List<TestAssignmentEmployee> findByEmployeeIdOrderByAssignment_CreatedAtDesc(Long employeeId);
 
     List<TestAssignmentEmployee> findByAssignmentId(Long assignmentId);
 

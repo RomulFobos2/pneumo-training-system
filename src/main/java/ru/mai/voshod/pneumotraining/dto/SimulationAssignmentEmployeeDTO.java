@@ -2,6 +2,9 @@ package ru.mai.voshod.pneumotraining.dto;
 
 import lombok.Data;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
 @Data
 public class SimulationAssignmentEmployeeDTO {
     private Long id;
@@ -10,4 +13,6 @@ public class SimulationAssignmentEmployeeDTO {
     private String statusName;
     private String statusDisplayName;
     private Long completedSimulationSessionId;
+    private LocalDate deadline;
+    private LocalDateTime createdAt;
 }
