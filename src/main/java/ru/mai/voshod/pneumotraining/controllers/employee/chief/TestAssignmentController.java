@@ -6,9 +6,16 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
-import ru.mai.voshod.pneumotraining.dto.*;
+import ru.mai.voshod.pneumotraining.dto.EmployeeDTO;
+import ru.mai.voshod.pneumotraining.dto.TestAssignmentDTO;
+import ru.mai.voshod.pneumotraining.dto.TestDTO;
 import ru.mai.voshod.pneumotraining.mapper.EmployeeMapper;
 import ru.mai.voshod.pneumotraining.models.Employee;
 import ru.mai.voshod.pneumotraining.repo.EmployeeRepository;
@@ -115,10 +122,13 @@ public class TestAssignmentController {
 
     @GetMapping("/deleteAssignment/{id}")
     public String deleteAssignment(@PathVariable Long id, RedirectAttributes redirectAttributes) {
-        if (testAssignmentService.deleteAssignment(id)) {
-            redirectAttributes.addFlashAttribute("successMessage", "Назначение удалено.");
-        } else {
-            redirectAttributes.addFlashAttribute("errorMessage", "Ошибка при удалении назначения.");
+        TestAssignmentService.DeleteAssignmentResult result = testAssignmentService.deleteAssignmentWithStatus(id);
+        switch (result) {
+            case DELETED -> redirectAttributes.addFlashAttribute("successMessage", "Назначение теста удалено.");
+            case HAS_ATTEMPTS -> redirectAttributes.addFlashAttribute("errorMessage",
+                    "Назначение теста нельзя удалить: по нему уже есть пройденный тест.");
+            case NOT_FOUND -> redirectAttributes.addFlashAttribute("errorMessage", "Назначение теста не найдено.");
+            default -> redirectAttributes.addFlashAttribute("errorMessage", "Ошибка при удалении назначения теста.");
         }
         return "redirect:/employee/chief/assignments/allAssignments";
     }

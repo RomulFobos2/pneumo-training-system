@@ -38,38 +38,18 @@
             </a>
         </li>
         <li class="nav-item" sec:authorize="hasRole('ROLE_EMPLOYEE_CHIEF')">
-            <a th:href="@{/employee/chief/assignments/allAssignments}">
+            <a th:href="@{/employee/chief/navigation/assignments}">
                 <i class="bi bi-clipboard-check"></i> <span>Назначения</span>
             </a>
         </li>
         <li class="nav-item" sec:authorize="hasRole('ROLE_EMPLOYEE_CHIEF')">
-            <a th:href="@{/employee/chief/simAssignments/allAssignments}">
-                <i class="bi bi-clipboard2-pulse"></i> <span>Назначения мнемосхемы</span>
+            <a th:href="@{/employee/chief/navigation/mnemo}">
+                <i class="bi bi-diagram-3"></i> <span>Мнемосхемы и сценарии</span>
             </a>
         </li>
         <li class="nav-item" sec:authorize="hasRole('ROLE_EMPLOYEE_CHIEF')">
-            <a th:href="@{/employee/chief/schemas/allSchemas}">
-                <i class="bi bi-diagram-3"></i> <span>Мнемосхемы</span>
-            </a>
-        </li>
-        <li class="nav-item" sec:authorize="hasRole('ROLE_EMPLOYEE_CHIEF')">
-            <a th:href="@{/employee/chief/scenarios/allScenarios}">
-                <i class="bi bi-play-circle"></i> <span>Сценарии</span>
-            </a>
-        </li>
-        <li class="nav-item" sec:authorize="hasRole('ROLE_EMPLOYEE_CHIEF')">
-            <a th:href="@{/employee/chief/results/allResults}">
-                <i class="bi bi-clipboard-data"></i> <span>Результаты</span>
-            </a>
-        </li>
-        <li class="nav-item" sec:authorize="hasRole('ROLE_EMPLOYEE_CHIEF')">
-            <a th:href="@{/employee/chief/results/allSimResults}">
-                <i class="bi bi-diagram-3-fill"></i> <span>Результаты симуляций</span>
-            </a>
-        </li>
-        <li class="nav-item" sec:authorize="hasRole('ROLE_EMPLOYEE_CHIEF')">
-            <a th:href="@{/employee/chief/analytics/dashboard}">
-                <i class="bi bi-bar-chart-line"></i> <span>Аналитика</span>
+            <a th:href="@{/employee/chief/navigation/results}">
+                <i class="bi bi-clipboard-data"></i> <span>Результаты и аналитика</span>
             </a>
         </li>
 
@@ -83,8 +63,8 @@
             </a>
         </li>
         <li class="nav-item" sec:authorize="hasAnyRole('ROLE_EMPLOYEE_SPECIALIST','ROLE_EMPLOYEE_OPERATOR')">
-            <a th:href="@{/employee/specialist/testing/availableTests}">
-                <i class="bi bi-pencil-square"></i> <span>Тестирование</span>
+            <a th:href="@{/employee/specialist/navigation/practice}">
+                <i class="bi bi-pencil-square"></i> <span>Практика</span>
             </a>
         </li>
         <li class="nav-item" sec:authorize="hasAnyRole('ROLE_EMPLOYEE_SPECIALIST','ROLE_EMPLOYEE_OPERATOR')">
@@ -92,11 +72,7 @@
                 <i class="bi bi-trophy"></i> <span>Результаты</span>
             </a>
         </li>
-        <li class="nav-item" sec:authorize="hasAnyRole('ROLE_EMPLOYEE_SPECIALIST','ROLE_EMPLOYEE_OPERATOR')">
-            <a th:href="@{/employee/specialist/mnemo/scenarios}">
-                <i class="bi bi-diagram-3"></i> <span>Мнемосхема</span>
-            </a>
-        </li>
+
         <!-- ========== ОБЩЕЕ ========== -->
         <li class="nav-item" sec:authorize="isAuthenticated()">
             <a th:href="@{/employee/notifications}">

@@ -1,6 +1,8 @@
 package ru.mai.voshod.pneumotraining.repo;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import ru.mai.voshod.pneumotraining.enumeration.AssignmentStatus;
 import ru.mai.voshod.pneumotraining.models.TestAssignmentEmployee;
 
@@ -19,4 +21,13 @@ public interface TestAssignmentEmployeeRepository extends JpaRepository<TestAssi
     List<TestAssignmentEmployee> findByStatusAndAssignment_Deadline(AssignmentStatus status, LocalDate deadline);
 
     List<TestAssignmentEmployee> findByStatusAndAssignment_DeadlineBefore(AssignmentStatus status, LocalDate deadline);
+
+    @Query("""
+            SELECT COUNT(ae) > 0
+            FROM TestAssignmentEmployee ae
+            WHERE ae.assignment.id = :assignmentId
+              AND (ae.completedSession IS NOT NULL OR ae.status <> :pendingStatus)
+            """)
+    boolean existsAttemptForAssignment(@Param("assignmentId") Long assignmentId,
+                                       @Param("pendingStatus") AssignmentStatus pendingStatus);
 }
