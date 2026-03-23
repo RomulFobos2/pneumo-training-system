@@ -19,7 +19,11 @@
       "Bash(git commit:*)",
       "Bash(git push:*)",
       "Bash(git pull:*)",
-      "Bash(git branch:*)"
+      "Bash(git branch:*)",
+      "Bash(grep -r \"@GetMapping\\\\|@PostMapping\" /c/Users/Romul/Desktop/Diplom_2_26/pneumo-training-system/src/main/java/ru/mai/voshod/pneumotraining/controllers/employee/specialist/*.java)",
+      "Bash(grep -c \"class.*Service\" /c/Users/Romul/Desktop/Diplom_2_26/pneumo-training-system/src/main/java/ru/mai/voshod/pneumotraining/service/employee/chief/*.java)",
+      "Bash(xargs wc:*)",
+      "Bash(echo $?)"
     ]
   }
 }
