@@ -1,0 +1,53 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Результаты и аналитика | АОС ПИ</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/javascript.js"></script>
+</head>
+<body>
+<div id="wrapper">
+    <div th:insert="~{blocks/header :: sidebar}"></div>
+    <div id="content-wrapper">
+        <div th:insert="~{blocks/header :: topbar}"></div>
+        <div th:insert="~{blocks/header :: overlay}"></div>
+        <main class="container-fluid">
+            <div class="profile-card mb-4">
+                <h1 class="page-title mb-2">Результаты и аналитика</h1>
+                <p class="page-subtitle mb-0">Выберите нужный раздел для анализа тестирования и симуляций.</p>
+            </div>
+
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <a th:href="@{/employee/chief/results/allResults}" class="profile-card section-nav-card">
+                        <div class="feature-icon"><i class="bi bi-clipboard-data"></i></div>
+                        <h5>Результаты тестирования</h5>
+                        <p class="text-muted mb-0">Просмотр результатов тестов, журнал и экспорт экзаменационных данных.</p>
+                    </a>
+                </div>
+                <div class="col-md-4">
+                    <a th:href="@{/employee/chief/results/allSimResults}" class="profile-card section-nav-card">
+                        <div class="feature-icon"><i class="bi bi-diagram-3-fill"></i></div>
+                        <h5>Результаты симуляций</h5>
+                        <p class="text-muted mb-0">Анализ прохождения сценариев и подробные результаты по симуляциям.</p>
+                    </a>
+                </div>
+                <div class="col-md-4">
+                    <a th:href="@{/employee/chief/analytics/dashboard}" class="profile-card section-nav-card">
+                        <div class="feature-icon"><i class="bi bi-bar-chart-line"></i></div>
+                        <h5>Аналитика</h5>
+                        <p class="text-muted mb-0">Сводные показатели, фильтры и аналитический дашборд по обучению.</p>
+                    </a>
+                </div>
+            </div>
+        </main>
+        <div th:insert="~{blocks/footer :: footer}"></div>
+    </div>
+</div>
+</body>
+</html>

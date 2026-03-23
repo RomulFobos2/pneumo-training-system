@@ -3,6 +3,7 @@ package ru.mai.voshod.pneumotraining.service.employee.chief;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.interceptor.TransactionAspectSupport;
 import ru.mai.voshod.pneumotraining.dto.AssignedTestDTO;
 import ru.mai.voshod.pneumotraining.dto.TestAssignmentDTO;
 import ru.mai.voshod.pneumotraining.dto.TestAssignmentEmployeeDTO;
@@ -32,6 +33,13 @@ import java.util.Optional;
 @Service
 @Slf4j
 public class TestAssignmentService {
+
+    public enum DeleteAssignmentResult {
+        DELETED,
+        HAS_ATTEMPTS,
+        NOT_FOUND,
+        ERROR
+    }
 
     private final TestAssignmentRepository testAssignmentRepository;
     private final TestAssignmentEmployeeRepository testAssignmentEmployeeRepository;
@@ -130,6 +138,31 @@ public class TestAssignmentService {
         testAssignmentRepository.deleteById(id);
         log.info("Назначение удалено: id={}", id);
         return true;
+    }
+
+    @Transactional
+    public DeleteAssignmentResult deleteAssignmentWithStatus(Long id) {
+        Optional<TestAssignment> assignmentOptional = testAssignmentRepository.findById(id);
+        if (assignmentOptional.isEmpty()) {
+            log.error("Назначение теста не найдено: id={}", id);
+            return DeleteAssignmentResult.NOT_FOUND;
+        }
+
+        if (testAssignmentEmployeeRepository.existsAttemptForAssignment(id, AssignmentStatus.PENDING)) {
+            log.error("Невозможно удалить назначение теста id={}: по нему уже есть прохождения.", id);
+            return DeleteAssignmentResult.HAS_ATTEMPTS;
+        }
+
+        try {
+            testAssignmentRepository.delete(assignmentOptional.get());
+        } catch (Exception e) {
+            log.error("Ошибка при удалении назначения теста id={}: {}", id, e.getMessage(), e);
+            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+            return DeleteAssignmentResult.ERROR;
+        }
+
+        log.info("Назначение теста удалено: id={}", id);
+        return DeleteAssignmentResult.DELETED;
     }
 
     @Transactional(readOnly = true)
