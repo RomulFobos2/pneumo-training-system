@@ -1,7 +1,7 @@
 <!DOCTYPE HTML>
 <html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
-    <title>Назначение | АОС ПИ</title>
+    <title>Назначение мнемосхемы | АОС ПИ</title>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="/css/bootstrap.min.css" rel="stylesheet">
@@ -23,8 +23,8 @@
                     <div>
                         <h1 class="page-title mb-2" th:text="'Назначение: ' + ${assignment.assignmentTitle}"></h1>
                         <div class="d-flex gap-2 flex-wrap">
-                            <span class="badge bg-primary">
-                                <i class="bi bi-list-check"></i> Тест
+                            <span class="badge bg-info">
+                                <i class="bi bi-diagram-3"></i> Мнемосхема
                             </span>
                             <span class="badge bg-primary">
                                 <i class="bi bi-calendar-event"></i>
@@ -39,7 +39,7 @@
                         </div>
                     </div>
                     <div class="d-flex gap-2">
-                        <a th:href="@{/employee/chief/assignments/allAssignments}" class="btn btn-outline-secondary btn-profile">
+                        <a th:href="@{/employee/chief/simAssignments/allAssignments}" class="btn btn-outline-secondary btn-profile">
                             <i class="bi bi-arrow-left"></i> Назад
                         </a>
                     </div>
@@ -91,12 +91,12 @@
                                   th:text="${ae.statusDisplayName}"></span>
                         </td>
                         <td>
-                            <a th:if="${ae.completedSessionId != null}"
-                               th:href="@{/employee/chief/results/detailsResult/{id}(id=${ae.completedSessionId})}"
+                            <a th:if="${ae.completedSimulationSessionId != null}"
+                               th:href="@{/employee/chief/results/detailsSimResult/{id}(id=${ae.completedSimulationSessionId})}"
                                class="btn btn-sm btn-outline-primary">
                                 <i class="bi bi-eye"></i> Просмотр
                             </a>
-                            <span th:if="${ae.completedSessionId == null}" class="text-muted">—</span>
+                            <span th:if="${ae.completedSimulationSessionId == null}" class="text-muted">—</span>
                         </td>
                     </tr>
                     </tbody>

@@ -49,6 +49,15 @@
                                     <input type="number" name="inputSortOrder" class="form-control"
                                            required min="1" value="1">
                                 </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Раздел теории <span class="text-muted">(опционально)</span></label>
+                                    <select name="inputTheorySectionId" class="form-select">
+                                        <option value="">— Не указан —</option>
+                                        <option th:each="section : ${allSections}"
+                                                th:value="${section.id}"
+                                                th:text="${section.title}"></option>
+                                    </select>
+                                </div>
                             </div>
 
                             <!-- Блок вариантов ответа -->

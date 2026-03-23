@@ -11,6 +11,7 @@ import ru.mai.voshod.pneumotraining.dto.TestSessionDTO;
 import ru.mai.voshod.pneumotraining.enumeration.TestSessionStatus;
 import ru.mai.voshod.pneumotraining.models.Employee;
 import ru.mai.voshod.pneumotraining.service.employee.chief.TestAssignmentService;
+import ru.mai.voshod.pneumotraining.service.employee.specialist.LearningPathService;
 import ru.mai.voshod.pneumotraining.service.employee.specialist.TestingService;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -23,11 +24,14 @@ public class TestingController {
 
     private final TestingService testingService;
     private final TestAssignmentService testAssignmentService;
+    private final LearningPathService learningPathService;
 
     public TestingController(TestingService testingService,
-                             TestAssignmentService testAssignmentService) {
+                             TestAssignmentService testAssignmentService,
+                             LearningPathService learningPathService) {
         this.testingService = testingService;
         this.testAssignmentService = testAssignmentService;
+        this.learningPathService = learningPathService;
     }
 
     // ========== Список доступных тестов ==========
@@ -36,6 +40,7 @@ public class TestingController {
     public String availableTests(@AuthenticationPrincipal Employee currentUser, Model model) {
         model.addAttribute("availableTests", testingService.getAvailableTests(currentUser));
         model.addAttribute("assignedTests", testAssignmentService.getAssignedTestsForEmployee(currentUser.getId()));
+        model.addAttribute("failedTests", testAssignmentService.getFailedTestsForEmployee(currentUser.getId()));
         return "employee/specialist/testing/availableTests";
     }
 
@@ -132,6 +137,7 @@ public class TestingController {
         }
         model.addAttribute("sessionDTO", sessionOpt.get());
         model.addAttribute("answerDetails", testingService.getSessionAnswerDetails(sessionId));
+        model.addAttribute("recommendations", learningPathService.getRecommendations(sessionId, currentUser));
         return "employee/specialist/testing/result";
     }
 }

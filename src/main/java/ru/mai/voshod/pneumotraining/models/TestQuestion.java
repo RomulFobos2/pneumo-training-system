@@ -48,6 +48,12 @@ public class TestQuestion {
     @Column(nullable = false, length = 30)
     private QuestionType questionType;
 
+    /** Раздел теории, к которому относится вопрос (для адаптивных рекомендаций) */
+    @ManyToOne
+    @JoinColumn(name = "theory_section_id")
+    @ToString.Exclude
+    private TheorySection theorySection;
+
     /** Тест, к которому относится вопрос */
     @ManyToOne
     @JoinColumn(name = "test_id", nullable = false)

@@ -10,4 +10,6 @@ public interface TestQuestionRepository extends JpaRepository<TestQuestion, Long
     List<TestQuestion> findByTestIdOrderBySortOrderAsc(Long testId);
 
     long countByTestId(Long testId);
+
+    List<TestQuestion> findByTheorySectionId(Long sectionId);
 }

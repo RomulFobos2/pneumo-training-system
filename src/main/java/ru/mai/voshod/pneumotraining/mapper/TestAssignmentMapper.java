@@ -17,10 +17,7 @@ public interface TestAssignmentMapper {
 
     @Mapping(source = "test.id", target = "testId")
     @Mapping(source = "test.title", target = "testTitle")
-    @Mapping(source = "scenario.id", target = "scenarioId")
-    @Mapping(source = "scenario.title", target = "scenarioTitle")
     @Mapping(source = "assignment", target = "createdByFullName", qualifiedByName = "createdByName")
-    @Mapping(source = "assignment", target = "assignmentType", qualifiedByName = "assignmentType")
     @Mapping(source = "assignment", target = "assignmentTitle", qualifiedByName = "assignmentTitle")
     @Mapping(target = "totalAssigned", ignore = true)
     @Mapping(target = "completedCount", ignore = true)
@@ -34,7 +31,6 @@ public interface TestAssignmentMapper {
     @Mapping(source = "assignmentEmployee", target = "statusName", qualifiedByName = "statusName")
     @Mapping(source = "status.displayName", target = "statusDisplayName")
     @Mapping(source = "completedSession.id", target = "completedSessionId")
-    @Mapping(source = "completedSimulationSession.id", target = "completedSimulationSessionId")
     TestAssignmentEmployeeDTO toEmployeeDTO(TestAssignmentEmployee assignmentEmployee);
 
     List<TestAssignmentEmployeeDTO> toEmployeeDTOList(List<TestAssignmentEmployee> employees);
@@ -52,11 +48,6 @@ public interface TestAssignmentMapper {
     @Named("statusName")
     default String getStatusName(TestAssignmentEmployee ae) {
         return ae.getStatus().name();
-    }
-
-    @Named("assignmentType")
-    default String getAssignmentType(TestAssignment assignment) {
-        return assignment.getAssignmentType();
     }
 
     @Named("assignmentTitle")

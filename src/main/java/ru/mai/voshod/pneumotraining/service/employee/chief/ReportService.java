@@ -97,8 +97,8 @@ public class ReportService {
     @Transactional(readOnly = true)
     public Map<String, Object> getJournalData() {
         // Сотрудники: специалисты + операторы
-        List<Employee> specialists = employeeRepository.findAllByRoleName("ROLE_EMPLOYEE_SPECIALIST");
-        List<Employee> operators = employeeRepository.findAllByRoleName("ROLE_EMPLOYEE_OPERATOR");
+        List<Employee> specialists = employeeRepository.findAllByRole_Name("ROLE_EMPLOYEE_SPECIALIST");
+        List<Employee> operators = employeeRepository.findAllByRole_Name("ROLE_EMPLOYEE_OPERATOR");
         List<Employee> employees = Stream.concat(specialists.stream(), operators.stream())
                 .sorted(Comparator.comparing(Employee::getLastName))
                 .toList();

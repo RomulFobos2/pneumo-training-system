@@ -1,7 +1,7 @@
 <!DOCTYPE HTML>
 <html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
-    <title>Новое назначение теста | АОС ПИ</title>
+    <title>Новое назначение мнемосхемы | АОС ПИ</title>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="/css/bootstrap.min.css" rel="stylesheet">
@@ -21,11 +21,10 @@
             <div class="row justify-content-center">
                 <div class="col-12 col-lg-10">
                     <div class="profile-card p-4">
-                        <h1 class="page-title">Новое назначение теста</h1>
+                        <h1 class="page-title">Новое назначение мнемосхемы</h1>
 
                         <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
 
-                        <!-- Индикатор шагов -->
                         <div class="d-flex align-items-center mb-4">
                             <span id="stepBadge1" class="badge bg-primary me-2">1</span>
                             <span id="stepLabel1" class="fw-bold me-3">Режим</span>
@@ -34,12 +33,11 @@
                             <span id="stepLabel2" class="text-muted me-3">Сотрудники</span>
                             <i class="bi bi-chevron-right text-muted me-3"></i>
                             <span id="stepBadge3" class="badge bg-secondary me-2">3</span>
-                            <span id="stepLabel3" class="text-muted">Тест и срок</span>
+                            <span id="stepLabel3" class="text-muted">Сценарий и срок</span>
                         </div>
 
-                        <form method="post" th:action="@{/employee/chief/assignments/addAssignment}" id="assignmentForm" class="auth-form">
+                        <form method="post" th:action="@{/employee/chief/simAssignments/addAssignment}" id="assignmentForm" class="auth-form">
 
-                            <!-- ===== ШАГ 1: Выбор режима ===== -->
                             <div id="step1">
                                 <h5 class="mb-3">Шаг 1. Выберите режим назначения</h5>
                                 <div class="row g-3">
@@ -48,7 +46,7 @@
                                              onclick="selectMode('department')">
                                             <i class="bi bi-building fs-1 text-primary"></i>
                                             <h6 class="mt-2">По подразделению</h6>
-                                            <small class="text-muted">Назначить тест сотрудникам подразделения</small>
+                                            <small class="text-muted">Назначить сценарий сотрудникам подразделения</small>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
@@ -56,17 +54,15 @@
                                              onclick="selectMode('employee')">
                                             <i class="bi bi-person fs-1 text-success"></i>
                                             <h6 class="mt-2">Конкретному сотруднику</h6>
-                                            <small class="text-muted">Назначить тест одному сотруднику</small>
+                                            <small class="text-muted">Назначить сценарий одному сотруднику</small>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- ===== ШАГ 2: Выбор сотрудников ===== -->
                             <div id="step2" style="display:none">
                                 <h5 class="mb-3" id="step2Title">Шаг 2.</h5>
 
-                                <!-- Режим «По подразделению» -->
                                 <div id="deptModeBlock" style="display:none">
                                     <div class="mb-3">
                                         <label class="form-label">Подразделение <span class="text-danger">*</span></label>
@@ -76,7 +72,6 @@
                                                     th:text="${'— '.repeat(d.level) + d.name}"></option>
                                         </select>
                                     </div>
-
                                     <div id="deptEmployeeList" style="display:none">
                                         <div class="mb-2 d-flex gap-2">
                                             <button type="button" class="btn btn-sm btn-outline-primary" onclick="selectAll()">
@@ -87,12 +82,10 @@
                                             </button>
                                             <span id="selectedCountDept" class="badge bg-primary align-self-center">0 выбрано</span>
                                         </div>
-                                        <div id="deptEmployeeContainer" class="profile-card p-3 mb-3" style="max-height:350px; overflow-y:auto;">
-                                        </div>
+                                        <div id="deptEmployeeContainer" class="profile-card p-3 mb-3" style="max-height:350px; overflow-y:auto;"></div>
                                     </div>
                                 </div>
 
-                                <!-- Режим «По сотруднику» -->
                                 <div id="empModeBlock" style="display:none">
                                     <div class="mb-3">
                                         <label class="form-label">Сотрудник <span class="text-danger">*</span></label>
@@ -115,20 +108,18 @@
                                 </div>
                             </div>
 
-                            <!-- ===== ШАГ 3: Выбор теста и срока ===== -->
                             <div id="step3" style="display:none">
-                                <h5 class="mb-3">Шаг 3. Выберите тест и срок сдачи</h5>
-
+                                <h5 class="mb-3">Шаг 3. Выберите сценарий и срок сдачи</h5>
                                 <div id="step3Summary" class="alert alert-info mb-3"></div>
 
                                 <div class="row g-3 mb-4">
                                     <div class="col-md-6">
-                                        <label class="form-label">Тест <span class="text-danger">*</span></label>
-                                        <select name="inputTestId" id="testSelect" class="form-select" onchange="validateStep3()">
-                                            <option value="">— Загрузка тестов... —</option>
+                                        <label class="form-label">Сценарий мнемосхемы <span class="text-danger">*</span></label>
+                                        <select name="inputScenarioId" id="scenarioSelect" class="form-select" onchange="validateStep3()">
+                                            <option value="">— Загрузка сценариев... —</option>
                                         </select>
-                                        <div id="noTestsWarning" class="form-text text-warning mt-1" style="display:none">
-                                            <i class="bi bi-exclamation-triangle"></i> Нет доступных тестов
+                                        <div id="noScenariosWarning" class="form-text text-warning mt-1" style="display:none">
+                                            <i class="bi bi-exclamation-triangle"></i> Нет доступных сценариев
                                         </div>
                                     </div>
                                     <div class="col-md-6">
@@ -144,15 +135,13 @@
                                     <button type="submit" class="btn btn-auth" id="submitBtn" disabled>
                                         <i class="bi bi-check-lg"></i> Назначить
                                     </button>
-                                    <a th:href="@{/employee/chief/assignments/allAssignments}" class="btn btn-outline-secondary">
+                                    <a th:href="@{/employee/chief/simAssignments/allAssignments}" class="btn btn-outline-secondary">
                                         Отмена
                                     </a>
                                 </div>
                             </div>
 
-                            <!-- Скрытые поля для передачи employee IDs -->
                             <div id="hiddenEmployeeInputs"></div>
-
                         </form>
                     </div>
                 </div>
@@ -173,7 +162,7 @@
         if (step === 3) {
             selectedEmployeeIds = collectSelectedEmployeeIds();
             if (selectedEmployeeIds.length === 0) return;
-            loadTestsForStep3();
+            loadScenariosForStep3();
         }
         document.getElementById('step1').style.display = step === 1 ? 'block' : 'none';
         document.getElementById('step2').style.display = step === 2 ? 'block' : 'none';
@@ -228,7 +217,7 @@
             document.getElementById('step2NextBtn').disabled = true;
             return;
         }
-        fetch('/employee/chief/assignments/employeesByDepartment/' + deptId)
+        fetch('/employee/chief/simAssignments/employeesByDepartment/' + deptId)
             .then(function(r) { return r.json(); })
             .then(function(employees) {
                 var container = document.getElementById('deptEmployeeContainer');
@@ -272,16 +261,13 @@
     }
 
     function onEmployeeSelected() {
-        var val = document.getElementById('employeeSelect').value;
-        document.getElementById('step2NextBtn').disabled = !val;
+        document.getElementById('step2NextBtn').disabled = !document.getElementById('employeeSelect').value;
     }
 
     function collectSelectedEmployeeIds() {
         var ids = [];
         if (currentMode === 'department') {
-            document.querySelectorAll('#deptEmployeeContainer .employee-checkbox:checked').forEach(function(cb) {
-                ids.push(cb.value);
-            });
+            document.querySelectorAll('#deptEmployeeContainer .employee-checkbox:checked').forEach(function(cb) { ids.push(cb.value); });
         } else {
             var val = document.getElementById('employeeSelect').value;
             if (val) ids.push(val);
@@ -289,7 +275,7 @@
         return ids;
     }
 
-    function loadTestsForStep3() {
+    function loadScenariosForStep3() {
         var summary = '';
         if (currentMode === 'department') {
             var deptName = document.getElementById('departmentSelect').selectedOptions[0].textContent.replace(/^[—\s]+/, '');
@@ -299,26 +285,26 @@
         }
         document.getElementById('step3Summary').innerHTML = summary;
 
-        var testsUrl = currentMode === 'department'
-            ? '/employee/chief/assignments/testsByDepartment/' + selectedDepartmentId
-            : '/employee/chief/assignments/testsByEmployee/' + selectedEmployeeIds[0];
+        var url = currentMode === 'department'
+            ? '/employee/chief/simAssignments/scenariosByDepartment/' + selectedDepartmentId
+            : '/employee/chief/simAssignments/scenariosByEmployee/' + selectedEmployeeIds[0];
 
-        var testSelect = document.getElementById('testSelect');
-        testSelect.innerHTML = '<option value="">— Загрузка... —</option>';
-        document.getElementById('noTestsWarning').style.display = 'none';
+        var select = document.getElementById('scenarioSelect');
+        select.innerHTML = '<option value="">— Загрузка... —</option>';
+        document.getElementById('noScenariosWarning').style.display = 'none';
 
-        fetch(testsUrl)
+        fetch(url)
             .then(function(r) { return r.json(); })
-            .then(function(tests) {
-                testSelect.innerHTML = '<option value="">— Выберите тест —</option>';
-                if (tests.length === 0) {
-                    document.getElementById('noTestsWarning').style.display = 'block';
+            .then(function(scenarios) {
+                select.innerHTML = '<option value="">— Выберите сценарий —</option>';
+                if (scenarios.length === 0) {
+                    document.getElementById('noScenariosWarning').style.display = 'block';
                 } else {
-                    tests.forEach(function(t) {
+                    scenarios.forEach(function(s) {
                         var opt = document.createElement('option');
-                        opt.value = t.id;
-                        opt.textContent = t.title;
-                        testSelect.appendChild(opt);
+                        opt.value = s.id;
+                        opt.textContent = s.title + (s.timeLimit > 0 ? ' (' + s.timeLimit + ' мин)' : '');
+                        select.appendChild(opt);
                     });
                 }
                 validateStep3();
@@ -337,8 +323,8 @@
 
     function validateStep3() {
         var deadlineFilled = document.getElementById('deadlineInput').value !== '';
-        var testSelected = document.getElementById('testSelect').value !== '';
-        document.getElementById('submitBtn').disabled = !(testSelected && deadlineFilled);
+        var scenarioSelected = document.getElementById('scenarioSelect').value !== '';
+        document.getElementById('submitBtn').disabled = !(scenarioSelected && deadlineFilled);
     }
 </script>
 </body>

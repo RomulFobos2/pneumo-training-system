@@ -90,6 +90,7 @@
                         <th style="width: 50px">#</th>
                         <th>Вопрос</th>
                         <th style="width: 150px">Тип</th>
+                        <th style="width: 140px">Раздел теории</th>
                         <th style="width: 90px">Ответов</th>
                         <th style="width: 130px">Действия</th>
                     </tr>
@@ -107,6 +108,12 @@
                         <td>
                             <span class="badge bg-info text-dark" th:text="${question.questionTypeDisplayName}"></span>
                         </td>
+                        <td>
+                            <span th:if="${question.theorySectionTitle != null}"
+                                  class="small" th:text="${question.theorySectionTitle}"></span>
+                            <span th:if="${question.theorySectionTitle == null}"
+                                  class="text-muted">—</span>
+                        </td>
                         <td th:text="${question.answerCount}"></td>
                         <td>
                             <a th:href="@{/employee/chief/tests/editQuestion/{id}(id=${question.id})}"
@@ -121,7 +128,7 @@
                         </td>
                     </tr>
                     <tr th:if="${#lists.isEmpty(allQuestions)}">
-                        <td colspan="6" class="text-center text-muted">Вопросы ещё не добавлены</td>
+                        <td colspan="7" class="text-center text-muted">Вопросы ещё не добавлены</td>
                     </tr>
                     </tbody>
                 </table>

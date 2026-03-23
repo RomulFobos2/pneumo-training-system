@@ -6,6 +6,7 @@ import lombok.Getter;
 public enum AssignmentStatus {
     PENDING("Ожидает"),
     COMPLETED("Выполнено"),
+    FAILED("Не сдан"),
     OVERDUE("Просрочено");
 
     private final String displayName;

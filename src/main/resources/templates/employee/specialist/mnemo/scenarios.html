@@ -23,6 +23,69 @@
                 <p class="text-muted">Выберите сценарий для прохождения</p>
             </div>
 
+            <!-- Назначенные сценарии -->
+            <div th:if="${assignedScenarios != null and !#lists.isEmpty(assignedScenarios)}" class="mb-4">
+                <h5 class="mb-3"><i class="bi bi-clipboard-check"></i> Назначенные сценарии</h5>
+                <div class="row g-3">
+                    <div class="col-12 col-md-6 col-lg-4" th:each="as : ${assignedScenarios}">
+                        <div class="profile-card p-4 h-100 d-flex flex-column border-start border-3"
+                             th:classappend="${as.daysUntilDeadline > 5 ? 'border-success' : (as.daysUntilDeadline >= 1 ? 'border-warning' : 'border-danger')}">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h5 class="mb-0" th:text="${as.scenarioTitle}"></h5>
+                                <span class="badge"
+                                      th:classappend="${as.daysUntilDeadline > 5 ? 'bg-success' : (as.daysUntilDeadline >= 1 ? 'bg-warning text-dark' : 'bg-danger')}"
+                                      th:text="${as.daysUntilDeadline > 0 ? 'Осталось ' + as.daysUntilDeadline + ' дн.' : (as.daysUntilDeadline == 0 ? 'Сегодня!' : 'Просрочено')}"></span>
+                            </div>
+                            <p class="text-muted small flex-grow-1"
+                               th:if="${as.scenarioDescription}"
+                               th:text="${#strings.length(as.scenarioDescription) > 120
+                                   ? #strings.substring(as.scenarioDescription, 0, 120) + '...'
+                                   : as.scenarioDescription}"></p>
+                            <div class="mb-2">
+                                <span class="text-muted small">
+                                    <i class="bi bi-calendar-event"></i> Срок: <span th:text="${#temporals.format(as.deadline, 'dd.MM.yyyy')}"></span>
+                                </span>
+                            </div>
+                            <a th:href="@{/employee/specialist/mnemo/start/{id}(id=${as.scenarioId})}"
+                               class="btn btn-primary btn-sm mt-auto">
+                                <i class="bi bi-play-fill"></i> Начать
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Проваленные назначения -->
+            <div th:if="${failedScenarios != null and !#lists.isEmpty(failedScenarios)}" class="mb-4">
+                <h5 class="mb-3"><i class="bi bi-x-circle text-danger"></i> Не сданные назначения</h5>
+                <div class="row g-3">
+                    <div class="col-12 col-md-6 col-lg-4" th:each="fs : ${failedScenarios}">
+                        <div class="profile-card p-4 h-100 d-flex flex-column border-start border-3 border-danger" style="opacity: 0.8;">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h5 class="mb-0" th:text="${fs.scenarioTitle}"></h5>
+                                <span class="badge bg-danger">Не сдан</span>
+                            </div>
+                            <p class="text-muted small flex-grow-1"
+                               th:if="${fs.scenarioDescription}"
+                               th:text="${#strings.length(fs.scenarioDescription) > 120
+                                   ? #strings.substring(fs.scenarioDescription, 0, 120) + '...'
+                                   : fs.scenarioDescription}"></p>
+                            <div class="mb-2">
+                                <span class="text-muted small">
+                                    <i class="bi bi-calendar-event"></i> Срок: <span th:text="${#temporals.format(fs.deadline, 'dd.MM.yyyy')}"></span>
+                                </span>
+                            </div>
+                            <span class="text-danger small mt-auto">
+                                <i class="bi bi-info-circle"></i> Для повторного прохождения необходимо новое назначение
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Все сценарии -->
+            <h5 class="mb-3"><i class="bi bi-play-circle"></i> Доступные сценарии</h5>
+
             <div th:if="${#lists.isEmpty(scenarios)}" class="profile-card p-4 text-center text-muted">
                 Нет доступных сценариев
             </div>
