@@ -17,4 +17,6 @@ public class TestAssignmentDTO {
     private int totalAssigned;
     private int completedCount;
     private int overdueCount;
+    private int failedCount;
+    private boolean fullyCompleted;
 }

@@ -31,6 +31,8 @@ public interface SimulationAssignmentMapper {
     @Mapping(source = "assignmentEmployee", target = "statusName", qualifiedByName = "statusName")
     @Mapping(source = "status.displayName", target = "statusDisplayName")
     @Mapping(source = "completedSimulationSession.id", target = "completedSimulationSessionId")
+    @Mapping(source = "assignment.deadline", target = "deadline")
+    @Mapping(source = "assignment.createdAt", target = "createdAt")
     SimulationAssignmentEmployeeDTO toEmployeeDTO(SimulationAssignmentEmployee assignmentEmployee);
 
     List<SimulationAssignmentEmployeeDTO> toEmployeeDTOList(List<SimulationAssignmentEmployee> employees);

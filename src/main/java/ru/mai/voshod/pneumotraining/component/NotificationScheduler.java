@@ -5,7 +5,9 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import ru.mai.voshod.pneumotraining.enumeration.AssignmentStatus;
+import ru.mai.voshod.pneumotraining.models.SimulationAssignmentEmployee;
 import ru.mai.voshod.pneumotraining.models.TestAssignmentEmployee;
+import ru.mai.voshod.pneumotraining.repo.SimulationAssignmentEmployeeRepository;
 import ru.mai.voshod.pneumotraining.repo.TestAssignmentEmployeeRepository;
 import ru.mai.voshod.pneumotraining.service.general.NotificationService;
 
@@ -17,11 +19,14 @@ import java.util.List;
 public class NotificationScheduler {
 
     private final TestAssignmentEmployeeRepository testAssignmentEmployeeRepository;
+    private final SimulationAssignmentEmployeeRepository simulationAssignmentEmployeeRepository;
     private final NotificationService notificationService;
 
     public NotificationScheduler(TestAssignmentEmployeeRepository testAssignmentEmployeeRepository,
+                                 SimulationAssignmentEmployeeRepository simulationAssignmentEmployeeRepository,
                                  NotificationService notificationService) {
         this.testAssignmentEmployeeRepository = testAssignmentEmployeeRepository;
+        this.simulationAssignmentEmployeeRepository = simulationAssignmentEmployeeRepository;
         this.notificationService = notificationService;
     }
 
@@ -31,10 +36,15 @@ public class NotificationScheduler {
         log.info("Запуск отправки напоминаний о дедлайнах");
         LocalDate today = LocalDate.now();
         String testLink = "/employee/specialist/testing/availableTests";
+        String simulationLink = "/employee/specialist/mnemo/scenarios";
 
-        sendRemindersForDate(today.plusDays(5), "До дедлайна осталось 5 дней", testLink);
-        sendRemindersForDate(today.plusDays(1), "До дедлайна остался 1 день", testLink);
-        sendRemindersForDate(today, "Сегодня последний день сдачи теста", testLink);
+        sendTestRemindersForDate(today.plusDays(5), "До дедлайна осталось 5 дней", testLink);
+        sendTestRemindersForDate(today.plusDays(1), "До дедлайна остался 1 день", testLink);
+        sendTestRemindersForDate(today, "Сегодня последний день сдачи теста", testLink);
+
+        sendSimulationRemindersForDate(today.plusDays(5), "До дедлайна осталось 5 дней", simulationLink);
+        sendSimulationRemindersForDate(today.plusDays(1), "До дедлайна остался 1 день", simulationLink);
+        sendSimulationRemindersForDate(today, "Сегодня последний день сдачи сценария", simulationLink);
 
         log.info("Отправка напоминаний завершена");
     }
@@ -45,11 +55,14 @@ public class NotificationScheduler {
         log.info("Запуск проверки просроченных назначений");
         LocalDate today = LocalDate.now();
         String testLink = "/employee/specialist/testing/availableTests";
+        String simulationLink = "/employee/specialist/mnemo/scenarios";
 
-        List<TestAssignmentEmployee> overdue = testAssignmentEmployeeRepository
+        List<TestAssignmentEmployee> overdueTests = testAssignmentEmployeeRepository
+                .findByStatusAndAssignment_DeadlineBefore(AssignmentStatus.PENDING, today);
+        List<SimulationAssignmentEmployee> overdueSimulations = simulationAssignmentEmployeeRepository
                 .findByStatusAndAssignment_DeadlineBefore(AssignmentStatus.PENDING, today);
 
-        for (TestAssignmentEmployee ae : overdue) {
+        for (TestAssignmentEmployee ae : overdueTests) {
             ae.setStatus(AssignmentStatus.OVERDUE);
             testAssignmentEmployeeRepository.save(ae);
 
@@ -58,10 +71,20 @@ public class NotificationScheduler {
                     testLink);
         }
 
-        log.info("Помечено просроченных назначений: {}", overdue.size());
+        for (SimulationAssignmentEmployee ae : overdueSimulations) {
+            ae.setStatus(AssignmentStatus.OVERDUE);
+            simulationAssignmentEmployeeRepository.save(ae);
+
+            notificationService.createNotification(ae.getEmployee(),
+                    "Срок сдачи сценария «" + ae.getAssignment().getScenario().getTitle() + "» истёк",
+                    simulationLink);
+        }
+
+        log.info("Помечено просроченных назначений: tests={}, simulations={}",
+                overdueTests.size(), overdueSimulations.size());
     }
 
-    private void sendRemindersForDate(LocalDate deadline, String messagePrefix, String link) {
+    private void sendTestRemindersForDate(LocalDate deadline, String messagePrefix, String link) {
         List<TestAssignmentEmployee> assignments = testAssignmentEmployeeRepository
                 .findByStatusAndAssignment_Deadline(AssignmentStatus.PENDING, deadline);
 
@@ -73,7 +96,23 @@ public class NotificationScheduler {
         }
 
         if (!assignments.isEmpty()) {
-            log.info("Отправлено напоминаний для даты {}: {}", deadline, assignments.size());
+            log.info("Отправлено напоминаний по тестам для даты {}: {}", deadline, assignments.size());
+        }
+    }
+
+    private void sendSimulationRemindersForDate(LocalDate deadline, String messagePrefix, String link) {
+        List<SimulationAssignmentEmployee> assignments = simulationAssignmentEmployeeRepository
+                .findByStatusAndAssignment_Deadline(AssignmentStatus.PENDING, deadline);
+
+        for (SimulationAssignmentEmployee ae : assignments) {
+            String scenarioTitle = ae.getAssignment().getScenario().getTitle();
+            notificationService.createNotification(ae.getEmployee(),
+                    messagePrefix + ": сценарий «" + scenarioTitle + "»",
+                    link);
+        }
+
+        if (!assignments.isEmpty()) {
+            log.info("Отправлено напоминаний по сценариям для даты {}: {}", deadline, assignments.size());
         }
     }
 }

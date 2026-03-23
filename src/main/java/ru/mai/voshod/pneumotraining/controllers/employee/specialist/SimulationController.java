@@ -33,10 +33,26 @@ public class SimulationController {
     }
 
     @GetMapping("/scenarios")
-    public String scenarios(Model model, @AuthenticationPrincipal Employee currentUser) {
+    public String scenarios(Model model,
+                            @AuthenticationPrincipal Employee currentUser,
+                            @RequestParam(required = false) String q,
+                            @RequestParam(required = false) String status,
+                            @RequestParam(required = false) java.util.List<String> hideCompleted,
+                            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate deadlineFrom,
+                            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate deadlineTo,
+                            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate createdFrom,
+                            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate createdTo) {
+        boolean resolvedHideCompleted = hideCompleted == null || hideCompleted.contains("true");
         model.addAttribute("scenarios", simulationService.getAvailableScenarios(currentUser));
-        model.addAttribute("assignedScenarios", simulationAssignmentService.getAssignedScenariosForEmployee(currentUser.getId()));
-        model.addAttribute("failedScenarios", simulationAssignmentService.getFailedScenariosForEmployee(currentUser.getId()));
+        model.addAttribute("myAssignments", simulationAssignmentService.getAssignmentsForEmployee(
+                currentUser.getId(), q, status, resolvedHideCompleted, deadlineFrom, deadlineTo, createdFrom, createdTo));
+        model.addAttribute("q", q);
+        model.addAttribute("status", status);
+        model.addAttribute("hideCompleted", resolvedHideCompleted);
+        model.addAttribute("deadlineFrom", deadlineFrom);
+        model.addAttribute("deadlineTo", deadlineTo);
+        model.addAttribute("createdFrom", createdFrom);
+        model.addAttribute("createdTo", createdTo);
         return "employee/specialist/mnemo/scenarios";
     }
 

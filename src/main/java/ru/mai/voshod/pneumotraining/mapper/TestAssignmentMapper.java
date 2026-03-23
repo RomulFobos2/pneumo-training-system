@@ -31,6 +31,8 @@ public interface TestAssignmentMapper {
     @Mapping(source = "assignmentEmployee", target = "statusName", qualifiedByName = "statusName")
     @Mapping(source = "status.displayName", target = "statusDisplayName")
     @Mapping(source = "completedSession.id", target = "completedSessionId")
+    @Mapping(source = "assignment.deadline", target = "deadline")
+    @Mapping(source = "assignment.createdAt", target = "createdAt")
     TestAssignmentEmployeeDTO toEmployeeDTO(TestAssignmentEmployee assignmentEmployee);
 
     List<TestAssignmentEmployeeDTO> toEmployeeDTOList(List<TestAssignmentEmployee> employees);
