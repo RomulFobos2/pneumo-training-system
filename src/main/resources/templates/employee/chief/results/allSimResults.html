@@ -20,11 +20,11 @@
         <div th:insert="~{blocks/header :: overlay}"></div>
         <main class="container-fluid">
 
-            <div class="profile-card mb-4 d-flex justify-content-between align-items-center">
-                <h1 class="page-title mb-0">Результаты симуляций</h1>
+            <div class="profile-card mb-4">
+                <h1 class="page-title mb-2">Результаты симуляций</h1>
+                <p class="page-subtitle mb-0">Страница показывает результаты по конкретным назначениям мнемосхем. Для каждого назначения доступен свой журнал и Excel.</p>
             </div>
 
-            <!-- Фильтры -->
             <div class="profile-card p-4 mb-3">
                 <form method="get" th:action="@{/employee/chief/results/allSimResults}">
                     <div class="row g-3 align-items-end">
@@ -49,100 +49,64 @@
                             </select>
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label">Дата с</label>
-                            <input type="date" name="dateFrom" class="form-control form-control-sm"
-                                   th:value="${dateFrom}">
+                            <label class="form-label">Создано с</label>
+                            <input type="date" name="dateFrom" class="form-control form-control-sm" th:value="${dateFrom}">
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label">Дата по</label>
-                            <input type="date" name="dateTo" class="form-control form-control-sm"
-                                   th:value="${dateTo}">
+                            <label class="form-label">Создано по</label>
+                            <input type="date" name="dateTo" class="form-control form-control-sm" th:value="${dateTo}">
                         </div>
                         <div class="col-md-2">
                             <button type="submit" class="btn btn-primary btn-sm w-100">
                                 <i class="bi bi-funnel"></i> Фильтр
                             </button>
-                            <a th:href="@{/employee/chief/results/allSimResults}" class="btn btn-outline-secondary btn-sm w-100 mt-1">
-                                Сбросить
-                            </a>
+                            <a th:href="@{/employee/chief/results/allSimResults}" class="btn btn-outline-secondary btn-sm w-100 mt-1">Сбросить</a>
                         </div>
                     </div>
                 </form>
             </div>
 
-            <!-- Таблица результатов -->
             <div class="profile-card p-4 mb-3">
                 <div class="table-responsive">
                     <table id="simResultsTable" class="table table-modern">
                         <thead>
                         <tr>
                             <th style="width: 50px">#</th>
-                            <th data-sortable data-sort-type="text">Сотрудник</th>
-                            <th data-sortable data-sort-type="text">Сценарий</th>
-                            <th style="width: 140px" data-sortable data-sort-type="date">Дата</th>
-                            <th style="width: 120px">Шагов</th>
-                            <th style="width: 120px">Статус</th>
-                            <th style="width: 80px">Действия</th>
+                            <th data-sortable data-sort-type="text">Назначение</th>
+                            <th style="width: 130px" data-sortable data-sort-type="date">Создано</th>
+                            <th style="width: 120px" data-sortable data-sort-type="date">Дедлайн</th>
+                            <th style="width: 100px">Назначено</th>
+                            <th style="width: 100px">Выполнено</th>
+                            <th style="width: 100px">Не выполнено</th>
+                            <th style="width: 100px">Просрочено</th>
+                            <th style="width: 120px">Журнал</th>
                         </tr>
                         </thead>
                         <tbody>
-                        <tr th:each="s, index : ${simSessions}">
+                        <tr th:each="a, index : ${simAssignments}">
                             <td class="row-number" th:text="${index.index + 1}"></td>
-                            <td th:text="${s.employeeFullName}"></td>
                             <td>
-                                <a th:href="@{/employee/chief/results/detailsSimResult/{id}(id=${s.id})}"
-                                   th:text="${s.scenarioTitle}"></a>
+                                <div class="fw-semibold" th:text="${a.assignmentTitle}"></div>
+                                <div class="small text-muted" th:text="'Автор: ' + ${a.createdByFullName}"></div>
                             </td>
-                            <td th:text="${#temporals.format(s.startedAt, 'dd.MM.yyyy HH:mm')}"></td>
-                            <td th:text="${s.completedSteps + ' / ' + s.totalSteps}"></td>
+                            <td th:text="${#temporals.format(a.createdAt, 'dd.MM.yyyy HH:mm')}"></td>
+                            <td th:text="${#temporals.format(a.deadline, 'dd.MM.yyyy')}"></td>
+                            <td th:text="${a.totalAssigned}"></td>
+                            <td><span class="badge bg-success" th:text="${a.completedCount}"></span></td>
+                            <td><span class="badge bg-danger" th:text="${a.failedCount}"></span></td>
+                            <td><span class="badge bg-warning text-dark" th:text="${a.overdueCount}"></span></td>
                             <td>
-                                <span class="badge"
-                                      th:classappend="${s.sessionStatus == 'COMPLETED' ? 'bg-success' : (s.sessionStatus == 'EXPIRED' ? 'bg-warning text-dark' : 'bg-danger')}"
-                                      th:text="${s.sessionStatusDisplayName}"></span>
-                            </td>
-                            <td>
-                                <a th:href="@{/employee/chief/results/detailsSimResult/{id}(id=${s.id})}"
-                                   class="btn btn-sm btn-outline-primary" title="Подробнее">
-                                    <i class="bi bi-eye"></i>
+                                <a th:href="@{/employee/chief/results/simAssignmentJournal/{id}(id=${a.id})}"
+                                   class="btn btn-outline-primary btn-sm">
+                                    <i class="bi bi-table"></i> Журнал
                                 </a>
                             </td>
                         </tr>
-                        <tr th:if="${#lists.isEmpty(simSessions)}">
-                            <td colspan="7" class="text-center text-muted">Результаты не найдены</td>
+                        <tr th:if="${#lists.isEmpty(simAssignments)}">
+                            <td colspan="9" class="text-center text-muted">Назначения не найдены</td>
                         </tr>
                         </tbody>
                     </table>
-                </div>
-            </div>
-
-            <!-- Экспорт -->
-            <div class="profile-card p-4 mb-3">
-                <h5 class="mb-3"><i class="bi bi-file-earmark-excel"></i> Экспорт</h5>
-                <div class="row g-3 align-items-end">
-                    <div class="col-md-4">
-                        <form method="post" th:action="@{/employee/chief/results/exportSimProtocol}">
-                            <label class="form-label">Протокол по сценарию</label>
-                            <div class="input-group input-group-sm">
-                                <select name="scenarioId" class="form-select form-select-sm" required>
-                                    <option value="">Выберите сценарий</option>
-                                    <option th:each="sc : ${allScenarios}"
-                                            th:value="${sc.id}"
-                                            th:text="${sc.title}"></option>
-                                </select>
-                                <button type="submit" class="btn btn-success btn-sm">
-                                    <i class="bi bi-download"></i> Скачать
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                    <div class="col-md-4">
-                        <form method="post" th:action="@{/employee/chief/results/exportSimJournal}">
-                            <label class="form-label">Журнал симуляций</label>
-                            <button type="submit" class="btn btn-success btn-sm">
-                                <i class="bi bi-download"></i> Скачать журнал
-                            </button>
-                        </form>
-                    </div>
                 </div>
             </div>
 

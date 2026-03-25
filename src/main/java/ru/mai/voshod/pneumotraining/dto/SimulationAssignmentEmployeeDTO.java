@@ -15,4 +15,10 @@ public class SimulationAssignmentEmployeeDTO {
     private Long completedSimulationSessionId;
     private LocalDate deadline;
     private LocalDateTime createdAt;
+    private LocalDateTime startedAt;
+    private LocalDateTime finishedAt;
+    private Integer completedSteps;
+    private Integer totalSteps;
+    private String sessionStatus;
+    private String sessionStatusDisplayName;
 }

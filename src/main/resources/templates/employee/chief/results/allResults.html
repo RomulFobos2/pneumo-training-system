@@ -1,7 +1,7 @@
 <!DOCTYPE HTML>
 <html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
-    <title>Результаты | АОС ПИ</title>
+    <title>Результаты тестирования | АОС ПИ</title>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="/css/bootstrap.min.css" rel="stylesheet">
@@ -20,14 +20,11 @@
         <div th:insert="~{blocks/header :: overlay}"></div>
         <main class="container-fluid">
 
-            <div class="profile-card mb-4 d-flex justify-content-between align-items-center">
-                <h1 class="page-title mb-0">Результаты тестирования</h1>
-                <a th:href="@{/employee/chief/results/journal}" class="btn btn-outline-primary btn-sm">
-                    <i class="bi bi-table"></i> Журнал
-                </a>
+            <div class="profile-card mb-4">
+                <h1 class="page-title mb-2">Результаты тестирования</h1>
+                <p class="page-subtitle mb-0">Страница показывает результаты по конкретным назначениям тестов. Журнал и Excel формируются внутри выбранного назначения.</p>
             </div>
 
-            <!-- Фильтры -->
             <div class="profile-card p-4 mb-3">
                 <form method="get" th:action="@{/employee/chief/results/allResults}">
                     <div class="row g-3 align-items-end">
@@ -52,112 +49,68 @@
                             </select>
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label">Дата с</label>
-                            <input type="date" name="dateFrom" class="form-control form-control-sm"
-                                   th:value="${dateFrom}">
+                            <label class="form-label">Создано с</label>
+                            <input type="date" name="dateFrom" class="form-control form-control-sm" th:value="${dateFrom}">
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label">Дата по</label>
-                            <input type="date" name="dateTo" class="form-control form-control-sm"
-                                   th:value="${dateTo}">
+                            <label class="form-label">Создано по</label>
+                            <input type="date" name="dateTo" class="form-control form-control-sm" th:value="${dateTo}">
                         </div>
                         <div class="col-md-2">
                             <button type="submit" class="btn btn-primary btn-sm me-1">
                                 <i class="bi bi-funnel"></i> Фильтр
                             </button>
-                            <a th:href="@{/employee/chief/results/allResults}" class="btn btn-outline-secondary btn-sm">
-                                Сбросить
-                            </a>
+                            <a th:href="@{/employee/chief/results/allResults}" class="btn btn-outline-secondary btn-sm">Сбросить</a>
                         </div>
                     </div>
                 </form>
             </div>
 
-            <!-- Таблица результатов -->
             <div class="profile-card p-4 mb-3">
                 <div class="table-responsive">
                     <table id="resultsTable" class="table table-modern">
                         <thead>
                         <tr>
-                            <th style="width: 40px">#</th>
-                            <th data-sortable data-sort-type="text">Сотрудник</th>
-                            <th data-sortable data-sort-type="text">Тест</th>
-                            <th style="width: 80px">Тип</th>
-                            <th style="width: 130px" data-sortable data-sort-type="date">Дата</th>
-                            <th style="width: 90px">Баллы</th>
-                            <th style="width: 70px" data-sortable data-sort-type="percent">%</th>
-                            <th style="width: 110px">Статус</th>
-                            <th style="width: 110px">Результат</th>
-                            <th style="width: 60px"></th>
+                            <th style="width: 50px">#</th>
+                            <th data-sortable data-sort-type="text">Назначение</th>
+                            <th style="width: 90px">Тип</th>
+                            <th style="width: 130px" data-sortable data-sort-type="date">Создано</th>
+                            <th style="width: 120px" data-sortable data-sort-type="date">Дедлайн</th>
+                            <th style="width: 100px">Назначено</th>
+                            <th style="width: 100px">Выполнено</th>
+                            <th style="width: 100px">Не сдано</th>
+                            <th style="width: 100px">Просрочено</th>
+                            <th style="width: 120px">Журнал</th>
                         </tr>
                         </thead>
                         <tbody>
-                        <tr th:each="s, index : ${sessions}">
+                        <tr th:each="a, index : ${assignments}">
                             <td class="row-number" th:text="${index.index + 1}"></td>
-                            <td th:text="${s.employeeFullName}"></td>
-                            <td th:text="${s.testTitle}"></td>
                             <td>
-                                <span th:if="${s.testIsExam}" class="badge bg-warning text-dark">Экзамен</span>
-                                <span th:if="${!s.testIsExam}" class="text-muted">Тест</span>
-                            </td>
-                            <td th:text="${#temporals.format(s.startedAt, 'dd.MM.yyyy HH:mm')}"></td>
-                            <td th:text="${s.score + '/' + s.totalScore}"></td>
-                            <td th:text="${#numbers.formatDecimal(s.scorePercent, 1, 1) + '%'}"></td>
-                            <td>
-                                <span class="badge"
-                                      th:classappend="${s.sessionStatusName == 'COMPLETED' ? 'bg-success' : 'bg-secondary'}"
-                                      th:text="${s.sessionStatusDisplayName}"></span>
+                                <div class="fw-semibold" th:text="${a.assignmentTitle}"></div>
+                                <div class="small text-muted" th:text="'Автор: ' + ${a.createdByFullName}"></div>
                             </td>
                             <td>
-                                <span th:if="${s.isPassed}" class="badge bg-success">Пройден</span>
-                                <span th:if="${!s.isPassed}" class="badge bg-danger">Не пройден</span>
+                                <span th:if="${a.testTitle != null}" class="badge bg-primary">Тест</span>
                             </td>
+                            <td th:text="${#temporals.format(a.createdAt, 'dd.MM.yyyy HH:mm')}"></td>
+                            <td th:text="${#temporals.format(a.deadline, 'dd.MM.yyyy')}"></td>
+                            <td th:text="${a.totalAssigned}"></td>
+                            <td><span class="badge bg-success" th:text="${a.completedCount}"></span></td>
+                            <td><span class="badge bg-danger" th:text="${a.failedCount}"></span></td>
+                            <td><span class="badge bg-warning text-dark" th:text="${a.overdueCount}"></span></td>
                             <td>
-                                <a th:href="@{/employee/chief/results/detailsResult/{id}(id=${s.id})}"
-                                   class="btn btn-outline-primary btn-sm" title="Подробнее">
-                                    <i class="bi bi-eye"></i>
+                                <a th:href="@{/employee/chief/results/assignmentJournal/{id}(id=${a.id})}"
+                                   class="btn btn-outline-primary btn-sm">
+                                    <i class="bi bi-table"></i> Журнал
                                 </a>
                             </td>
                         </tr>
-                        <tr th:if="${#lists.isEmpty(sessions)}">
-                            <td colspan="10" class="text-center text-muted">Результаты не найдены</td>
+                        <tr th:if="${#lists.isEmpty(assignments)}">
+                            <td colspan="10" class="text-center text-muted">Назначения не найдены</td>
                         </tr>
                         </tbody>
                     </table>
-                </div>
-            </div>
-
-            <!-- Экспорт -->
-            <div class="profile-card p-4 mb-3">
-                <h5 class="mb-3"><i class="bi bi-file-earmark-excel"></i> Экспорт</h5>
-                <div class="row g-3 align-items-end">
-                    <div class="col-md-6">
-                        <form method="post" th:action="@{/employee/chief/results/exportExamProtocol}" class="d-flex align-items-end gap-2">
-                            <div class="flex-grow-1">
-                                <label class="form-label">Протокол экзамена</label>
-                                <select name="testId" class="form-select form-select-sm" required>
-                                    <option value="">Выберите тест</option>
-                                    <option th:each="test : ${allTests}"
-                                            th:if="${test.isExam()}"
-                                            th:value="${test.id}"
-                                            th:text="${test.title}"></option>
-                                </select>
-                            </div>
-                            <button type="submit" class="btn btn-success btn-sm">
-                                <i class="bi bi-download"></i> Экспорт
-                            </button>
-                        </form>
-                    </div>
-                    <div class="col-md-6">
-                        <form method="post" th:action="@{/employee/chief/results/exportJournal}">
-                            <label class="form-label">Электронный журнал</label>
-                            <div>
-                                <button type="submit" class="btn btn-success btn-sm">
-                                    <i class="bi bi-download"></i> Экспорт журнала
-                                </button>
-                            </div>
-                        </form>
-                    </div>
                 </div>
             </div>
 
