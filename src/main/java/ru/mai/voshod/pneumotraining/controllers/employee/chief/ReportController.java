@@ -9,6 +9,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import ru.mai.voshod.pneumotraining.dto.SimulationSessionDTO;
+import ru.mai.voshod.pneumotraining.dto.TestAssignmentDTO;
 import ru.mai.voshod.pneumotraining.dto.TestSessionAnswerDTO;
 import ru.mai.voshod.pneumotraining.dto.TestSessionDTO;
 import ru.mai.voshod.pneumotraining.repo.EmployeeRepository;
@@ -53,7 +54,7 @@ public class ReportController {
                              @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate dateFrom,
                              @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate dateTo,
                              Model model) {
-        model.addAttribute("sessions", reportService.getAllResults(employeeId, testId, dateFrom, dateTo));
+        model.addAttribute("assignments", reportService.getAllResults(employeeId, testId, dateFrom, dateTo));
         model.addAttribute("allEmployees", employeeRepository.findAllByOrderByLastNameAsc());
         model.addAttribute("allTests", testRepository.findAllByOrderByIdDesc());
         model.addAttribute("selectedEmployeeId", employeeId);
@@ -61,6 +62,18 @@ public class ReportController {
         model.addAttribute("dateFrom", dateFrom);
         model.addAttribute("dateTo", dateTo);
         return "employee/chief/results/allResults";
+    }
+
+    @GetMapping("/assignmentJournal/{assignmentId}")
+    public String assignmentJournal(@PathVariable Long assignmentId, Model model) {
+        Optional<TestAssignmentDTO> assignmentOpt = reportService.getAssignmentResult(assignmentId);
+        if (assignmentOpt.isEmpty()) {
+            return "redirect:/employee/chief/results/allResults";
+        }
+
+        model.addAttribute("assignment", assignmentOpt.get());
+        model.addAttribute("assignmentEmployees", reportService.getAssignmentJournal(assignmentId));
+        return "employee/chief/results/assignmentJournal";
     }
 
     @GetMapping("/detailsResult/{sessionId}")
@@ -78,10 +91,8 @@ public class ReportController {
     }
 
     @GetMapping("/journal")
-    public String journal(Model model) {
-        Map<String, Object> journalData = reportService.getJournalData();
-        model.addAttribute("journalData", journalData);
-        return "employee/chief/results/journal";
+    public String journal() {
+        return "redirect:/employee/chief/results/allResults";
     }
 
     @PostMapping("/exportExamProtocol")
@@ -100,14 +111,14 @@ public class ReportController {
     }
 
     @PostMapping("/exportJournal")
-    public ResponseEntity<byte[]> exportJournal() {
-        byte[] data = reportService.exportJournal();
+    public ResponseEntity<byte[]> exportJournal(@RequestParam Long assignmentId) {
+        byte[] data = reportService.exportAssignmentJournal(assignmentId);
         if (data == null) {
             return ResponseEntity.notFound().build();
         }
 
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=journal.xlsx")
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=assignment_journal_" + assignmentId + ".xlsx")
                 .contentType(MediaType.parseMediaType(
                         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
                 .body(data);
@@ -121,7 +132,7 @@ public class ReportController {
                                 @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate dateFrom,
                                 @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate dateTo,
                                 Model model) {
-        model.addAttribute("simSessions", reportService.getAllSimulationResults(employeeId, scenarioId, dateFrom, dateTo));
+        model.addAttribute("simAssignments", reportService.getAllSimulationResults(employeeId, scenarioId, dateFrom, dateTo));
         model.addAttribute("allEmployees", employeeRepository.findAllByOrderByLastNameAsc());
         model.addAttribute("allScenarios", simulationScenarioRepository.findByIsActiveTrueOrderByTitleAsc());
         model.addAttribute("selectedEmployeeId", employeeId);
@@ -129,6 +140,19 @@ public class ReportController {
         model.addAttribute("dateFrom", dateFrom);
         model.addAttribute("dateTo", dateTo);
         return "employee/chief/results/allSimResults";
+    }
+
+    @GetMapping("/simAssignmentJournal/{assignmentId}")
+    public String simAssignmentJournal(@PathVariable Long assignmentId, Model model) {
+        Optional<ru.mai.voshod.pneumotraining.dto.SimulationAssignmentDTO> assignmentOpt =
+                reportService.getSimulationAssignmentResult(assignmentId);
+        if (assignmentOpt.isEmpty()) {
+            return "redirect:/employee/chief/results/allSimResults";
+        }
+
+        model.addAttribute("assignment", assignmentOpt.get());
+        model.addAttribute("assignmentEmployees", reportService.getSimulationAssignmentJournal(assignmentId));
+        return "employee/chief/results/simAssignmentJournal";
     }
 
     @GetMapping("/detailsSimResult/{sessionId}")
@@ -187,14 +211,14 @@ public class ReportController {
     }
 
     @PostMapping("/exportSimJournal")
-    public ResponseEntity<byte[]> exportSimJournal() {
-        byte[] data = reportService.exportSimulationJournal();
+    public ResponseEntity<byte[]> exportSimJournal(@RequestParam Long assignmentId) {
+        byte[] data = reportService.exportSimulationAssignmentJournal(assignmentId);
         if (data == null) {
             return ResponseEntity.notFound().build();
         }
 
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=sim_journal.xlsx")
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=sim_assignment_journal_" + assignmentId + ".xlsx")
                 .contentType(MediaType.parseMediaType(
                         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
                 .body(data);
