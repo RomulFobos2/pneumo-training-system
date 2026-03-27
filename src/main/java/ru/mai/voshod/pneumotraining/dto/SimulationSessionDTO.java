@@ -5,6 +5,7 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 @Data
+@SuppressWarnings("unused")
 public class SimulationSessionDTO {
     private Long id;
     private LocalDateTime startedAt;
@@ -23,4 +24,8 @@ public class SimulationSessionDTO {
     private String currentInstruction;
     private Long schemaId;
     private String stepResults;
+    private String lockedElements;
+    private String warnings;
+    private LocalDateTime stepStartedAt;
+    private Integer currentStepTimeLimit;
 }

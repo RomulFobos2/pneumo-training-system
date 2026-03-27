@@ -148,6 +148,9 @@ public class SimulationScenarioService {
                 step.setStepNumber(dto.getStepNumber());
                 step.setInstructionText(dto.getInstructionText());
                 step.setExpectedState(dto.getExpectedState());
+                step.setFaultEvent(dto.getFaultEvent());
+                step.setForbiddenActions(dto.getForbiddenActions());
+                step.setStepTimeLimit(dto.getStepTimeLimit());
                 step.setScenario(scenario);
                 scenario.getSteps().add(step);
             }

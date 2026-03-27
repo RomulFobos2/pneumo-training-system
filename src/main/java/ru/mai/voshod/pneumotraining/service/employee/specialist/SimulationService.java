@@ -88,11 +88,18 @@ public class SimulationService {
             session.setCompletedSteps(0);
             session.setTotalSteps(scenario.getSteps() != null ? scenario.getSteps().size() : 0);
             session.setCurrentState(objectMapper.writeValueAsString(initialState));
+            session.setLockedElements("[]");
+            session.setWarnings("[]");
+            session.setStepStartedAt(LocalDateTime.now());
 
             if (scenario.getTimeLimit() != null && scenario.getTimeLimit() > 0) {
                 session.setEndTime(session.getStartedAt().plusMinutes(scenario.getTimeLimit()));
             }
 
+            sessionRepository.save(session);
+
+            // Применить аварийное событие первого шага (если есть)
+            applyFaultEvent(session, scenario.getSteps(), 1);
             sessionRepository.save(session);
             log.info("Сессия симуляции создана: id={}", session.getId());
             return Optional.of(session.getId());
@@ -121,12 +128,15 @@ public class SimulationService {
         SimulationSessionDTO dto = SimulationSessionMapper.INSTANCE.toDTO(session);
         dto.setCurrentState(session.getCurrentState());
 
-        // Текущая инструкция
+        // Текущая инструкция + fault-данные
         if (session.getScenario() != null && session.getScenario().getSteps() != null) {
             session.getScenario().getSteps().stream()
                     .filter(s -> s.getStepNumber().equals(session.getCurrentStep()))
                     .findFirst()
-                    .ifPresent(step -> dto.setCurrentInstruction(step.getInstructionText()));
+                    .ifPresent(step -> {
+                        dto.setCurrentInstruction(step.getInstructionText());
+                        dto.setCurrentStepTimeLimit(step.getStepTimeLimit());
+                    });
         }
 
         return Optional.of(dto);
@@ -167,6 +177,23 @@ public class SimulationService {
                 }
             }
 
+            // Проверка: заблокированный элемент (отказ)
+            List<String> locked = deserializeLockedElements(session.getLockedElements());
+            if (locked.contains(elementName)) {
+                Map<String, Object> res = new LinkedHashMap<>();
+                res.put("locked", true);
+                res.put("expired", false);
+                res.put("message", "Элемент неисправен");
+                return Optional.of(res);
+            }
+
+            // Проверка: запрещённые действия
+            Map<String, Object> forbiddenResult = checkForbiddenAction(session, elementName);
+            if (forbiddenResult != null && Boolean.TRUE.equals(forbiddenResult.get("failed"))) {
+                // FAIL — сессия провалена, toggle не выполняется
+                return Optional.of(forbiddenResult);
+            }
+
             Map<String, Boolean> state = deserializeState(session.getCurrentState());
             if (!state.containsKey(elementName)) {
                 log.warn("Элемент не найден в состоянии: {}", elementName);
@@ -182,6 +209,13 @@ public class SimulationService {
             result.put("elementName", elementName);
             result.put("newState", newValue);
             result.put("expired", false);
+
+            // Если было предупреждение (WARNING/TIME_PENALTY) — добавить в ответ
+            if (forbiddenResult != null) {
+                result.put("warning", forbiddenResult.get("message"));
+                result.put("penalty", forbiddenResult.get("penalty"));
+            }
+
             return Optional.of(result);
         } catch (Exception e) {
             log.error("Ошибка toggle элемента", e);
@@ -204,11 +238,28 @@ public class SimulationService {
                 return Optional.empty();
             }
 
-            // Проверка таймера
+            // Проверка глобального таймера
             if (isExpired(session)) {
                 recordStepResult(session, session.getCurrentStep(), false);
                 expireSession(session);
                 return Optional.of(Map.of("status", "expired"));
+            }
+
+            // Проверка таймера шага
+            List<ScenarioStep> allSteps = session.getScenario().getSteps();
+            if (isStepExpired(session, allSteps)) {
+                int stepNum = session.getCurrentStep();
+                recordStepResult(session, stepNum, false);
+                session.setSessionStatus(SimulationSessionStatus.FAILED);
+                session.setFinishedAt(LocalDateTime.now());
+                sessionRepository.save(session);
+                simulationAssignmentService.markAssignmentFailed(
+                        employee.getId(), session.getScenario().getId(), session);
+                log.info("Время на шаг {} истекло: sessionId={}", stepNum, sessionId);
+                Map<String, Object> res = new LinkedHashMap<>();
+                res.put("status", "step_expired");
+                res.put("message", "Время на шаг истекло!");
+                return Optional.of(res);
             }
 
             Map<String, Boolean> currentState = deserializeState(session.getCurrentState());
@@ -274,17 +325,33 @@ public class SimulationService {
                 result.put("status", "completed");
             } else {
                 // Переход к следующему шагу
-                session.setCurrentStep(currentStepNum + 1);
-                sessionRepository.save(session);
-                log.info("Переход к шагу {}: sessionId={}", currentStepNum + 1, sessionId);
-                result.put("status", "advance");
-                result.put("nextStep", currentStepNum + 1);
+                int nextStepNum = currentStepNum + 1;
+                session.setCurrentStep(nextStepNum);
+                session.setStepStartedAt(LocalDateTime.now());
 
-                // Инструкция следующего шага
+                // Применить аварийное событие следующего шага
+                applyFaultEvent(session, steps, nextStepNum);
+                sessionRepository.save(session);
+
+                log.info("Переход к шагу {}: sessionId={}", nextStepNum, sessionId);
+                result.put("status", "advance");
+                result.put("nextStep", nextStepNum);
+                result.put("lockedElements", session.getLockedElements());
+
+                // Инструкция и fault-данные следующего шага
                 steps.stream()
-                        .filter(s -> s.getStepNumber() == currentStepNum + 1)
+                        .filter(s -> s.getStepNumber() == nextStepNum)
                         .findFirst()
-                        .ifPresent(s -> result.put("nextInstruction", s.getInstructionText()));
+                        .ifPresent(s -> {
+                            result.put("nextInstruction", s.getInstructionText());
+                            if (s.getFaultEvent() != null && !s.getFaultEvent().isBlank()) {
+                                result.put("faultEvent", s.getFaultEvent());
+                            }
+                            if (s.getStepTimeLimit() != null && s.getStepTimeLimit() > 0) {
+                                result.put("stepTimeLimit", s.getStepTimeLimit());
+                                result.put("stepStartedAt", session.getStepStartedAt().toString());
+                            }
+                        });
             }
             return Optional.of(result);
         } catch (Exception e) {
@@ -329,6 +396,19 @@ public class SimulationService {
                 .filter(s -> s.getSessionStatus() != SimulationSessionStatus.IN_PROGRESS)
                 .map(SimulationSessionMapper.INSTANCE::toDTO)
                 .toList();
+    }
+
+    // ========== Fault event для текущего шага ==========
+
+    @Transactional(readOnly = true)
+    public String getCurrentStepFaultEvent(Long sessionId, Employee employee) {
+        return sessionRepository.findByIdAndEmployeeId(sessionId, employee.getId())
+                .filter(s -> s.getScenario() != null && s.getScenario().getSteps() != null)
+                .flatMap(session -> session.getScenario().getSteps().stream()
+                        .filter(s -> s.getStepNumber().equals(session.getCurrentStep()))
+                        .findFirst()
+                        .map(ScenarioStep::getFaultEvent))
+                .orElse(null);
     }
 
     // ========== Вспомогательные ==========
@@ -387,5 +467,177 @@ public class SimulationService {
             log.error("Ошибка десериализации состояния: {}", json, e);
             return new LinkedHashMap<>();
         }
+    }
+
+    // ========== Fault-логика ==========
+
+    /**
+     * Применить аварийное событие шага: заблокировать элемент если lockElement=true.
+     */
+    private void applyFaultEvent(SimulationSession session, List<ScenarioStep> steps, int stepNumber) {
+        steps.stream()
+                .filter(s -> s.getStepNumber() == stepNumber)
+                .findFirst()
+                .ifPresent(step -> {
+                    if (step.getFaultEvent() != null && !step.getFaultEvent().isBlank()) {
+                        try {
+                            Map<String, Object> fault = objectMapper.readValue(step.getFaultEvent(),
+                                    new TypeReference<>() {});
+                            Boolean lockElement = (Boolean) fault.getOrDefault("lockElement", false);
+                            String elementName = (String) fault.get("elementName");
+                            if (Boolean.TRUE.equals(lockElement) && elementName != null) {
+                                List<String> locked = deserializeLockedElements(session.getLockedElements());
+                                if (!locked.contains(elementName)) {
+                                    locked.add(elementName);
+                                    session.setLockedElements(objectMapper.writeValueAsString(locked));
+                                }
+                            }
+                            log.info("Аварийное событие на шаге {}: type={}, element={}",
+                                    stepNumber, fault.get("type"), elementName);
+                        } catch (Exception e) {
+                            log.error("Ошибка применения аварийного события для шага {}", stepNumber, e);
+                        }
+                    }
+                });
+    }
+
+    /**
+     * Десериализовать список заблокированных элементов.
+     */
+    private List<String> deserializeLockedElements(String json) {
+        if (json == null || json.isBlank() || json.equals("[]")) return new ArrayList<>();
+        try {
+            return new ArrayList<>(objectMapper.readValue(json, new TypeReference<List<String>>() {}));
+        } catch (Exception e) {
+            log.error("Ошибка десериализации lockedElements: {}", json, e);
+            return new ArrayList<>();
+        }
+    }
+
+    /**
+     * Проверить запрещённые действия на текущем шаге.
+     * Возвращает null — действие разрешено (или нет запрещённых).
+     * Возвращает Map с failed=true — FAIL-штраф (сессия провалена).
+     * Возвращает Map с warning — WARNING/TIME_PENALTY (действие разрешено, но со штрафом).
+     */
+    private Map<String, Object> checkForbiddenAction(SimulationSession session, String elementName) {
+        int currentStepNum = session.getCurrentStep();
+        List<ScenarioStep> steps = session.getScenario().getSteps();
+        ScenarioStep currentStep = steps.stream()
+                .filter(s -> s.getStepNumber() == currentStepNum)
+                .findFirst().orElse(null);
+        if (currentStep == null || currentStep.getForbiddenActions() == null
+                || currentStep.getForbiddenActions().isBlank()) {
+            return null;
+        }
+
+        try {
+            List<Map<String, String>> forbidden = objectMapper.readValue(
+                    currentStep.getForbiddenActions(),
+                    new TypeReference<>() {});
+
+            Map<String, Boolean> state = deserializeState(session.getCurrentState());
+            boolean currentlyOn = Boolean.TRUE.equals(state.get(elementName));
+            String attemptedAction = currentlyOn ? "off" : "on";
+
+            for (Map<String, String> rule : forbidden) {
+                if (elementName.equals(rule.get("elementName"))
+                        && attemptedAction.equals(rule.get("action"))) {
+
+                    String penalty = rule.get("penalty");
+                    String message = rule.get("message");
+
+                    if ("FAIL".equals(penalty)) {
+                        // Немедленный провал сессии
+                        session.setSessionStatus(SimulationSessionStatus.FAILED);
+                        session.setFinishedAt(LocalDateTime.now());
+                        recordStepResult(session, currentStepNum, false);
+                        sessionRepository.save(session);
+                        simulationAssignmentService.markAssignmentFailed(
+                                session.getEmployee().getId(), session.getScenario().getId(), session);
+                        log.info("Запрещённое действие FAIL: element={}, action={}", elementName, attemptedAction);
+
+                        Map<String, Object> result = new LinkedHashMap<>();
+                        result.put("forbidden", true);
+                        result.put("failed", true);
+                        result.put("penalty", "FAIL");
+                        result.put("message", message);
+                        result.put("expired", false);
+                        return result;
+                    } else if ("WARNING".equals(penalty)) {
+                        addWarning(session, currentStepNum, message);
+                        sessionRepository.save(session);
+                        log.info("Запрещённое действие WARNING: element={}, message={}", elementName, message);
+
+                        Map<String, Object> result = new LinkedHashMap<>();
+                        result.put("penalty", "WARNING");
+                        result.put("message", message);
+                        return result;
+                    } else if ("TIME_PENALTY".equals(penalty)) {
+                        applyTimePenalty(session);
+                        addWarning(session, currentStepNum, message + " (штраф −30 сек)");
+                        sessionRepository.save(session);
+                        log.info("Запрещённое действие TIME_PENALTY: element={}", elementName);
+
+                        Map<String, Object> result = new LinkedHashMap<>();
+                        result.put("penalty", "TIME_PENALTY");
+                        result.put("message", message);
+                        return result;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.error("Ошибка проверки запрещённых действий", e);
+        }
+        return null;
+    }
+
+    /**
+     * Добавить предупреждение в лог сессии.
+     */
+    private void addWarning(SimulationSession session, int step, String message) {
+        try {
+            List<Map<String, Object>> warnings;
+            if (session.getWarnings() != null && !session.getWarnings().isBlank()
+                    && !session.getWarnings().equals("[]")) {
+                warnings = new ArrayList<>(objectMapper.readValue(session.getWarnings(),
+                        new TypeReference<>() {}));
+            } else {
+                warnings = new ArrayList<>();
+            }
+            Map<String, Object> entry = new LinkedHashMap<>();
+            entry.put("step", step);
+            entry.put("message", message);
+            entry.put("timestamp", LocalDateTime.now().toString());
+            warnings.add(entry);
+            session.setWarnings(objectMapper.writeValueAsString(warnings));
+        } catch (Exception e) {
+            log.error("Ошибка добавления предупреждения", e);
+        }
+    }
+
+    /**
+     * Вычесть 30 секунд из глобального таймера.
+     */
+    private void applyTimePenalty(SimulationSession session) {
+        if (session.getEndTime() != null) {
+            session.setEndTime(session.getEndTime().minusSeconds(30));
+            log.info("TIME_PENALTY: endTime уменьшен на 30 сек, sessionId={}", session.getId());
+        }
+    }
+
+    /**
+     * Проверка: истёк ли таймер текущего шага.
+     */
+    private boolean isStepExpired(SimulationSession session, List<ScenarioStep> steps) {
+        if (session.getStepStartedAt() == null) return false;
+        return steps.stream()
+                .filter(s -> s.getStepNumber().equals(session.getCurrentStep()))
+                .findFirst()
+                .map(step -> step.getStepTimeLimit() != null
+                        && step.getStepTimeLimit() > 0
+                        && LocalDateTime.now().isAfter(
+                        session.getStepStartedAt().plusSeconds(step.getStepTimeLimit())))
+                .orElse(false);
     }
 }

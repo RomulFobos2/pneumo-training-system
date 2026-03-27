@@ -8,4 +8,7 @@ public class ScenarioStepDTO {
     private Integer stepNumber;
     private String instructionText;
     private String expectedState;
+    private String faultEvent;
+    private String forbiddenActions;
+    private Integer stepTimeLimit;
 }
