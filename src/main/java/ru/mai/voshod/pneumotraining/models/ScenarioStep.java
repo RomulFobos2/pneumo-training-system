@@ -44,6 +44,23 @@ public class ScenarioStep {
     @Column(columnDefinition = "TEXT")
     private String expectedState;
 
+    /**
+     * Аварийное событие при входе в шаг.
+     * JSON: {"type":"ELEMENT_FAILURE","elementName":"VP5","message":"Отказ клапана!","lockElement":true}
+     */
+    @Column(columnDefinition = "TEXT")
+    private String faultEvent;
+
+    /**
+     * Запрещённые действия на шаге.
+     * JSON: [{"elementName":"VP5","action":"on","penalty":"FAIL","message":"Гидроудар!"}]
+     */
+    @Column(columnDefinition = "TEXT")
+    private String forbiddenActions;
+
+    /** Ограничение времени на шаг (секунды). Null = без ограничения */
+    private Integer stepTimeLimit;
+
     /** Сценарий, которому принадлежит шаг */
     @ManyToOne
     @JoinColumn(name = "scenario_id", nullable = false)

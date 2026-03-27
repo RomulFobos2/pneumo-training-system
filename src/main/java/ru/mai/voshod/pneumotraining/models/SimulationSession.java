@@ -71,6 +71,17 @@ public class SimulationSession {
     @Column(columnDefinition = "TEXT")
     private String stepResults;
 
+    /** Заблокированные элементы (из-за неисправности). JSON: ["VP5","NR2"] */
+    @Column(columnDefinition = "TEXT")
+    private String lockedElements;
+
+    /** Лог предупреждений. JSON: [{"step":2,"message":"...","timestamp":"..."}] */
+    @Column(columnDefinition = "TEXT")
+    private String warnings;
+
+    /** Время начала текущего шага (для stepTimeLimit) */
+    private LocalDateTime stepStartedAt;
+
     /** Сотрудник, проходящий симуляцию */
     @ManyToOne
     @JoinColumn(name = "employee_id", nullable = false)

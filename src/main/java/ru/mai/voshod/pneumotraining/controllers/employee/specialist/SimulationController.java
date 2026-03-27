@@ -99,6 +99,10 @@ public class SimulationController {
             model.addAttribute("schemaData", schemaService.loadSchemaData(session.getSchemaId()));
         }
 
+        // Аварийное событие текущего шага (для модалки при загрузке)
+        model.addAttribute("currentFaultEvent",
+                simulationService.getCurrentStepFaultEvent(sessionId, currentUser));
+
         return "employee/specialist/mnemo/simulation";
     }
 

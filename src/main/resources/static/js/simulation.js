@@ -11,6 +11,8 @@ var Simulation = (function () {
     var connectionLines = []; // [{line, src, tgt}]
     var timerInterval = null;
     var tooltipEl = null;
+    var lockedElements = [];       // ["VP5", "NR2"]
+    var stepTimerInterval = null;
 
     /** Русские названия типов элементов */
     var TYPE_LABELS = {
@@ -41,10 +43,29 @@ var Simulation = (function () {
             elementState = simCurrentState;
         }
 
+        // Парсить заблокированные элементы
+        if (typeof simLockedElements === 'string') {
+            try { lockedElements = JSON.parse(simLockedElements); } catch (e) { lockedElements = []; }
+        } else if (Array.isArray(simLockedElements)) {
+            lockedElements = simLockedElements;
+        }
+
         createTooltip();
         renderSchema();
         renderStepProgress();
         startTimer();
+
+        // Показать аварийное событие текущего шага (если есть)
+        if (typeof simFaultEvent === 'string' && simFaultEvent) {
+            try { showFaultEventModal(JSON.parse(simFaultEvent)); } catch (e) { /* ignore */ }
+        } else if (typeof simFaultEvent === 'object' && simFaultEvent !== null) {
+            showFaultEventModal(simFaultEvent);
+        }
+
+        // Запустить таймер шага (если есть)
+        if (typeof simStepTimeLimit === 'number' && simStepTimeLimit > 0 && simStepStartedAt) {
+            startStepTimer(simStepTimeLimit, simStepStartedAt);
+        }
 
         document.getElementById('btnCheckStep').addEventListener('click', checkStep);
     }
@@ -316,11 +337,14 @@ var Simulation = (function () {
                     toggleElement(el.name, group, use, el, valueText);
                 });
 
-                elementGroups[el.name] = { group: group, use: use, el: el, valueText: valueText };
+                elementGroups[el.name] = { group: group, use: use, el: el, valueText: valueText, border: border };
             }
 
             svgEl.appendChild(group);
         });
+
+        // Отметить заблокированные элементы
+        updateLockedVisuals();
 
         // Обновить цвета труб и значения датчиков
         updatePipeColors();
@@ -380,6 +404,15 @@ var Simulation = (function () {
                 showFeedback(name + ': этот элемент нельзя переключить', 'info');
                 return;
             }
+            if (data.locked) {
+                showFeedback(name + ': ' + (data.message || 'элемент неисправен'), 'error');
+                return;
+            }
+            if (data.forbidden && data.failed) {
+                showFaultFailModal(data.message || 'Запрещённое действие привело к аварии!');
+                return;
+            }
+
             elementState[name] = data.newState;
             var state = data.newState ? 'on' : 'off';
             use.setAttribute('href', '#symbol-' + el.elementType + '-' + state);
@@ -388,8 +421,12 @@ var Simulation = (function () {
             updatePipeColors();
             updateSensorValues();
 
-            // Подпись состояния
-            showFeedback(el.name + ': ' + (data.newState ? 'ВКЛ' : 'ВЫКЛ'), 'info');
+            // Предупреждение (WARNING/TIME_PENALTY) — действие выполнено, но со штрафом
+            if (data.warning) {
+                showFeedback('\u26A0 ' + data.warning, 'warning');
+            } else {
+                showFeedback(el.name + ': ' + (data.newState ? 'ВКЛ' : 'ВЫКЛ'), 'info');
+            }
 
             // Visual feedback
             group.classList.add('toggled');
@@ -418,6 +455,7 @@ var Simulation = (function () {
 
             if (data.status === 'completed') {
                 showFeedback('Симуляция успешно завершена!', 'success');
+                stopStepTimer();
                 setTimeout(function () {
                     window.location.href = '/employee/specialist/mnemo/result/' + simSessionId;
                 }, 1500);
@@ -428,6 +466,31 @@ var Simulation = (function () {
                 document.getElementById('instructionText').textContent = data.nextInstruction || '';
                 renderStepProgress();
                 showFeedback('Шаг пройден! Переход к шагу ' + data.nextStep, 'success');
+
+                // Обновить заблокированные элементы
+                if (data.lockedElements) {
+                    try {
+                        lockedElements = typeof data.lockedElements === 'string'
+                            ? JSON.parse(data.lockedElements) : data.lockedElements;
+                    } catch (e) { /* ignore */ }
+                    updateLockedVisuals();
+                }
+
+                // Показать аварийное событие нового шага
+                if (data.faultEvent) {
+                    try {
+                        var fault = typeof data.faultEvent === 'string'
+                            ? JSON.parse(data.faultEvent) : data.faultEvent;
+                        showFaultEventModal(fault);
+                    } catch (e) { /* ignore */ }
+                }
+
+                // Запустить/остановить таймер шага
+                if (data.stepTimeLimit && data.stepStartedAt) {
+                    startStepTimer(data.stepTimeLimit, data.stepStartedAt);
+                } else {
+                    stopStepTimer();
+                }
             } else if (data.status === 'wrong') {
                 highlightError(data.failedElement);
                 showFeedback('Ошибка: элемент «' + data.failedElement + '» — ожидалось ' +
@@ -435,6 +498,12 @@ var Simulation = (function () {
                     (data.actual ? 'ВКЛ' : 'ВЫКЛ'), 'error');
             } else if (data.status === 'expired') {
                 window.location.href = '/employee/specialist/mnemo/result/' + simSessionId;
+            } else if (data.status === 'step_expired') {
+                showFeedback(data.message || 'Время на шаг истекло!', 'error');
+                stopStepTimer();
+                setTimeout(function () {
+                    window.location.href = '/employee/specialist/mnemo/result/' + simSessionId;
+                }, 2000);
             }
         })
         .catch(function () {
@@ -524,14 +593,166 @@ var Simulation = (function () {
     function showFeedback(msg, type) {
         var el = document.getElementById('simFeedback');
         if (!msg) {
-            el.classList.remove('show', 'success', 'error', 'info');
+            el.classList.remove('show', 'success', 'error', 'info', 'warning');
             return;
         }
         el.textContent = msg;
         el.className = 'sim-feedback show ' + type;
-        if (type === 'success' || type === 'info') {
-            setTimeout(function () { el.classList.remove('show'); }, 3000);
+        if (type === 'success' || type === 'info' || type === 'warning') {
+            setTimeout(function () { el.classList.remove('show'); }, 4000);
         }
+    }
+
+    // ========== Fault: заблокированные элементы ==========
+
+    function updateLockedVisuals() {
+        Object.keys(elementGroups).forEach(function (name) {
+            var eg = elementGroups[name];
+            var isLocked = lockedElements.indexOf(name) !== -1;
+            var group = eg.group;
+            var border = eg.border;
+
+            // Удалить старые locked-иконки
+            var oldIcons = group.querySelectorAll('.locked-icon');
+            oldIcons.forEach(function (ic) { ic.remove(); });
+            group.classList.remove('element-locked');
+
+            if (isLocked && border) {
+                group.classList.add('element-locked');
+                var warnIcon = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                warnIcon.setAttribute('x', String((eg.el.width || 60) - 6));
+                warnIcon.setAttribute('y', '14');
+                warnIcon.setAttribute('class', 'locked-icon');
+                warnIcon.textContent = '\u26A0';
+                group.appendChild(warnIcon);
+            }
+        });
+    }
+
+    // ========== Fault: модалка аварийного события ==========
+
+    function showFaultEventModal(fault) {
+        if (!fault) return;
+        var msg = fault.message || 'Аварийное событие!';
+        var elName = fault.elementName || '';
+        var typeName = fault.type || '';
+
+        var TYPE_DISPLAY = {
+            'ELEMENT_FAILURE': 'Отказ элемента',
+            'PRESSURE_ANOMALY': 'Аномалия давления',
+            'OVERHEAT': 'Перегрев',
+            'FALSE_ALARM': 'Ложное срабатывание'
+        };
+
+        var overlay = document.createElement('div');
+        overlay.className = 'modal fade';
+        overlay.setAttribute('tabindex', '-1');
+        overlay.innerHTML =
+            '<div class="modal-dialog modal-dialog-centered">' +
+            '<div class="modal-content border-danger">' +
+            '<div class="modal-header bg-danger text-white">' +
+            '<h5 class="modal-title"><i class="bi bi-exclamation-triangle-fill me-2"></i>Аварийное событие</h5>' +
+            '</div>' +
+            '<div class="modal-body">' +
+            (typeName ? '<p class="mb-1"><strong>' + (TYPE_DISPLAY[typeName] || typeName) + '</strong></p>' : '') +
+            '<p class="mb-1">' + escapeHtml(msg) + '</p>' +
+            (elName ? '<p class="text-muted small mb-0">Элемент: <strong>' + escapeHtml(elName) + '</strong></p>' : '') +
+            '</div>' +
+            '<div class="modal-footer">' +
+            '<button type="button" class="btn btn-danger" data-bs-dismiss="modal">Понятно</button>' +
+            '</div></div></div>';
+
+        document.body.appendChild(overlay);
+        var modal = new bootstrap.Modal(overlay);
+        modal.show();
+        overlay.addEventListener('hidden.bs.modal', function () {
+            overlay.remove();
+        });
+    }
+
+    // ========== Fault: модалка провала ==========
+
+    function showFaultFailModal(message) {
+        var overlay = document.createElement('div');
+        overlay.className = 'modal fade';
+        overlay.setAttribute('tabindex', '-1');
+        overlay.setAttribute('data-bs-backdrop', 'static');
+        overlay.innerHTML =
+            '<div class="modal-dialog modal-dialog-centered">' +
+            '<div class="modal-content border-danger">' +
+            '<div class="modal-header bg-danger text-white">' +
+            '<h5 class="modal-title"><i class="bi bi-x-circle-fill me-2"></i>Симуляция провалена</h5>' +
+            '</div>' +
+            '<div class="modal-body">' +
+            '<p>' + escapeHtml(message) + '</p>' +
+            '<p class="text-muted small mb-0">Запрещённое действие привело к аварийной ситуации.</p>' +
+            '</div>' +
+            '<div class="modal-footer">' +
+            '<button type="button" class="btn btn-danger" id="btnFaultFailOk">Перейти к результатам</button>' +
+            '</div></div></div>';
+
+        document.body.appendChild(overlay);
+        var modal = new bootstrap.Modal(overlay);
+        modal.show();
+        overlay.querySelector('#btnFaultFailOk').addEventListener('click', function () {
+            window.location.href = '/employee/specialist/mnemo/result/' + simSessionId;
+        });
+    }
+
+    // ========== Fault: таймер шага ==========
+
+    function startStepTimer(timeLimitSec, stepStartedAtStr) {
+        stopStepTimer();
+        var timerEl = document.getElementById('stepTimer');
+        var valueEl = document.getElementById('stepTimerValue');
+        if (!timerEl || !valueEl) return;
+        timerEl.style.display = 'inline';
+
+        var deadline = new Date(stepStartedAtStr).getTime() + timeLimitSec * 1000;
+
+        function updateStepTimer() {
+            var diff = deadline - Date.now();
+            if (diff <= 0) {
+                valueEl.textContent = '00:00';
+                timerEl.classList.remove('bg-warning');
+                timerEl.classList.add('bg-danger', 'text-white');
+                stopStepTimer();
+                // Автоматическая проверка шага (сервер вернёт step_expired)
+                checkStep();
+                return;
+            }
+            var m = Math.floor(diff / 60000);
+            var s = Math.floor((diff % 60000) / 1000);
+            valueEl.textContent = pad(m) + ':' + pad(s);
+            if (diff < 10000) {
+                timerEl.classList.remove('bg-warning');
+                timerEl.classList.add('bg-danger', 'text-white');
+            }
+        }
+
+        stepTimerInterval = setInterval(updateStepTimer, 1000);
+        updateStepTimer();
+    }
+
+    function stopStepTimer() {
+        if (stepTimerInterval) {
+            clearInterval(stepTimerInterval);
+            stepTimerInterval = null;
+        }
+        var timerEl = document.getElementById('stepTimer');
+        if (timerEl) {
+            timerEl.style.display = 'none';
+            timerEl.classList.remove('bg-danger', 'text-white');
+            timerEl.classList.add('bg-warning', 'text-dark');
+        }
+    }
+
+    // ========== Утилиты ==========
+
+    function escapeHtml(text) {
+        var div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 
     return { init: init };

@@ -4,7 +4,7 @@
  */
 var ScenarioEditor = (function () {
 
-    var steps = [];         // [{stepNumber, instructionText, expectedState (JSON string)}]
+    var steps = [];         // [{stepNumber, instructionText, expectedState, faultEvent, forbiddenActions, stepTimeLimit}]
     var schemaElements = []; // [{id, name, elementType, posX, posY, width, height, initialState, rotation}]
     var schemaConnections = [];
     var schemaWidth = 1200;
@@ -37,7 +37,10 @@ var ScenarioEditor = (function () {
                     return {
                         stepNumber: s.stepNumber,
                         instructionText: s.instructionText || '',
-                        expectedState: s.expectedState || '{}'
+                        expectedState: s.expectedState || '{}',
+                        faultEvent: s.faultEvent || '',
+                        forbiddenActions: s.forbiddenActions || '[]',
+                        stepTimeLimit: s.stepTimeLimit || null
                     };
                 });
                 renderSteps();
@@ -48,7 +51,10 @@ var ScenarioEditor = (function () {
         steps.push({
             stepNumber: steps.length + 1,
             instructionText: '',
-            expectedState: '{}'
+            expectedState: '{}',
+            faultEvent: '',
+            forbiddenActions: '[]',
+            stepTimeLimit: null
         });
         renderSteps();
         var cards = document.querySelectorAll('.step-card');
@@ -108,6 +114,12 @@ var ScenarioEditor = (function () {
                 stateBadgesHtml += '</div>';
             }
 
+            // Parse fault data for this step
+            var faultObj = parseFaultEvent(step.faultEvent);
+            var forbiddenArr = parseForbiddenActions(step.forbiddenActions);
+            var hasFault = faultObj !== null || forbiddenArr.length > 0 || step.stepTimeLimit;
+            var faultCollapseId = 'faultCollapse_' + index;
+
             card.innerHTML =
                 '<div class="step-actions">' +
                 '  <button class="btn btn-outline-secondary btn-sm btn-move-up" title="Вверх"><i class="bi bi-arrow-up"></i></button>' +
@@ -121,11 +133,23 @@ var ScenarioEditor = (function () {
                 '    <textarea class="form-control mb-2 step-instruction" rows="2" placeholder="Инструкция для оператора...">' +
                        escapeHtml(step.instructionText) +
                 '    </textarea>' +
-                '    <button class="btn btn-outline-info btn-sm btn-set-state">' +
-                '      <i class="bi bi-cpu"></i> Задать ожидаемое состояние' +
-                '      <span class="badge bg-light text-dark ms-1">' + stateKeys.length + '</span>' +
-                '    </button>' +
+                '    <div class="d-flex gap-2 align-items-center flex-wrap">' +
+                '      <button class="btn btn-outline-info btn-sm btn-set-state">' +
+                '        <i class="bi bi-cpu"></i> Ожидаемое состояние' +
+                '        <span class="badge bg-light text-dark ms-1">' + stateKeys.length + '</span>' +
+                '      </button>' +
+                '      <button class="btn btn-sm ' + (hasFault ? 'btn-warning' : 'btn-outline-warning') + ' btn-toggle-fault" type="button"' +
+                '        data-bs-toggle="collapse" data-bs-target="#' + faultCollapseId + '">' +
+                '        <i class="bi bi-exclamation-triangle"></i> Аварийные настройки' +
+                (hasFault ? ' <span class="badge bg-dark text-white ms-1"><i class="bi bi-check-lg"></i></span>' : '') +
+                '      </button>' +
+                '    </div>' +
                     stateBadgesHtml +
+                '    <div class="collapse ' + (hasFault ? 'show' : '') + '" id="' + faultCollapseId + '">' +
+                '      <div class="fault-settings mt-2">' +
+                         buildFaultSettingsHtml(index, step) +
+                '      </div>' +
+                '    </div>' +
                 '  </div>' +
                 '</div>';
 
@@ -137,6 +161,9 @@ var ScenarioEditor = (function () {
             card.querySelector('.step-instruction').addEventListener('input', function () {
                 steps[index].instructionText = this.value;
             });
+
+            // Fault settings listeners
+            bindFaultSettingsListeners(card, index);
 
             // Drag-and-drop reordering
             card.addEventListener('dragstart', function (e) {
@@ -172,7 +199,10 @@ var ScenarioEditor = (function () {
             return {
                 stepNumber: i + 1,
                 instructionText: s.instructionText,
-                expectedState: s.expectedState
+                expectedState: s.expectedState,
+                faultEvent: s.faultEvent || null,
+                forbiddenActions: s.forbiddenActions || null,
+                stepTimeLimit: s.stepTimeLimit || null
             };
         });
 
@@ -374,6 +404,199 @@ var ScenarioEditor = (function () {
         var div = document.createElement('div');
         div.textContent = str;
         return div.innerHTML;
+    }
+
+    // ========== Fault Settings ==========
+
+    function parseFaultEvent(json) {
+        if (!json || json === '') return null;
+        try { return JSON.parse(json); }
+        catch (e) { return null; }
+    }
+
+    function parseForbiddenActions(json) {
+        if (!json || json === '[]' || json === '') return [];
+        try { return JSON.parse(json); }
+        catch (e) { return []; }
+    }
+
+    function buildFaultSettingsHtml(index, step) {
+        var faultObj = parseFaultEvent(step.faultEvent);
+        var forbiddenArr = parseForbiddenActions(step.forbiddenActions);
+
+        var html = '';
+
+        // --- Step time limit ---
+        html += '<div class="row g-2 mb-2">' +
+            '<div class="col-md-4">' +
+            '  <label class="form-label fault-label"><i class="bi bi-hourglass-split"></i> Время на шаг (сек)</label>' +
+            '  <input type="number" class="form-control form-control-sm fault-step-time" min="0" max="9999" placeholder="Без ограничения"' +
+            '    value="' + (step.stepTimeLimit || '') + '">' +
+            '</div>' +
+            '</div>';
+
+        // --- Fault event ---
+        html += '<div class="mb-2">' +
+            '<label class="form-label fault-label"><i class="bi bi-lightning"></i> Аварийное событие</label>' +
+            '<div class="row g-2">' +
+            '  <div class="col-md-3">' +
+            '    <select class="form-select form-select-sm fault-type">' +
+            '      <option value="">— нет —</option>' +
+            '      <option value="ELEMENT_FAILURE"' + (faultObj && faultObj.type === 'ELEMENT_FAILURE' ? ' selected' : '') + '>Отказ элемента</option>' +
+            '      <option value="PRESSURE_ANOMALY"' + (faultObj && faultObj.type === 'PRESSURE_ANOMALY' ? ' selected' : '') + '>Аномалия давления</option>' +
+            '      <option value="OVERHEAT"' + (faultObj && faultObj.type === 'OVERHEAT' ? ' selected' : '') + '>Перегрев</option>' +
+            '      <option value="FALSE_ALARM"' + (faultObj && faultObj.type === 'FALSE_ALARM' ? ' selected' : '') + '>Ложное срабатывание</option>' +
+            '    </select>' +
+            '  </div>' +
+            '  <div class="col-md-2">' +
+            '    <input type="text" class="form-control form-control-sm fault-element" placeholder="Элемент (VP5)"' +
+            '      value="' + escapeHtml(faultObj ? faultObj.elementName || '' : '') + '">' +
+            '  </div>' +
+            '  <div class="col-md-4">' +
+            '    <input type="text" class="form-control form-control-sm fault-message" placeholder="Сообщение оператору"' +
+            '      value="' + escapeHtml(faultObj ? faultObj.message || '' : '') + '">' +
+            '  </div>' +
+            '  <div class="col-md-3">' +
+            '    <div class="form-check mt-1">' +
+            '      <input type="checkbox" class="form-check-input fault-lock"' + (faultObj && faultObj.lockElement ? ' checked' : '') + '>' +
+            '      <label class="form-check-label" style="font-size:0.85rem;">Заблокировать элемент</label>' +
+            '    </div>' +
+            '  </div>' +
+            '</div>' +
+            '</div>';
+
+        // --- Forbidden actions ---
+        html += '<div class="mb-1">' +
+            '<label class="form-label fault-label"><i class="bi bi-ban"></i> Запрещённые действия</label>' +
+            '<div class="forbidden-actions-list" data-step-index="' + index + '">';
+
+        forbiddenArr.forEach(function (fa, faIndex) {
+            html += buildForbiddenActionRowHtml(index, faIndex, fa);
+        });
+
+        html += '</div>' +
+            '<button type="button" class="btn btn-outline-secondary btn-sm mt-1 btn-add-forbidden">' +
+            '  <i class="bi bi-plus"></i> Добавить запрет' +
+            '</button>' +
+            '</div>';
+
+        return html;
+    }
+
+    function buildForbiddenActionRowHtml(stepIndex, faIndex, fa) {
+        fa = fa || { elementName: '', action: 'on', penalty: 'FAIL', message: '' };
+        return '<div class="row g-1 mb-1 forbidden-action-row">' +
+            '<div class="col-md-2">' +
+            '  <input type="text" class="form-control form-control-sm fa-element" placeholder="Элемент" value="' + escapeHtml(fa.elementName) + '">' +
+            '</div>' +
+            '<div class="col-md-2">' +
+            '  <select class="form-select form-select-sm fa-action">' +
+            '    <option value="on"' + (fa.action === 'on' ? ' selected' : '') + '>Включить (on)</option>' +
+            '    <option value="off"' + (fa.action === 'off' ? ' selected' : '') + '>Выключить (off)</option>' +
+            '  </select>' +
+            '</div>' +
+            '<div class="col-md-2">' +
+            '  <select class="form-select form-select-sm fa-penalty">' +
+            '    <option value="FAIL"' + (fa.penalty === 'FAIL' ? ' selected' : '') + '>Провал</option>' +
+            '    <option value="WARNING"' + (fa.penalty === 'WARNING' ? ' selected' : '') + '>Предупреждение</option>' +
+            '    <option value="TIME_PENALTY"' + (fa.penalty === 'TIME_PENALTY' ? ' selected' : '') + '>Штраф времени</option>' +
+            '  </select>' +
+            '</div>' +
+            '<div class="col-md-4">' +
+            '  <input type="text" class="form-control form-control-sm fa-message" placeholder="Сообщение" value="' + escapeHtml(fa.message) + '">' +
+            '</div>' +
+            '<div class="col-md-2">' +
+            '  <button type="button" class="btn btn-outline-danger btn-sm btn-remove-forbidden" title="Удалить"><i class="bi bi-x"></i></button>' +
+            '</div>' +
+            '</div>';
+    }
+
+    function bindFaultSettingsListeners(card, index) {
+        // Step time limit
+        var timeInput = card.querySelector('.fault-step-time');
+        if (timeInput) {
+            timeInput.addEventListener('change', function () {
+                var val = parseInt(this.value);
+                steps[index].stepTimeLimit = (val > 0) ? val : null;
+            });
+        }
+
+        // Fault event fields
+        var faultType = card.querySelector('.fault-type');
+        var faultElement = card.querySelector('.fault-element');
+        var faultMessage = card.querySelector('.fault-message');
+        var faultLock = card.querySelector('.fault-lock');
+
+        function updateFaultEvent() {
+            if (!faultType) return;
+            var type = faultType.value;
+            if (!type) {
+                steps[index].faultEvent = '';
+                return;
+            }
+            steps[index].faultEvent = JSON.stringify({
+                type: type,
+                elementName: faultElement.value.trim(),
+                message: faultMessage.value.trim(),
+                lockElement: faultLock.checked
+            });
+        }
+
+        if (faultType) faultType.addEventListener('change', updateFaultEvent);
+        if (faultElement) faultElement.addEventListener('input', updateFaultEvent);
+        if (faultMessage) faultMessage.addEventListener('input', updateFaultEvent);
+        if (faultLock) faultLock.addEventListener('change', updateFaultEvent);
+
+        // Forbidden actions: add button
+        var addBtn = card.querySelector('.btn-add-forbidden');
+        if (addBtn) {
+            addBtn.addEventListener('click', function () {
+                var list = card.querySelector('.forbidden-actions-list');
+                var newRow = document.createElement('div');
+                newRow.innerHTML = buildForbiddenActionRowHtml(index, list.children.length, null);
+                var row = newRow.firstChild;
+                list.appendChild(row);
+                bindForbiddenRowListeners(card, index, row);
+                updateForbiddenActions(card, index);
+            });
+        }
+
+        // Existing forbidden action rows
+        var rows = card.querySelectorAll('.forbidden-action-row');
+        rows.forEach(function (row) {
+            bindForbiddenRowListeners(card, index, row);
+        });
+    }
+
+    function bindForbiddenRowListeners(card, stepIndex, row) {
+        var removeBtn = row.querySelector('.btn-remove-forbidden');
+        if (removeBtn) {
+            removeBtn.addEventListener('click', function () {
+                row.remove();
+                updateForbiddenActions(card, stepIndex);
+            });
+        }
+
+        var inputs = row.querySelectorAll('input, select');
+        inputs.forEach(function (inp) {
+            inp.addEventListener('change', function () { updateForbiddenActions(card, stepIndex); });
+            inp.addEventListener('input', function () { updateForbiddenActions(card, stepIndex); });
+        });
+    }
+
+    function updateForbiddenActions(card, stepIndex) {
+        var rows = card.querySelectorAll('.forbidden-action-row');
+        var arr = [];
+        rows.forEach(function (row) {
+            var el = row.querySelector('.fa-element').value.trim();
+            var action = row.querySelector('.fa-action').value;
+            var penalty = row.querySelector('.fa-penalty').value;
+            var message = row.querySelector('.fa-message').value.trim();
+            if (el) {
+                arr.push({ elementName: el, action: action, penalty: penalty, message: message });
+            }
+        });
+        steps[stepIndex].forbiddenActions = arr.length > 0 ? JSON.stringify(arr) : '[]';
     }
 
     // ========== Public API ==========
