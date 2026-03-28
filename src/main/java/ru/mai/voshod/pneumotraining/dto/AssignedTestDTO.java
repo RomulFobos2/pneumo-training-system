@@ -14,7 +14,6 @@ public class AssignedTestDTO {
     private int questionCount;
     private int timeLimit;
     private int passingScore;
-    private boolean isExam;
     private LocalDate deadline;
     private LocalDateTime createdAt;
     private String statusName;

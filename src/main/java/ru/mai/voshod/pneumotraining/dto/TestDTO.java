@@ -11,7 +11,6 @@ public class TestDTO {
     private String description;
     private Integer timeLimit;
     private Integer passingScore;
-    private boolean isExam;
     private boolean availableWithoutAssignment;
     private Long createdById;
     private String createdByFullName;

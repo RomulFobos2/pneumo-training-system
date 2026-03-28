@@ -50,10 +50,6 @@ public class Test {
     @Column(nullable = false)
     private Integer passingScore = 60;
 
-    /** Является ли тест экзаменом (отображается в протоколах) */
-    @Column(nullable = false)
-    private boolean isExam = false;
-
     /** Доступен ли тест без назначения (для свободного прохождения) */
     @Column(nullable = false)
     private boolean availableWithoutAssignment = false;

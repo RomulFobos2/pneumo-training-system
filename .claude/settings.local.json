@@ -29,7 +29,12 @@
       "Bash(cmd /c \"git status\")",
       "Bash(cmd /c \"git status --short\")",
       "Bash(cmd /c \"git branch --show-current && git status -s && git diff --stat\")",
-      "Bash(ls -la target/*.jar)"
+      "Bash(ls -la target/*.jar)",
+      "Bash(grep -rn isExam C:UsersRomulDesktopDiplom_2_26pneumo-training-systemsrcmainjavarumaivoshodpneumotraining --include=*.java)",
+      "Bash(grep -rn [Ee]xam C:UsersRomulDesktopDiplom_2_26pneumo-training-systemsrcmainjavarumaivoshodpneumotraining --include=*.java)",
+      "mcp__plugin_context-mode_context-mode__execute",
+      "Bash(grep -n \"exportExamProtocol\\\\|exportProtocol\\\\|ПРОТОКОЛ\\\\|Протокол\" src/main/resources/templates/employee/chief/results/*.html)",
+      "Bash(grep -n \"isExam\\\\|testIsExam\" src/main/resources/templates/employee/chief/tests/*.html)"
     ]
   }
 }

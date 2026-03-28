@@ -51,14 +51,13 @@ public class TestController {
                           @RequestParam(required = false) String inputDescription,
                           @RequestParam Integer inputTimeLimit,
                           @RequestParam Integer inputPassingScore,
-                          @RequestParam(required = false, defaultValue = "false") boolean inputIsExam,
                           @RequestParam(required = false, defaultValue = "false") boolean inputAllowBackNavigation,
                           @RequestParam(required = false, defaultValue = "false") boolean inputAvailableWithoutAssignment,
                           @RequestParam(required = false) List<Long> inputDepartmentIds,
                           @AuthenticationPrincipal Employee currentUser,
                           Model model) {
         Optional<Long> result = testService.saveTest(inputTitle, inputDescription,
-                inputTimeLimit, inputPassingScore, inputIsExam, inputAllowBackNavigation,
+                inputTimeLimit, inputPassingScore, inputAllowBackNavigation,
                 inputAvailableWithoutAssignment, inputDepartmentIds, currentUser);
         if (result.isEmpty()) {
             model.addAttribute("testError", "Ошибка при сохранении. Возможно, название уже занято.");
@@ -100,13 +99,12 @@ public class TestController {
                            @RequestParam(required = false) String inputDescription,
                            @RequestParam Integer inputTimeLimit,
                            @RequestParam Integer inputPassingScore,
-                           @RequestParam(required = false, defaultValue = "false") boolean inputIsExam,
                            @RequestParam(required = false, defaultValue = "false") boolean inputAllowBackNavigation,
                            @RequestParam(required = false, defaultValue = "false") boolean inputAvailableWithoutAssignment,
                            @RequestParam(required = false) List<Long> inputDepartmentIds,
                            RedirectAttributes redirectAttributes) {
         Optional<Long> result = testService.editTest(id, inputTitle, inputDescription,
-                inputTimeLimit, inputPassingScore, inputIsExam, inputAllowBackNavigation,
+                inputTimeLimit, inputPassingScore, inputAllowBackNavigation,
                 inputAvailableWithoutAssignment, inputDepartmentIds);
         if (result.isEmpty()) {
             redirectAttributes.addFlashAttribute("testError", "Ошибка при сохранении изменений.");

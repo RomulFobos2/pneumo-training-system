@@ -24,7 +24,6 @@
                     <!-- Заголовок -->
                     <div class="profile-card p-4 mb-3 text-center">
                         <h1 class="page-title mb-2" th:text="${sessionDTO.testTitle}"></h1>
-                        <span class="badge bg-warning text-dark me-1" th:if="${sessionDTO.testIsExam}">Экзамен</span>
                         <span class="badge"
                               th:classappend="${sessionDTO.sessionStatusName == 'COMPLETED' ? 'bg-success' : 'bg-secondary'}"
                               th:text="${sessionDTO.sessionStatusDisplayName}"></span>
