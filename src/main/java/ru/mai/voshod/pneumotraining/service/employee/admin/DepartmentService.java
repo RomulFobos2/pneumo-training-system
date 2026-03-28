@@ -201,14 +201,19 @@ public class DepartmentService {
 
     private DepartmentDTO buildTree(Department dept, int level) {
         DepartmentDTO dto = DepartmentMapper.INSTANCE.toDTO(dept);
-        dto.setEmployeeCount(dept.getEmployees().size());
+        int ownEmployees = dept.getEmployees().size();
         dto.setLevel(level);
+        int childrenTotal = 0;
         List<Department> children = dept.getChildren();
         if (children != null) {
-            children.stream()
-                    .sorted(Comparator.comparing(Department::getName))
-                    .forEach(child -> dto.getChildren().add(buildTree(child, level + 1)));
+            for (Department child : children.stream()
+                    .sorted(Comparator.comparing(Department::getName)).toList()) {
+                DepartmentDTO childDto = buildTree(child, level + 1);
+                dto.getChildren().add(childDto);
+                childrenTotal += childDto.getEmployeeCount();
+            }
         }
+        dto.setEmployeeCount(ownEmployees + childrenTotal);
         return dto;
     }
 

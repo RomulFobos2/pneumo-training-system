@@ -195,7 +195,7 @@ public class AnalyticsService {
                 .toList();
         data.put("hardestQuestions", hardestQuestions);
 
-        // === Активность по дням ===
+        // === Активность по дням (тесты) ===
         DateTimeFormatter dayFmt = DateTimeFormatter.ofPattern("dd.MM");
         Map<LocalDate, List<TestSession>> byDay = filteredSessions.stream()
                 .collect(Collectors.groupingBy(s -> s.getStartedAt().toLocalDate()));
@@ -215,6 +215,71 @@ public class AnalyticsService {
             dailyActivity.add(dayData);
         }
         data.put("dailyActivity", dailyActivity);
+
+        // === Статистика по сценариям симуляций ===
+        if (employeeId != null) {
+            filteredSimSessions = filteredSimSessions.stream()
+                    .filter(s -> s.getEmployee().getId().equals(employeeId))
+                    .toList();
+        }
+
+        Map<Long, List<SimulationSession>> byScenario = filteredSimSessions.stream()
+                .collect(Collectors.groupingBy(s -> s.getScenario().getId()));
+
+        List<Map<String, Object>> simStats = new ArrayList<>();
+        byScenario.forEach((sid, sessions) -> {
+            Map<String, Object> stat = new HashMap<>();
+            stat.put("title", sessions.get(0).getScenario().getTitle());
+            stat.put("total", sessions.size());
+            long completed = sessions.stream()
+                    .filter(s -> s.getSessionStatus() == SimulationSessionStatus.COMPLETED).count();
+            stat.put("completed", completed);
+            stat.put("passRate", sessions.isEmpty() ? 0.0
+                    : Math.round((completed * 1000.0) / sessions.size()) / 10.0);
+            simStats.add(stat);
+        });
+        simStats.sort((a, b) -> Integer.compare((int) b.get("total"), (int) a.get("total")));
+        data.put("simStats", simStats);
+
+        // === Топ-5 сотрудников по симуляциям ===
+        Map<Long, List<SimulationSession>> simByEmployee = filteredSimSessions.stream()
+                .collect(Collectors.groupingBy(s -> s.getEmployee().getId()));
+
+        List<Map<String, Object>> simTopPerformers = simByEmployee.entrySet().stream()
+                .map(entry -> {
+                    List<SimulationSession> sessions = entry.getValue();
+                    Map<String, Object> perf = new HashMap<>();
+                    perf.put("fullName", sessions.get(0).getEmployee().getFullName());
+                    perf.put("simCount", sessions.size());
+                    long completed = sessions.stream()
+                            .filter(s -> s.getSessionStatus() == SimulationSessionStatus.COMPLETED).count();
+                    double rate = sessions.isEmpty() ? 0.0 : (completed * 100.0) / sessions.size();
+                    perf.put("passRate", Math.round(rate * 10.0) / 10.0);
+                    return perf;
+                })
+                .sorted((a, b) -> Double.compare((double) b.get("passRate"), (double) a.get("passRate")))
+                .limit(5)
+                .toList();
+        data.put("simTopPerformers", simTopPerformers);
+
+        // === Активность по дням (симуляции) ===
+        Map<LocalDate, List<SimulationSession>> simByDay = filteredSimSessions.stream()
+                .collect(Collectors.groupingBy(s -> s.getStartedAt().toLocalDate()));
+
+        List<Map<String, Object>> simDailyActivity = new ArrayList<>();
+        for (int i = 0; i < totalDays; i++) {
+            LocalDate day = effectiveFrom.plusDays(i);
+            List<SimulationSession> daySessions = simByDay.getOrDefault(day, List.of());
+            Map<String, Object> dayData = new HashMap<>();
+            dayData.put("date", day.format(dayFmt));
+            dayData.put("total", daySessions.size());
+            dayData.put("completed", daySessions.stream()
+                    .filter(s -> s.getSessionStatus() == SimulationSessionStatus.COMPLETED).count());
+            dayData.put("failed", daySessions.stream()
+                    .filter(s -> s.getSessionStatus() != SimulationSessionStatus.COMPLETED).count());
+            simDailyActivity.add(dayData);
+        }
+        data.put("simDailyActivity", simDailyActivity);
 
         // Данные для фильтров
         data.put("allEmployees", employeeRepository.findAllByOrderByLastNameAsc());

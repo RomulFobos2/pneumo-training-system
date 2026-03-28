@@ -125,7 +125,7 @@ public class ResultService {
             // Шапка
             Row r0 = sheet.createRow(0);
             Cell c0 = r0.createCell(0);
-            c0.setCellValue("Отчёт самотестирования");
+            c0.setCellValue("Отчёт по результатам тестирования");
             c0.setCellStyle(boldStyle);
 
             sheet.createRow(2).createCell(0).setCellValue("Сотрудник:");

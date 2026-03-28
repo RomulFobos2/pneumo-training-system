@@ -110,7 +110,14 @@ public class TestQuestionService {
 
             TestQuestion question = new TestQuestion();
             question.setQuestionText(questionText);
-            question.setSortOrder(sortOrder);
+            if (sortOrder != null) {
+                question.setSortOrder(sortOrder);
+            } else {
+                int maxOrder = testOptional.get().getQuestions().stream()
+                        .mapToInt(TestQuestion::getSortOrder)
+                        .max().orElse(0);
+                question.setSortOrder(maxOrder + 1);
+            }
             question.setQuestionType(questionType);
             question.setTest(testOptional.get());
             if (theorySectionId != null) {

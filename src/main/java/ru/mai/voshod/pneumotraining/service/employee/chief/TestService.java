@@ -150,13 +150,15 @@ public class TestService {
 
     /**
      * Тесты, привязанные к подразделению с учётом наследования (для назначений).
-     * Если тест назначен на родительское подразделение, он доступен дочерним.
+     * Исключает тесты с «Доступен без назначения» — им назначение не нужно.
      */
     @Transactional(readOnly = true)
     public List<TestDTO> getTestsForDepartment(Long departmentId) {
         List<Long> ancestorIds = departmentService.getAncestorIds(departmentId);
         List<Test> tests = testRepository.findByDepartmentIds(ancestorIds);
-        return tests.stream().map(this::toTestDTO).toList();
+        return tests.stream()
+                .filter(t -> !t.isAvailableWithoutAssignment())
+                .map(this::toTestDTO).toList();
     }
 
     @Transactional(readOnly = true)
