@@ -7,6 +7,7 @@ import org.springframework.transaction.interceptor.TransactionAspectSupport;
 import ru.mai.voshod.pneumotraining.dto.DepartmentDTO;
 import ru.mai.voshod.pneumotraining.dto.ScenarioStepDTO;
 import ru.mai.voshod.pneumotraining.dto.SimulationScenarioDTO;
+import ru.mai.voshod.pneumotraining.enumeration.ScenarioType;
 import ru.mai.voshod.pneumotraining.mapper.DepartmentMapper;
 import ru.mai.voshod.pneumotraining.mapper.ScenarioStepMapper;
 import ru.mai.voshod.pneumotraining.mapper.SimulationScenarioMapper;
@@ -61,8 +62,9 @@ public class SimulationScenarioService {
     @Transactional
     public Optional<Long> saveScenario(String title, String description, Integer timeLimit,
                                         Long schemaId, boolean isActive, List<Long> departmentIds,
+                                        ScenarioType scenarioType, Long parentScenarioId,
                                         Employee createdBy) {
-        log.info("Создание сценария: title={}, schemaId={}", title, schemaId);
+        log.info("Создание сценария: title={}, schemaId={}, type={}", title, schemaId, scenarioType);
         try {
             Optional<MnemoSchema> schemaOpt = schemaRepository.findById(schemaId);
             if (schemaOpt.isEmpty()) {
@@ -77,6 +79,11 @@ public class SimulationScenarioService {
             scenario.setActive(isActive);
             scenario.setSchema(schemaOpt.get());
             scenario.setCreatedBy(createdBy);
+            scenario.setScenarioType(scenarioType != null ? scenarioType : ScenarioType.NORMAL);
+
+            if (scenarioType == ScenarioType.FAULT && parentScenarioId != null) {
+                scenarioRepository.findById(parentScenarioId).ifPresent(scenario::setParentScenario);
+            }
 
             setAllowedDepartments(scenario, departmentIds);
             scenarioRepository.save(scenario);
@@ -91,7 +98,8 @@ public class SimulationScenarioService {
 
     @Transactional
     public Optional<Long> editScenario(Long id, String title, String description, Integer timeLimit,
-                                        Long schemaId, boolean isActive, List<Long> departmentIds) {
+                                        Long schemaId, boolean isActive, List<Long> departmentIds,
+                                        ScenarioType scenarioType, Long parentScenarioId) {
         log.info("Редактирование сценария: id={}", id);
         try {
             Optional<SimulationScenario> scenarioOpt = scenarioRepository.findById(id);
@@ -102,6 +110,13 @@ public class SimulationScenarioService {
             scenario.setDescription(description);
             scenario.setTimeLimit(timeLimit != null ? timeLimit : 0);
             scenario.setActive(isActive);
+            scenario.setScenarioType(scenarioType != null ? scenarioType : ScenarioType.NORMAL);
+
+            if (scenarioType == ScenarioType.FAULT && parentScenarioId != null) {
+                scenarioRepository.findById(parentScenarioId).ifPresent(scenario::setParentScenario);
+            } else {
+                scenario.setParentScenario(null);
+            }
 
             if (schemaId != null) {
                 schemaRepository.findById(schemaId).ifPresent(scenario::setSchema);
@@ -170,9 +185,10 @@ public class SimulationScenarioService {
         if (employee.getDepartment() == null) return List.of();
 
         List<Long> ancestorIds = departmentService.getAncestorIds(employee.getDepartment().getId());
-        List<SimulationScenario> allActive = scenarioRepository.findByIsActiveTrueOrderByTitleAsc();
+        List<SimulationScenario> allActiveNormal =
+                scenarioRepository.findByIsActiveTrueAndScenarioTypeOrderByTitleAsc(ScenarioType.NORMAL);
 
-        return allActive.stream()
+        return allActiveNormal.stream()
                 .filter(s -> s.getAllowedDepartments().stream()
                         .anyMatch(d -> ancestorIds.contains(d.getId())))
                 .map(this::toScenarioDTO)
@@ -187,12 +203,26 @@ public class SimulationScenarioService {
     @Transactional(readOnly = true)
     public List<SimulationScenarioDTO> getScenariosForDepartment(Long departmentId) {
         List<Long> ancestorIds = departmentService.getAncestorIds(departmentId);
-        List<SimulationScenario> allActive = scenarioRepository.findByIsActiveTrueOrderByTitleAsc();
-        return allActive.stream()
+        List<SimulationScenario> allActiveNormal =
+                scenarioRepository.findByIsActiveTrueAndScenarioTypeOrderByTitleAsc(ScenarioType.NORMAL);
+        return allActiveNormal.stream()
                 .filter(s -> s.getAllowedDepartments().stream()
                         .anyMatch(d -> ancestorIds.contains(d.getId())))
                 .map(this::toScenarioDTO)
                 .toList();
+    }
+
+    /** Получить все штатные сценарии (для выбора родителя в форме аварийного сценария) */
+    @Transactional(readOnly = true)
+    public List<SimulationScenarioDTO> getNormalScenarios() {
+        return scenarioRepository.findByScenarioTypeOrderByTitleAsc(ScenarioType.NORMAL)
+                .stream().map(this::toScenarioDTO).toList();
+    }
+
+    /** Получить активные аварийные сценарии для штатного */
+    @Transactional(readOnly = true)
+    public List<SimulationScenario> getActiveFaultScenarios(Long parentScenarioId) {
+        return scenarioRepository.findByParentScenarioIdAndIsActiveTrue(parentScenarioId);
     }
 
     // ========== Вспомогательные ==========
@@ -211,6 +241,7 @@ public class SimulationScenarioService {
         dto.setDepartmentIds(scenario.getAllowedDepartments().stream()
                 .map(Department::getId).collect(Collectors.toList()));
         dto.setAllowedDepartments(DepartmentMapper.INSTANCE.toDTOList(scenario.getAllowedDepartments()));
+        dto.setFaultScenarioCount(scenario.getFaultScenarios() != null ? scenario.getFaultScenarios().size() : 0);
         return dto;
     }
 }

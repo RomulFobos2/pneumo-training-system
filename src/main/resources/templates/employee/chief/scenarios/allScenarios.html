@@ -37,6 +37,7 @@
                         <tr>
                             <th style="width: 50px">#</th>
                             <th>Название</th>
+                            <th style="width: 110px">Тип</th>
                             <th>Схема</th>
                             <th style="width: 90px">Шагов</th>
                             <th style="width: 100px">Время</th>
@@ -50,6 +51,15 @@
                             <td>
                                 <a th:href="@{/employee/chief/scenarios/detailsScenario/{id}(id=${s.id})}"
                                    th:text="${s.title}"></a>
+                                <small th:if="${s.parentScenarioTitle != null}" class="d-block text-muted">
+                                    &rarr; <span th:text="${s.parentScenarioTitle}"></span>
+                                </small>
+                            </td>
+                            <td>
+                                <span th:if="${s.scenarioTypeName == 'NORMAL'}" class="badge bg-primary">Штатный</span>
+                                <span th:if="${s.scenarioTypeName == 'FAULT'}" class="badge bg-warning text-dark">Аварийный</span>
+                                <small th:if="${s.scenarioTypeName == 'NORMAL' and s.faultScenarioCount > 0}"
+                                       class="d-block text-muted" th:text="'(' + ${s.faultScenarioCount} + ' авар.)'"></small>
                             </td>
                             <td th:text="${s.schemaTitle}"></td>
                             <td th:text="${s.stepCount}"></td>
@@ -80,7 +90,7 @@
                             </td>
                         </tr>
                         <tr th:if="${#lists.isEmpty(allScenarios)}">
-                            <td colspan="7" class="text-center text-muted py-4">Нет созданных сценариев</td>
+                            <td colspan="8" class="text-center text-muted py-4">Нет созданных сценариев</td>
                         </tr>
                         </tbody>
                     </table>
@@ -95,7 +105,11 @@
     initTableFilter('allScenariosTable', {
         searchPlaceholder: 'Поиск по названию, схеме...',
         filters: [
-            { column: 5, label: 'Статус', options: [
+            { column: 2, label: 'Тип', options: [
+                { value: 'Штатный', text: 'Штатный' },
+                { value: 'Аварийный', text: 'Аварийный' }
+            ]},
+            { column: 6, label: 'Статус', options: [
                 { value: 'Активен', text: 'Активен' },
                 { value: 'Неактивен', text: 'Неактивен' }
             ]}

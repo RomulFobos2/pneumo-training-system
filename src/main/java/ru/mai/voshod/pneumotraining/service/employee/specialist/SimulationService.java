@@ -18,6 +18,7 @@ import ru.mai.voshod.pneumotraining.service.employee.chief.SimulationScenarioSer
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Service
 @Slf4j
@@ -51,7 +52,7 @@ public class SimulationService {
     public Optional<Long> startSimulation(Long scenarioId, Employee employee) {
         log.info("Старт симуляции: scenarioId={}, employee={}", scenarioId, employee.getId());
         try {
-            // Проверка на уже активную сессию по этому сценарию
+            // Проверка на уже активную сессию по этому сценарию (или его аварийным вариантам)
             List<SimulationSession> existing = sessionRepository
                     .findByEmployeeIdAndScenarioIdAndSessionStatus(employee.getId(), scenarioId,
                             SimulationSessionStatus.IN_PROGRESS);
@@ -70,9 +71,12 @@ public class SimulationService {
                 return Optional.empty();
             }
 
+            // Случайный выбор: штатный сценарий или один из его аварийных вариантов
+            SimulationScenario actualScenario = pickScenarioVariant(scenario);
+
             // Начальное состояние из элементов схемы
             Map<String, Boolean> initialState = new LinkedHashMap<>();
-            MnemoSchema schema = scenario.getSchema();
+            MnemoSchema schema = actualScenario.getSchema();
             if (schema != null && schema.getElements() != null) {
                 schema.getElements().stream()
                         .filter(el -> el.getElementType() != ru.mai.voshod.pneumotraining.enumeration.ElementType.LABEL)
@@ -81,25 +85,25 @@ public class SimulationService {
 
             SimulationSession session = new SimulationSession();
             session.setEmployee(employee);
-            session.setScenario(scenario);
+            session.setScenario(actualScenario);
             session.setStartedAt(LocalDateTime.now());
             session.setSessionStatus(SimulationSessionStatus.IN_PROGRESS);
             session.setCurrentStep(1);
             session.setCompletedSteps(0);
-            session.setTotalSteps(scenario.getSteps() != null ? scenario.getSteps().size() : 0);
+            session.setTotalSteps(actualScenario.getSteps() != null ? actualScenario.getSteps().size() : 0);
             session.setCurrentState(objectMapper.writeValueAsString(initialState));
             session.setLockedElements("[]");
             session.setWarnings("[]");
             session.setStepStartedAt(LocalDateTime.now());
 
-            if (scenario.getTimeLimit() != null && scenario.getTimeLimit() > 0) {
-                session.setEndTime(session.getStartedAt().plusMinutes(scenario.getTimeLimit()));
+            if (actualScenario.getTimeLimit() != null && actualScenario.getTimeLimit() > 0) {
+                session.setEndTime(session.getStartedAt().plusMinutes(actualScenario.getTimeLimit()));
             }
 
             sessionRepository.save(session);
 
             // Применить аварийное событие первого шага (если есть)
-            applyFaultEvent(session, scenario.getSteps(), 1);
+            applyFaultEvent(session, actualScenario.getSteps(), 1);
             sessionRepository.save(session);
             log.info("Сессия симуляции создана: id={}", session.getId());
             return Optional.of(session.getId());
@@ -254,7 +258,7 @@ public class SimulationService {
                 session.setFinishedAt(LocalDateTime.now());
                 sessionRepository.save(session);
                 simulationAssignmentService.markAssignmentFailed(
-                        employee.getId(), session.getScenario().getId(), session);
+                        employee.getId(), resolveNormalScenarioId(session.getScenario()), session);
                 log.info("Время на шаг {} истекло: sessionId={}", stepNum, sessionId);
                 Map<String, Object> res = new LinkedHashMap<>();
                 res.put("status", "step_expired");
@@ -320,7 +324,7 @@ public class SimulationService {
                 session.setFinishedAt(LocalDateTime.now());
                 sessionRepository.save(session);
                 simulationAssignmentService.markAssignmentCompleted(
-                        employee.getId(), session.getScenario().getId(), session);
+                        employee.getId(), resolveNormalScenarioId(session.getScenario()), session);
                 log.info("Симуляция завершена успешно: sessionId={}", sessionId);
                 result.put("status", "completed");
             } else {
@@ -413,6 +417,40 @@ public class SimulationService {
 
     // ========== Вспомогательные ==========
 
+    /**
+     * Для аварийного сценария возвращает ID родительского (штатного) сценария.
+     * Для штатного — свой ID. Нужно для корректной привязки назначений.
+     */
+    private Long resolveNormalScenarioId(SimulationScenario scenario) {
+        if (scenario.getParentScenario() != null) {
+            return scenario.getParentScenario().getId();
+        }
+        return scenario.getId();
+    }
+
+    /**
+     * Для штатного сценария случайно выбирает: оставить штатный или подставить один из его аварийных вариантов.
+     * Если аварийных нет — возвращает исходный сценарий.
+     */
+    private SimulationScenario pickScenarioVariant(SimulationScenario scenario) {
+        if (scenario.getScenarioType() != ru.mai.voshod.pneumotraining.enumeration.ScenarioType.NORMAL) {
+            return scenario;
+        }
+        List<SimulationScenario> faultVariants = scenarioService.getActiveFaultScenarios(scenario.getId());
+        if (faultVariants.isEmpty()) {
+            return scenario;
+        }
+        // Выбор: штатный (индекс 0) или один из аварийных (индексы 1..N)
+        int pick = ThreadLocalRandom.current().nextInt(faultVariants.size() + 1);
+        if (pick == 0) {
+            log.info("Выбран штатный сценарий: id={}", scenario.getId());
+            return scenario;
+        }
+        SimulationScenario fault = faultVariants.get(pick - 1);
+        log.info("Выбран аварийный сценарий: id={} (вместо штатного id={})", fault.getId(), scenario.getId());
+        return fault;
+    }
+
     private boolean isExpired(SimulationSession session) {
         return session.getEndTime() != null && LocalDateTime.now().isAfter(session.getEndTime());
     }
@@ -422,7 +460,7 @@ public class SimulationService {
         session.setFinishedAt(LocalDateTime.now());
         sessionRepository.save(session);
         simulationAssignmentService.markAssignmentFailed(
-                session.getEmployee().getId(), session.getScenario().getId(), session);
+                session.getEmployee().getId(), resolveNormalScenarioId(session.getScenario()), session);
         log.info("Сессия истекла: id={}", session.getId());
     }
 
@@ -554,7 +592,7 @@ public class SimulationService {
                         recordStepResult(session, currentStepNum, false);
                         sessionRepository.save(session);
                         simulationAssignmentService.markAssignmentFailed(
-                                session.getEmployee().getId(), session.getScenario().getId(), session);
+                                session.getEmployee().getId(), resolveNormalScenarioId(session.getScenario()), session);
                         log.info("Запрещённое действие FAIL: element={}, action={}", elementName, attemptedAction);
 
                         Map<String, Object> result = new LinkedHashMap<>();

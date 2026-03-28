@@ -38,6 +38,13 @@ JOIN t_mnemo_schema ms ON ms.id = sc.schema_id
 WHERE ms.title = @schema_title
    OR sc.title = @scenario_title;
 
+-- Сначала аварийные (дочерние), потом штатные (родительские) — FK parent_scenario_id
+DELETE sc
+FROM t_simulation_scenario sc
+JOIN t_mnemo_schema ms ON ms.id = sc.schema_id
+WHERE (ms.title = @schema_title OR sc.title = @scenario_title)
+  AND sc.parent_scenario_id IS NOT NULL;
+
 DELETE sc
 FROM t_simulation_scenario sc
 JOIN t_mnemo_schema ms ON ms.id = sc.schema_id
@@ -148,7 +155,7 @@ VALUES
 
 -- ====== Создание сценария ======
 INSERT INTO t_simulation_scenario
-    (title, description, time_limit, is_active, schema_id, created_by_id)
+    (title, description, time_limit, is_active, schema_id, created_by_id, scenario_type, parent_scenario_id)
 VALUES
     (
         @scenario_title,
@@ -156,7 +163,9 @@ VALUES
         10,
         true,
         @schema_id,
-        @created_by_id
+        @created_by_id,
+        'NORMAL',
+        NULL
     );
 
 SET @scenario_id := LAST_INSERT_ID();
@@ -223,7 +232,7 @@ DELETE FROM t_simulation_scenario
 WHERE title = @fault_scenario_title AND schema_id = @schema_id;
 
 INSERT INTO t_simulation_scenario
-    (title, description, time_limit, is_active, schema_id, created_by_id)
+    (title, description, time_limit, is_active, schema_id, created_by_id, scenario_type, parent_scenario_id)
 VALUES
     (
         @fault_scenario_title,
@@ -231,7 +240,9 @@ VALUES
         15,
         true,
         @schema_id,
-        @created_by_id
+        @created_by_id,
+        'FAULT',
+        @scenario_id
     );
 
 SET @fault_scenario_id := LAST_INSERT_ID();
