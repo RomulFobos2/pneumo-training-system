@@ -152,7 +152,7 @@
     initSortable('myTestsTable');
 
     // Фильтр + поиск + пагинация для таблицы симуляций
-    initTableFilter('mySimTable', {
+    var simFilter = initTableFilter('mySimTable', {
         searchPlaceholder: 'Поиск по названию сценария...',
         filters: [
             { column: 4, label: 'Статус', options: [
@@ -164,6 +164,14 @@
         perPage: 20
     });
     initSortable('mySimTable');
+
+    // Refresh при переключении на вкладку (Bootstrap tab скрывает контент)
+    document.getElementById('sim-tab').addEventListener('shown.bs.tab', function() {
+        if (simFilter) simFilter.refresh();
+    });
+    document.getElementById('tests-tab').addEventListener('shown.bs.tab', function() {
+        if (testsFilter) testsFilter.refresh();
+    });
 
     // Скрытие результатов без назначения — через кастомный фильтр
     (function() {
