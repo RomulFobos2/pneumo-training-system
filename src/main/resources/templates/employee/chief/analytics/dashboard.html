@@ -132,7 +132,25 @@
                 </div>
             </div>
 
-            <!-- График активности -->
+            <!-- Вкладки: Тесты / Симуляции -->
+            <ul class="nav nav-tabs mb-4" role="tablist">
+                <li class="nav-item">
+                    <a class="nav-link active" data-bs-toggle="tab" href="#tabTests" role="tab">
+                        <i class="bi bi-list-check"></i> Тесты
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="tab" href="#tabSim" role="tab">
+                        <i class="bi bi-diagram-3-fill"></i> Симуляции
+                    </a>
+                </li>
+            </ul>
+
+            <div class="tab-content">
+            <!-- ===== Вкладка: Тесты ===== -->
+            <div class="tab-pane fade show active" id="tabTests" role="tabpanel">
+
+            <!-- График активности (тесты) -->
             <div class="profile-card p-4 mb-4">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h5 class="mb-0"><i class="bi bi-bar-chart-line"></i> Активность за период</h5>
@@ -237,6 +255,84 @@
                 </div>
             </div>
 
+            </div><!-- /tabTests -->
+
+            <!-- ===== Вкладка: Симуляции ===== -->
+            <div class="tab-pane fade" id="tabSim" role="tabpanel">
+
+            <!-- График активности (симуляции) -->
+            <div class="profile-card p-4 mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0"><i class="bi bi-bar-chart-line"></i> Активность симуляций за период</h5>
+                    <div class="d-flex gap-3 small">
+                        <span><span style="display:inline-block;width:12px;height:12px;background:#10b981;border-radius:2px;vertical-align:middle;margin-right:4px;"></span>Выполнены</span>
+                        <span><span style="display:inline-block;width:12px;height:12px;background:#ef4444;border-radius:2px;vertical-align:middle;margin-right:4px;"></span>Не выполнены</span>
+                    </div>
+                </div>
+                <canvas id="simActivityChart" height="200"></canvas>
+            </div>
+
+            <!-- Статистика сценариев -->
+            <div class="profile-card p-4 mb-4">
+                <h5 class="mb-3"><i class="bi bi-diagram-3-fill"></i> Статистика по сценариям</h5>
+                <table class="table table-modern">
+                    <thead>
+                    <tr>
+                        <th>Сценарий</th>
+                        <th style="width: 120px">Прохождений</th>
+                        <th style="width: 110px">Успешных</th>
+                        <th style="width: 100px">% прохождения</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="stat : ${simStats}">
+                        <td th:text="${stat.title}"></td>
+                        <td th:text="${stat.total}"></td>
+                        <td th:text="${stat.completed}"></td>
+                        <td>
+                            <span class="badge"
+                                  th:classappend="${stat.passRate >= 70 ? 'bg-success' : (stat.passRate >= 50 ? 'bg-warning text-dark' : 'bg-danger')}"
+                                  th:text="${stat.passRate + '%'}"></span>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(simStats)}">
+                        <td colspan="4" class="text-center text-muted">Нет данных</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Топ-5 сотрудников по симуляциям -->
+            <div class="profile-card p-4 mb-4">
+                <h5 class="mb-3"><i class="bi bi-trophy"></i> Топ-5 сотрудников по симуляциям</h5>
+                <table class="table table-modern">
+                    <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>ФИО</th>
+                        <th style="width: 100px">Симуляций</th>
+                        <th style="width: 100px">% успеха</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="p, idx : ${simTopPerformers}">
+                        <td class="row-number" th:text="${idx.index + 1}"></td>
+                        <td th:text="${p.fullName}"></td>
+                        <td th:text="${p.simCount}"></td>
+                        <td>
+                            <span class="badge bg-success" th:text="${p.passRate + '%'}"></span>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(simTopPerformers)}">
+                        <td colspan="4" class="text-center text-muted">Нет данных</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            </div><!-- /tabSim -->
+            </div><!-- /tab-content -->
+
             <!-- Экспорт -->
             <div class="profile-card p-4 mb-4">
                 <h5 class="mb-3"><i class="bi bi-file-earmark-word"></i> Экспорт отчёта</h5>
@@ -331,6 +427,78 @@
                 ctx.fillText(d.date, x + bw / 2, H - 5);
             }
         }
+    })();
+
+    // === График симуляций ===
+    (function() {
+        var simDailyActivity = /*[[${simDailyActivity}]]*/ [];
+        var canvas = document.getElementById('simActivityChart');
+        if (!canvas || simDailyActivity.length === 0) return;
+
+        function drawSimChart() {
+            var ctx = canvas.getContext('2d');
+            var dpr = window.devicePixelRatio || 1;
+            var rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width * dpr;
+            canvas.height = 200 * dpr;
+            canvas.style.width = rect.width + 'px';
+            canvas.style.height = '200px';
+            ctx.scale(dpr, dpr);
+
+            var W = rect.width;
+            var H = 200;
+            var padLeft = 40, padBottom = 30, padTop = 10, padRight = 10;
+            var chartW = W - padLeft - padRight;
+            var chartH = H - padTop - padBottom;
+
+            var maxVal = 1;
+            for (var i = 0; i < simDailyActivity.length; i++) {
+                if (simDailyActivity[i].total > maxVal) maxVal = simDailyActivity[i].total;
+            }
+            maxVal = Math.ceil(maxVal * 1.2) || 1;
+
+            var barW = chartW / simDailyActivity.length;
+            var gap = Math.max(1, barW * 0.2);
+
+            ctx.strokeStyle = '#e5e7eb'; ctx.lineWidth = 1;
+            ctx.font = '11px sans-serif'; ctx.fillStyle = '#6b7280'; ctx.textAlign = 'right';
+            var steps = Math.min(maxVal, 5);
+            for (var s = 0; s <= steps; s++) {
+                var val = Math.round(maxVal * s / steps);
+                var y = padTop + chartH - (chartH * val / maxVal);
+                ctx.beginPath(); ctx.moveTo(padLeft, y); ctx.lineTo(W - padRight, y); ctx.stroke();
+                ctx.fillText(val, padLeft - 5, y + 4);
+            }
+
+            for (var i = 0; i < simDailyActivity.length; i++) {
+                var d = simDailyActivity[i];
+                var x = padLeft + i * barW + gap / 2;
+                var bw = barW - gap;
+
+                var completedH = (d.completed / maxVal) * chartH;
+                ctx.fillStyle = '#10b981';
+                ctx.fillRect(x, padTop + chartH - completedH, bw, completedH);
+
+                var failedH = (d.failed / maxVal) * chartH;
+                ctx.fillStyle = '#ef4444';
+                ctx.fillRect(x, padTop + chartH - completedH - failedH, bw, failedH);
+
+                var labelEvery = simDailyActivity.length > 60 ? 7 : (simDailyActivity.length > 14 ? 3 : 1);
+                if (i % labelEvery === 0 || i === simDailyActivity.length - 1) {
+                    ctx.fillStyle = '#6b7280'; ctx.textAlign = 'center'; ctx.font = '10px sans-serif';
+                    ctx.fillText(d.date, x + bw / 2, H - 5);
+                }
+            }
+        }
+
+        // Рисуем при показе вкладки (canvas не рендерится в скрытом табе)
+        document.querySelectorAll('[data-bs-toggle="tab"]').forEach(function(tab) {
+            tab.addEventListener('shown.bs.tab', function() {
+                if (document.getElementById('tabSim').classList.contains('active')) {
+                    drawSimChart();
+                }
+            });
+        });
     })();
     /*]]>*/
 </script>

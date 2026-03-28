@@ -200,12 +200,17 @@ public class SimulationScenarioService {
         return scenarioRepository.findById(id);
     }
 
+    /**
+     * Сценарии для назначения: только НЕ «доступные без назначения» (isActive=false),
+     * штатные, привязанные к подразделению.
+     */
     @Transactional(readOnly = true)
     public List<SimulationScenarioDTO> getScenariosForDepartment(Long departmentId) {
         List<Long> ancestorIds = departmentService.getAncestorIds(departmentId);
-        List<SimulationScenario> allActiveNormal =
-                scenarioRepository.findByIsActiveTrueAndScenarioTypeOrderByTitleAsc(ScenarioType.NORMAL);
-        return allActiveNormal.stream()
+        List<SimulationScenario> normalScenarios =
+                scenarioRepository.findByScenarioTypeOrderByTitleAsc(ScenarioType.NORMAL);
+        return normalScenarios.stream()
+                .filter(s -> !s.isActive())
                 .filter(s -> s.getAllowedDepartments().stream()
                         .anyMatch(d -> ancestorIds.contains(d.getId())))
                 .map(this::toScenarioDTO)

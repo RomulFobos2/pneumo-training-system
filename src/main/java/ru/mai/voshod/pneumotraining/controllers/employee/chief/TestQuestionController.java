@@ -49,7 +49,6 @@ public class TestQuestionController {
     @PostMapping("/employee/chief/tests/addQuestion/{testId}")
     public String addQuestion(@PathVariable(value = "testId") long testId,
                               @RequestParam String inputQuestionText,
-                              @RequestParam Integer inputSortOrder,
                               @RequestParam String inputQuestionType,
                               @RequestParam(required = false) Long inputTheorySectionId,
                               @RequestParam(required = false) List<String> answerText,
@@ -62,7 +61,7 @@ public class TestQuestionController {
                 answerCorrect, answerSortOrder, answerMatchTarget);
 
         Optional<Long> result = testQuestionService.saveQuestion(testId, inputQuestionText,
-                inputSortOrder, inputQuestionType, inputTheorySectionId, answerDTOs);
+                null, inputQuestionType, inputTheorySectionId, answerDTOs);
 
         if (result.isEmpty()) {
             model.addAttribute("questionError", "Ошибка при сохранении. Проверьте варианты ответа и правильные ответы.");
