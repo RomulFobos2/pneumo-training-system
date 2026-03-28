@@ -198,15 +198,116 @@ VALUES
 INSERT INTO t_scenario_department (scenario_id, department_id)
 VALUES (@scenario_id, @department_id);
 
+-- ====== Создание АВАРИЙНОГО сценария ======
+-- Демонстрирует все типы аварийных событий: ELEMENT_FAILURE, PRESSURE_ANOMALY,
+-- OVERHEAT, FALSE_ALARM, а также forbiddenActions и stepTimeLimit.
+SET @fault_scenario_title := CONVERT('Аварийный запуск пневмосистемы' USING utf8mb4) COLLATE utf8mb4_general_ci;
+
+-- Очистка предыдущих данных аварийного сценария (если повторный запуск)
+DELETE ss2
+FROM t_simulation_session ss2
+JOIN t_simulation_scenario sc2 ON sc2.id = ss2.scenario_id
+WHERE sc2.title = @fault_scenario_title AND sc2.schema_id = @schema_id;
+
+DELETE sd2
+FROM t_scenario_department sd2
+JOIN t_simulation_scenario sc2 ON sc2.id = sd2.scenario_id
+WHERE sc2.title = @fault_scenario_title AND sc2.schema_id = @schema_id;
+
+DELETE st2
+FROM t_scenario_step st2
+JOIN t_simulation_scenario sc2 ON sc2.id = st2.scenario_id
+WHERE sc2.title = @fault_scenario_title AND sc2.schema_id = @schema_id;
+
+DELETE FROM t_simulation_scenario
+WHERE title = @fault_scenario_title AND schema_id = @schema_id;
+
+INSERT INTO t_simulation_scenario
+    (title, description, time_limit, is_active, schema_id, created_by_id)
+VALUES
+    (
+        @fault_scenario_title,
+        'Демонстрационный сценарий с аварийными ситуациями: отказ элемента, аномалия давления, перегрев, ложная тревога, запрещённые действия и ограничение времени на шаг.',
+        15,
+        true,
+        @schema_id,
+        @created_by_id
+    );
+
+SET @fault_scenario_id := LAST_INSERT_ID();
+
+-- ====== Шаги аварийного сценария ======
+INSERT INTO t_scenario_step
+    (step_number, instruction_text, expected_state, fault_event, forbidden_actions, step_time_limit, scenario_id)
+VALUES
+    -- ШАГ 1: Обычный старт (без аварий) — открыть VP1 и запустить N1
+    (1,
+     'Откройте входной клапан VP1 и запустите насос N1. Это штатный шаг без аварий.',
+     '{"VP1": true, "N1": true}',
+     NULL, NULL, NULL,
+     @fault_scenario_id),
+
+    -- ШАГ 2: ELEMENT_FAILURE — отказ клапана VP5 (заблокирован)
+    -- Специалист должен обойти VP5 и открыть только VP2.
+    -- Попытка включить VP5 → «Элемент неисправен» (без провала, просто заблокирован).
+    (2,
+     'АВАРИЯ: клапан VP5 вышел из строя! Откройте клапан VP2 для подачи в основную магистраль. НЕ ТРОГАЙТЕ VP5 — он заблокирован.',
+     '{"VP2": true}',
+     '{"type":"ELEMENT_FAILURE","elementName":"VP5","message":"Отказ клапана VP5! Клапан заблокирован, обойдите его.","lockElement":true}',
+     NULL, NULL,
+     @fault_scenario_id),
+
+    -- ШАГ 3: PRESSURE_ANOMALY на PT1 + запрещённое действие (FAIL)
+    -- Датчик PT1 показывает аномалию. Нужно включить WS1 для перераспределения.
+    -- Запрещено выключать насос N1 — это приведёт к гидроудару (штраф FAIL).
+    (3,
+     'АВАРИЯ: аномалия давления на PT1! Включите переключатель WS1 для перераспределения потока. ЗАПРЕЩЕНО выключать насос N1 — это вызовет гидроудар!',
+     '{"WS1": true}',
+     '{"type":"PRESSURE_ANOMALY","elementName":"PT1","message":"Аномальное давление на датчике PT1! Необходимо перераспределить поток.","lockElement":false}',
+     '[{"elementName":"N1","action":"off","penalty":"FAIL","message":"Гидроудар! Выключение насоса при аномальном давлении запрещено."}]',
+     NULL,
+     @fault_scenario_id),
+
+    -- ШАГ 4: OVERHEAT на NR1 + ограничение времени 90 сек + запрещённое действие (WARNING)
+    -- Нагреватель перегрелся. Нужно открыть VP3 для отвода тепла.
+    -- Запрещено включать нагреватель NR1 — предупреждение (WARNING, не провал).
+    -- На шаг дано 90 секунд.
+    (4,
+     'АВАРИЯ: перегрев нагревателя NR1! Откройте клапан VP3 для аварийного отвода тепла. НЕ ВКЛЮЧАЙТЕ нагреватель NR1. Время ограничено — 90 секунд!',
+     '{"VP3": true}',
+     '{"type":"OVERHEAT","elementName":"NR1","message":"Перегрев нагревателя NR1! Необходим аварийный отвод тепла.","lockElement":false}',
+     '[{"elementName":"NR1","action":"on","penalty":"WARNING","message":"Внимание! Включение перегретого нагревателя опасно."}]',
+     90,
+     @fault_scenario_id),
+
+    -- ШАГ 5: FALSE_ALARM на BH1 + запрещённое действие (TIME_PENALTY)
+    -- Ложное срабатывание блокировки BH1. Нужно открыть VP4 и VP6, завершив систему.
+    -- Запрещено включать BH1 (аварийную блокировку) — штраф времени.
+    (5,
+     'ЛОЖНАЯ ТРЕВОГА: сработала аварийная блокировка BH1, но это ложное срабатывание. Откройте выходные клапаны VP4 и VP6 для завершения запуска. НЕ АКТИВИРУЙТЕ BH1 — это ложная тревога, активация приведёт к штрафу времени.',
+     '{"VP4": true, "VP6": true}',
+     '{"type":"FALSE_ALARM","elementName":"BH1","message":"Ложное срабатывание аварийной блокировки BH1! Игнорируйте — система работает штатно.","lockElement":false}',
+     '[{"elementName":"BH1","action":"on","penalty":"TIME_PENALTY","message":"Активация BH1 при ложной тревоге — штраф 30 секунд!"}]',
+     NULL,
+     @fault_scenario_id);
+
+-- Доступ аварийного сценария для подразделения
+INSERT INTO t_scenario_department (scenario_id, department_id)
+VALUES (@fault_scenario_id, @department_id);
+
 COMMIT;
 
 -- ====== Проверка результата ======
 SELECT 'schema' AS entity, id, title FROM t_mnemo_schema WHERE id = @schema_id
 UNION ALL
-SELECT 'scenario', id, title FROM t_simulation_scenario WHERE id = @scenario_id;
+SELECT 'scenario (штатный)', id, title FROM t_simulation_scenario WHERE id = @scenario_id
+UNION ALL
+SELECT 'scenario (аварийный)', id, title FROM t_simulation_scenario WHERE id = @fault_scenario_id;
 
 SELECT CONCAT(COUNT(*), ' elements') AS info FROM t_schema_element WHERE schema_id = @schema_id
 UNION ALL
 SELECT CONCAT(COUNT(*), ' connections') FROM t_schema_connection WHERE schema_id = @schema_id
 UNION ALL
-SELECT CONCAT(COUNT(*), ' steps') FROM t_scenario_step WHERE scenario_id = @scenario_id;
+SELECT CONCAT(COUNT(*), ' steps (штатный)') FROM t_scenario_step WHERE scenario_id = @scenario_id
+UNION ALL
+SELECT CONCAT(COUNT(*), ' steps (аварийный)') FROM t_scenario_step WHERE scenario_id = @fault_scenario_id;
