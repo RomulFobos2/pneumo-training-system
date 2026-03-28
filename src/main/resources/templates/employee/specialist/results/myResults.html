@@ -95,6 +95,12 @@
             <!-- Simulations tab -->
             <div class="tab-pane fade" id="simPane" role="tabpanel">
             <div class="profile-card p-4">
+                <div class="mb-3">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="hideNoAssignmentSim">
+                        <label class="form-check-label" for="hideNoAssignmentSim">Скрыть результаты без назначения</label>
+                    </div>
+                </div>
                 <table id="mySimTable" class="table table-modern">
                     <thead>
                     <tr>
@@ -106,7 +112,7 @@
                     </tr>
                     </thead>
                     <tbody>
-                    <tr th:each="s, index : ${simSessions}">
+                    <tr th:each="s, index : ${simSessions}" th:data-has-assignment="${s.hasAssignment}">
                         <td class="row-number" th:text="${index.index + 1}"></td>
                         <td>
                             <a th:href="@{/employee/specialist/results/detailsSimResult/{id}(id=${s.id})}"
@@ -173,7 +179,7 @@
         if (testsFilter) testsFilter.refresh();
     });
 
-    // Скрытие результатов без назначения — через кастомный фильтр
+    // Скрытие результатов без назначения — тесты
     (function() {
         var checkbox = document.getElementById('hideNoAssignment');
         if (!checkbox || !testsFilter) return;
@@ -186,6 +192,22 @@
 
         checkbox.addEventListener('change', function() {
             testsFilter.refresh();
+        });
+    })();
+
+    // Скрытие результатов без назначения — симуляции
+    (function() {
+        var checkbox = document.getElementById('hideNoAssignmentSim');
+        if (!checkbox || !simFilter) return;
+
+        simFilter.addCustomFilter(function(row) {
+            if (!checkbox.checked) return true;
+            var attr = row.getAttribute('data-has-assignment');
+            return attr !== 'false';
+        });
+
+        checkbox.addEventListener('change', function() {
+            simFilter.refresh();
         });
     })();
 </script>

@@ -12,6 +12,7 @@ import ru.mai.voshod.pneumotraining.enumeration.ElementType;
 import ru.mai.voshod.pneumotraining.enumeration.SimulationSessionStatus;
 import ru.mai.voshod.pneumotraining.mapper.SimulationSessionMapper;
 import ru.mai.voshod.pneumotraining.models.*;
+import ru.mai.voshod.pneumotraining.repo.SimulationAssignmentEmployeeRepository;
 import ru.mai.voshod.pneumotraining.repo.SimulationSessionRepository;
 import ru.mai.voshod.pneumotraining.service.employee.chief.SimulationAssignmentService;
 import ru.mai.voshod.pneumotraining.service.employee.chief.SimulationScenarioService;
@@ -27,15 +28,18 @@ public class SimulationService {
     private final SimulationSessionRepository sessionRepository;
     private final SimulationScenarioService scenarioService;
     private final SimulationAssignmentService simulationAssignmentService;
+    private final SimulationAssignmentEmployeeRepository simulationAssignmentEmployeeRepository;
     private final ObjectMapper objectMapper;
 
     public SimulationService(SimulationSessionRepository sessionRepository,
                              SimulationScenarioService scenarioService,
                              SimulationAssignmentService simulationAssignmentService,
+                             SimulationAssignmentEmployeeRepository simulationAssignmentEmployeeRepository,
                              ObjectMapper objectMapper) {
         this.sessionRepository = sessionRepository;
         this.scenarioService = scenarioService;
         this.simulationAssignmentService = simulationAssignmentService;
+        this.simulationAssignmentEmployeeRepository = simulationAssignmentEmployeeRepository;
         this.objectMapper = objectMapper;
     }
 
@@ -395,10 +399,17 @@ public class SimulationService {
 
     @Transactional(readOnly = true)
     public List<SimulationSessionDTO> getMyResults(Employee employee) {
+        List<Long> assignmentSessionIds = simulationAssignmentEmployeeRepository
+                .findCompletedSimulationSessionIdsByEmployeeId(employee.getId());
+
         return sessionRepository.findByEmployeeIdOrderByStartedAtDesc(employee.getId())
                 .stream()
                 .filter(s -> s.getSessionStatus() != SimulationSessionStatus.IN_PROGRESS)
-                .map(SimulationSessionMapper.INSTANCE::toDTO)
+                .map(s -> {
+                    SimulationSessionDTO dto = SimulationSessionMapper.INSTANCE.toDTO(s);
+                    dto.setHasAssignment(assignmentSessionIds.contains(s.getId()));
+                    return dto;
+                })
                 .toList();
     }
 
