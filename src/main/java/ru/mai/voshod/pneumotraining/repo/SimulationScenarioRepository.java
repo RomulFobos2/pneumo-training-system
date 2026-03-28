@@ -3,6 +3,7 @@ package ru.mai.voshod.pneumotraining.repo;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import ru.mai.voshod.pneumotraining.enumeration.ScenarioType;
 import ru.mai.voshod.pneumotraining.models.SimulationScenario;
 
 import java.util.List;
@@ -13,7 +14,14 @@ public interface SimulationScenarioRepository extends JpaRepository<SimulationSc
 
     List<SimulationScenario> findByIsActiveTrueOrderByTitleAsc();
 
+    List<SimulationScenario> findByIsActiveTrueAndScenarioTypeOrderByTitleAsc(ScenarioType scenarioType);
+
     List<SimulationScenario> findBySchemaId(Long schemaId);
+
+    List<SimulationScenario> findByParentScenarioIdAndIsActiveTrue(Long parentScenarioId);
+
+    /** Штатные сценарии без родителя — для выбора в качестве родителя */
+    List<SimulationScenario> findByScenarioTypeOrderByTitleAsc(ScenarioType scenarioType);
 
     @Query("SELECT s FROM SimulationScenario s JOIN s.allowedDepartments d " +
             "WHERE s.isActive = true AND d.id = :departmentId ORDER BY s.title ASC")

@@ -29,7 +29,8 @@
 
                             <div class="mb-3">
                                 <label class="form-label">Название <span class="text-danger">*</span></label>
-                                <input type="text" name="inputTitle" class="form-control" required maxlength="255"/>
+                                <input type="text" name="inputTitle" id="inputTitle" class="form-control" required maxlength="255"/>
+                                <div id="titleError" class="invalid-feedback" style="display:none">Схема с таким названием уже существует</div>
                             </div>
 
                             <div class="mb-3">
@@ -49,7 +50,7 @@
                             </div>
 
                             <div class="d-flex gap-2">
-                                <button type="submit" class="btn btn-auth">
+                                <button type="submit" id="submitBtn" class="btn btn-auth">
                                     <i class="bi bi-plus-lg"></i> Создать и открыть редактор
                                 </button>
                                 <a th:href="@{/employee/chief/schemas/allSchemas}" class="btn btn-outline-secondary">Отмена</a>
@@ -63,5 +64,42 @@
         <div th:insert="~{blocks/footer :: footer}"></div>
     </div>
 </div>
+
+<script>
+    (function() {
+        var titleInput = document.getElementById('inputTitle');
+        var titleError = document.getElementById('titleError');
+        var submitBtn = document.getElementById('submitBtn');
+        var titleTimer = null;
+
+        titleInput.addEventListener('input', function() {
+            clearTimeout(titleTimer);
+            var value = titleInput.value.trim();
+            if (!value) {
+                titleInput.classList.remove('is-invalid', 'is-valid');
+                titleError.style.display = 'none';
+                submitBtn.disabled = false;
+                return;
+            }
+            titleTimer = setTimeout(function() {
+                fetch('/employee/chief/schemas/check-title?title=' + encodeURIComponent(value))
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        if (data.exists) {
+                            titleInput.classList.remove('is-valid');
+                            titleInput.classList.add('is-invalid');
+                            titleError.style.display = 'block';
+                            submitBtn.disabled = true;
+                        } else {
+                            titleInput.classList.remove('is-invalid');
+                            titleInput.classList.add('is-valid');
+                            titleError.style.display = 'none';
+                            submitBtn.disabled = false;
+                        }
+                    });
+            }, 300);
+        });
+    })();
+</script>
 </body>
 </html>

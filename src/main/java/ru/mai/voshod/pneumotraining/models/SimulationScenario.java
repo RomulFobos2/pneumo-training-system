@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
+import ru.mai.voshod.pneumotraining.enumeration.ScenarioType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -49,6 +50,22 @@ public class SimulationScenario {
     /** Активен ли сценарий (доступен для прохождения) */
     @Column(nullable = false)
     private boolean isActive = false;
+
+    /** Тип сценария: штатный или аварийный */
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private ScenarioType scenarioType = ScenarioType.NORMAL;
+
+    /** Родительский (штатный) сценарий — для аварийных сценариев */
+    @ManyToOne
+    @JoinColumn(name = "parent_scenario_id")
+    @ToString.Exclude
+    private SimulationScenario parentScenario;
+
+    /** Аварийные сценарии, привязанные к данному штатному */
+    @OneToMany(mappedBy = "parentScenario")
+    @ToString.Exclude
+    private List<SimulationScenario> faultScenarios = new ArrayList<>();
 
     /** Схема, к которой привязан сценарий */
     @ManyToOne

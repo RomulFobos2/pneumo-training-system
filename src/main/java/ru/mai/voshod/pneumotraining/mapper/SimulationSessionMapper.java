@@ -24,6 +24,7 @@ public interface SimulationSessionMapper {
     @Mapping(target = "currentState", ignore = true)
     @Mapping(target = "currentInstruction", ignore = true)
     @Mapping(target = "currentStepTimeLimit", ignore = true)
+    @Mapping(target = "hasAssignment", ignore = true)
     SimulationSessionDTO toDTO(SimulationSession session);
 
     List<SimulationSessionDTO> toDTOList(List<SimulationSession> sessions);

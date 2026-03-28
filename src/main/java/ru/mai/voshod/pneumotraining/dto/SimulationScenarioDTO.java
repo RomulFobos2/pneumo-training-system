@@ -18,4 +18,10 @@ public class SimulationScenarioDTO {
     private int stepCount;
     private List<Long> departmentIds;
     private List<DepartmentDTO> allowedDepartments;
+    private String scenarioTypeName;
+    private String scenarioTypeDisplayName;
+    private Long parentScenarioId;
+    private String parentScenarioTitle;
+    private int faultScenarioCount;
+    private List<SimulationScenarioDTO> faultScenariosList;
 }

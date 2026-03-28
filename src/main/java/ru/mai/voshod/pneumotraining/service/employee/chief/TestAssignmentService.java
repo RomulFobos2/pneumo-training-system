@@ -193,6 +193,10 @@ public class TestAssignmentService {
             log.info("Назначение выполнено: assignmentEmployeeId={}, testId={}, employeeId={}",
                     ae.getId(), testId, employeeId);
         }
+
+        if (!pending.isEmpty()) {
+            notifyChiefsAboutAssignment(pending.get(0), true);
+        }
     }
 
     @Transactional
@@ -207,6 +211,25 @@ public class TestAssignmentService {
             log.info("Назначение не сдано: assignmentEmployeeId={}, testId={}, employeeId={}",
                     ae.getId(), testId, employeeId);
         }
+
+        if (!pending.isEmpty()) {
+            notifyChiefsAboutAssignment(pending.get(0), false);
+        }
+    }
+
+    private void notifyChiefsAboutAssignment(TestAssignmentEmployee ae, boolean passed) {
+        String fullName = ae.getEmployee().getFullName();
+        String testTitle = ae.getAssignment().getTest().getTitle();
+        String message = passed
+                ? "Сотрудник " + fullName + " сдал тест «" + testTitle + "» по назначению"
+                : "Сотрудник " + fullName + " не сдал тест «" + testTitle + "» по назначению";
+        String link = "/employee/chief/results/allResults";
+
+        List<Employee> chiefs = employeeRepository.findAllByRole_Name("ROLE_EMPLOYEE_CHIEF");
+        for (Employee chief : chiefs) {
+            notificationService.createNotification(chief, message, link);
+        }
+        log.info("Уведомление отправлено {} начальникам: {}", chiefs.size(), message);
     }
 
     private TestAssignmentDTO toAssignmentDTO(TestAssignment assignment) {

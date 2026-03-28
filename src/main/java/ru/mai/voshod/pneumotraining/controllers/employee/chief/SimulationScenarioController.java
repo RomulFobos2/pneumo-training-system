@@ -10,6 +10,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import ru.mai.voshod.pneumotraining.dto.ScenarioStepDTO;
 import ru.mai.voshod.pneumotraining.dto.SchemaDataDTO;
 import ru.mai.voshod.pneumotraining.dto.SimulationScenarioDTO;
+import ru.mai.voshod.pneumotraining.enumeration.ScenarioType;
 import ru.mai.voshod.pneumotraining.models.Employee;
 import ru.mai.voshod.pneumotraining.service.employee.admin.DepartmentService;
 import ru.mai.voshod.pneumotraining.service.employee.chief.MnemoSchemaService;
@@ -46,6 +47,8 @@ public class SimulationScenarioController {
     public String addScenarioForm(Model model) {
         model.addAttribute("allSchemas", schemaService.getAllSchemas());
         model.addAttribute("allDepartments", departmentService.getAllDepartmentsFlat());
+        model.addAttribute("scenarioTypes", ScenarioType.values());
+        model.addAttribute("normalScenarios", scenarioService.getNormalScenarios());
         return "employee/chief/scenarios/addScenario";
     }
 
@@ -56,10 +59,14 @@ public class SimulationScenarioController {
                                @RequestParam Long inputSchemaId,
                                @RequestParam(required = false) boolean inputIsActive,
                                @RequestParam(required = false) List<Long> inputDepartmentIds,
+                               @RequestParam(required = false) String inputScenarioType,
+                               @RequestParam(required = false) Long inputParentScenarioId,
                                @AuthenticationPrincipal Employee currentUser,
                                RedirectAttributes redirectAttributes) {
+        ScenarioType scenarioType = parseScenarioType(inputScenarioType);
         Optional<Long> result = scenarioService.saveScenario(inputTitle, inputDescription,
-                inputTimeLimit, inputSchemaId, inputIsActive, inputDepartmentIds, currentUser);
+                inputTimeLimit, inputSchemaId, inputIsActive, inputDepartmentIds,
+                scenarioType, inputParentScenarioId, currentUser);
         if (result.isEmpty()) {
             redirectAttributes.addFlashAttribute("errorMessage", "Ошибка при создании сценария.");
             return "redirect:/employee/chief/scenarios/addScenario";
@@ -76,6 +83,8 @@ public class SimulationScenarioController {
         model.addAttribute("scenario", scenarioOpt.get());
         model.addAttribute("allSchemas", schemaService.getAllSchemas());
         model.addAttribute("allDepartments", departmentService.getAllDepartmentsFlat());
+        model.addAttribute("scenarioTypes", ScenarioType.values());
+        model.addAttribute("normalScenarios", scenarioService.getNormalScenarios());
         return "employee/chief/scenarios/editScenario";
     }
 
@@ -87,9 +96,13 @@ public class SimulationScenarioController {
                                 @RequestParam Long inputSchemaId,
                                 @RequestParam(required = false) boolean inputIsActive,
                                 @RequestParam(required = false) List<Long> inputDepartmentIds,
+                                @RequestParam(required = false) String inputScenarioType,
+                                @RequestParam(required = false) Long inputParentScenarioId,
                                 RedirectAttributes redirectAttributes) {
+        ScenarioType scenarioType = parseScenarioType(inputScenarioType);
         Optional<Long> result = scenarioService.editScenario(id, inputTitle, inputDescription,
-                inputTimeLimit, inputSchemaId, inputIsActive, inputDepartmentIds);
+                inputTimeLimit, inputSchemaId, inputIsActive, inputDepartmentIds,
+                scenarioType, inputParentScenarioId);
         if (result.isEmpty()) {
             redirectAttributes.addFlashAttribute("errorMessage", "Ошибка при обновлении сценария.");
         } else {
@@ -137,5 +150,14 @@ public class SimulationScenarioController {
     @ResponseBody
     public ResponseEntity<SchemaDataDTO> loadSchemaElements(@PathVariable Long schemaId) {
         return ResponseEntity.ok(schemaService.loadSchemaData(schemaId));
+    }
+
+    private ScenarioType parseScenarioType(String value) {
+        if (value == null || value.isBlank()) return ScenarioType.NORMAL;
+        try {
+            return ScenarioType.valueOf(value);
+        } catch (IllegalArgumentException e) {
+            return ScenarioType.NORMAL;
+        }
     }
 }

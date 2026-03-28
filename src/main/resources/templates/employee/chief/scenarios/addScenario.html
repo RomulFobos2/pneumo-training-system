@@ -38,6 +38,26 @@
                             </div>
 
                             <div class="row g-3 mb-3">
+                                <div class="col-md-4">
+                                    <label class="form-label">Тип сценария <span class="text-danger">*</span></label>
+                                    <select name="inputScenarioType" class="form-select" id="scenarioTypeSelect">
+                                        <option th:each="st : ${scenarioTypes}"
+                                                th:value="${st.name()}"
+                                                th:text="${st.displayName}"></option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4" id="parentScenarioBlock" style="display:none;">
+                                    <label class="form-label">Штатный сценарий (родитель) <span class="text-danger">*</span></label>
+                                    <select name="inputParentScenarioId" class="form-select" id="parentScenarioSelect">
+                                        <option value="">— Выберите —</option>
+                                        <option th:each="ns : ${normalScenarios}"
+                                                th:value="${ns.id}"
+                                                th:text="${ns.title}"></option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="row g-3 mb-3">
                                 <div class="col-md-6">
                                     <label class="form-label">Мнемосхема <span class="text-danger">*</span></label>
                                     <select name="inputSchemaId" class="form-select" required>
@@ -98,6 +118,23 @@
 </div>
 <script>
     (function() {
+        var typeSelect = document.getElementById('scenarioTypeSelect');
+        var parentBlock = document.getElementById('parentScenarioBlock');
+        var parentSelect = document.getElementById('parentScenarioSelect');
+
+        function toggleParentBlock() {
+            if (typeSelect.value === 'FAULT') {
+                parentBlock.style.display = '';
+                parentSelect.required = true;
+            } else {
+                parentBlock.style.display = 'none';
+                parentSelect.required = false;
+                parentSelect.value = '';
+            }
+        }
+        typeSelect.addEventListener('change', toggleParentBlock);
+        toggleParentBlock();
+
         var deptCheckboxes = document.querySelectorAll('.dept-checkbox');
 
         deptCheckboxes.forEach(function(cb) {

@@ -28,4 +28,5 @@ public class SimulationSessionDTO {
     private String warnings;
     private LocalDateTime stepStartedAt;
     private Integer currentStepTimeLimit;
+    private boolean hasAssignment;
 }

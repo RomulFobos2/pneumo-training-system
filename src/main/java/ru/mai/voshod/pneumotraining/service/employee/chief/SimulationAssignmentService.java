@@ -7,6 +7,7 @@ import ru.mai.voshod.pneumotraining.dto.AssignedScenarioDTO;
 import ru.mai.voshod.pneumotraining.dto.SimulationAssignmentDTO;
 import ru.mai.voshod.pneumotraining.dto.SimulationAssignmentEmployeeDTO;
 import ru.mai.voshod.pneumotraining.enumeration.AssignmentStatus;
+import ru.mai.voshod.pneumotraining.enumeration.ScenarioType;
 import ru.mai.voshod.pneumotraining.mapper.SimulationAssignmentMapper;
 import ru.mai.voshod.pneumotraining.models.Employee;
 import ru.mai.voshod.pneumotraining.models.SimulationAssignment;
@@ -96,6 +97,10 @@ public class SimulationAssignmentService {
         }
 
         SimulationScenario scenario = scenarioOpt.get();
+        if (scenario.getScenarioType() != ScenarioType.NORMAL) {
+            log.warn("Нельзя назначить аварийный сценарий: id={}", scenarioId);
+            return Optional.empty();
+        }
         SimulationAssignment assignment = new SimulationAssignment(scenario, deadline, createdBy);
         assignmentRepository.save(assignment);
 
