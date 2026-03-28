@@ -30,4 +30,7 @@ public interface TestAssignmentEmployeeRepository extends JpaRepository<TestAssi
             """)
     boolean existsAttemptForAssignment(@Param("assignmentId") Long assignmentId,
                                        @Param("pendingStatus") AssignmentStatus pendingStatus);
+
+    @Query("SELECT ae.completedSession.id FROM TestAssignmentEmployee ae WHERE ae.employee.id = :employeeId AND ae.completedSession IS NOT NULL")
+    List<Long> findCompletedSessionIdsByEmployeeId(@Param("employeeId") Long employeeId);
 }

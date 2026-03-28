@@ -9,6 +9,8 @@
     <link href="/css/style.css" rel="stylesheet">
     <script src="/js/bootstrap.bundle.min.js"></script>
     <script src="/js/javascript.js"></script>
+    <script src="/js/tablePagination.js"></script>
+    <script src="/js/tableFilter.js"></script>
 </head>
 <body>
 <div id="wrapper">
@@ -30,7 +32,7 @@
 
             <div class="profile-card">
                 <div class="table-responsive">
-                    <table class="table table-modern mb-0">
+                    <table id="allScenariosTable" class="table table-modern mb-0">
                         <thead>
                         <tr>
                             <th style="width: 50px">#</th>
@@ -89,5 +91,17 @@
         <div th:insert="~{blocks/footer :: footer}"></div>
     </div>
 </div>
+<script>
+    initTableFilter('allScenariosTable', {
+        searchPlaceholder: 'Поиск по названию, схеме...',
+        filters: [
+            { column: 5, label: 'Статус', options: [
+                { value: 'Активен', text: 'Активен' },
+                { value: 'Неактивен', text: 'Неактивен' }
+            ]}
+        ],
+        perPage: 20
+    });
+</script>
 </body>
 </html>

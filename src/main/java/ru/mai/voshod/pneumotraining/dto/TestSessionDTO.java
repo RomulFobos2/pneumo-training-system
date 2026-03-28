@@ -25,4 +25,5 @@ public class TestSessionDTO {
     private boolean allowBackNavigation;
     private int questionCount;
     private int answeredCount;
+    private boolean hasAssignment;
 }

@@ -49,7 +49,13 @@ public class NotificationScheduler {
         log.info("Отправка напоминаний завершена");
     }
 
-    @Scheduled(cron = "0 5 0 * * *")
+    @jakarta.annotation.PostConstruct
+    public void markOverdueOnStartup() {
+        log.info("Проверка просроченных назначений при запуске приложения");
+        markOverdueAssignments();
+    }
+
+    @Scheduled(cron = "0 0 9 * * *")
     @Transactional
     public void markOverdueAssignments() {
         log.info("Запуск проверки просроченных назначений");

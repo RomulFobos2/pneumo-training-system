@@ -17,6 +17,7 @@ import ru.mai.voshod.pneumotraining.models.Employee;
 import ru.mai.voshod.pneumotraining.models.SimulationSession;
 import ru.mai.voshod.pneumotraining.models.TestSession;
 import ru.mai.voshod.pneumotraining.repo.SimulationSessionRepository;
+import ru.mai.voshod.pneumotraining.repo.TestAssignmentEmployeeRepository;
 import ru.mai.voshod.pneumotraining.repo.TestSessionAnswerRepository;
 import ru.mai.voshod.pneumotraining.repo.TestSessionRepository;
 
@@ -32,16 +33,19 @@ public class ResultService {
 
     private final TestSessionRepository testSessionRepository;
     private final TestSessionAnswerRepository testSessionAnswerRepository;
+    private final TestAssignmentEmployeeRepository testAssignmentEmployeeRepository;
     private final SimulationSessionRepository simulationSessionRepository;
     private final TestingService testingService;
     private final ObjectMapper objectMapper;
 
     public ResultService(TestSessionRepository testSessionRepository,
                          TestSessionAnswerRepository testSessionAnswerRepository,
+                         TestAssignmentEmployeeRepository testAssignmentEmployeeRepository,
                          SimulationSessionRepository simulationSessionRepository,
                          TestingService testingService) {
         this.testSessionRepository = testSessionRepository;
         this.testSessionAnswerRepository = testSessionAnswerRepository;
+        this.testAssignmentEmployeeRepository = testAssignmentEmployeeRepository;
         this.simulationSessionRepository = simulationSessionRepository;
         this.testingService = testingService;
         this.objectMapper = new ObjectMapper();
@@ -50,9 +54,14 @@ public class ResultService {
     @Transactional(readOnly = true)
     public List<TestSessionDTO> getMyResults(Employee employee) {
         List<TestSession> sessions = testSessionRepository.findByEmployeeIdOrderByStartedAtDesc(employee.getId());
+        List<Long> assignmentSessionIds = testAssignmentEmployeeRepository.findCompletedSessionIdsByEmployeeId(employee.getId());
         return sessions.stream()
                 .filter(s -> s.getSessionStatus() != TestSessionStatus.IN_PROGRESS)
-                .map(this::toDTO)
+                .map(s -> {
+                    TestSessionDTO dto = toDTO(s);
+                    dto.setHasAssignment(assignmentSessionIds.contains(s.getId()));
+                    return dto;
+                })
                 .toList();
     }
 

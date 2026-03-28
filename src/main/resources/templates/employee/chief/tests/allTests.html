@@ -9,6 +9,9 @@
     <link href="/css/style.css" rel="stylesheet">
     <script src="/js/bootstrap.bundle.min.js"></script>
     <script src="/js/javascript.js"></script>
+    <script src="/js/tablePagination.js"></script>
+    <script src="/js/tableSort.js"></script>
+    <script src="/js/tableFilter.js"></script>
 </head>
 <body>
 <div id="wrapper">
@@ -29,14 +32,14 @@
             <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
 
             <div class="profile-card p-4">
-                <table class="table table-modern">
+                <table id="allTestsTable" class="table table-modern">
                     <thead>
                     <tr>
                         <th style="width: 50px">#</th>
-                        <th>Название</th>
-                        <th style="width: 100px">Вопросов</th>
-                        <th style="width: 100px">Время</th>
-                        <th style="width: 100px">Проходной</th>
+                        <th data-sortable data-sort-type="text">Название</th>
+                        <th style="width: 100px" data-sortable data-sort-type="number">Вопросов</th>
+                        <th style="width: 100px" data-sortable data-sort-type="number">Время</th>
+                        <th style="width: 100px" data-sortable data-sort-type="number">Проходной</th>
                         <th style="width: 80px">Экзамен</th>
                         <th style="width: 140px">Доступность</th>
                     </tr>
@@ -74,5 +77,22 @@
         <div th:insert="~{blocks/footer :: footer}"></div>
     </div>
 </div>
+<script>
+    initTableFilter('allTestsTable', {
+        searchPlaceholder: 'Поиск по названию...',
+        filters: [
+            { column: 5, label: 'Экзамен', options: [
+                { value: 'Да', text: 'Да' },
+                { value: 'Нет', text: 'Нет' }
+            ]},
+            { column: 6, label: 'Доступность', options: [
+                { value: 'Свободный доступ', text: 'Свободный доступ' },
+                { value: 'Только по назначению', text: 'Только по назначению' }
+            ]}
+        ],
+        perPage: 20
+    });
+    initSortable('allTestsTable');
+</script>
 </body>
 </html>

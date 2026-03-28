@@ -9,6 +9,8 @@
     <link href="/css/style.css" rel="stylesheet">
     <script src="/js/bootstrap.bundle.min.js"></script>
     <script src="/js/javascript.js"></script>
+    <script src="/js/tablePagination.js"></script>
+    <script src="/js/tableFilter.js"></script>
 </head>
 <body>
 <div id="wrapper">
@@ -70,6 +72,13 @@
     </div>
 </div>
 
+<script>
+    initTableFilter('sectionsTable', {
+        searchPlaceholder: 'Поиск по названию, описанию...',
+        filters: [],
+        perPage: 20
+    });
+</script>
 <script>
     (function () {
         var tbody = document.getElementById('sectionsBody');

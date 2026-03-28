@@ -23,6 +23,7 @@ public interface TestSessionMapper {
     @Mapping(source = "sessionStatus", target = "sessionStatusName", qualifiedByName = "statusName")
     @Mapping(target = "questionCount", ignore = true)
     @Mapping(target = "answeredCount", ignore = true)
+    @Mapping(target = "hasAssignment", ignore = true)
     TestSessionDTO toDTO(TestSession session);
 
     @Named("statusName")

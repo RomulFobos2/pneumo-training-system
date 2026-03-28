@@ -11,6 +11,7 @@
     <script src="/js/javascript.js"></script>
     <script src="/js/tablePagination.js"></script>
     <script src="/js/tableSort.js"></script>
+    <script src="/js/tableFilter.js"></script>
 </head>
 <body>
 <div id="wrapper">
@@ -40,6 +41,12 @@
             <!-- Tests tab -->
             <div class="tab-pane fade show active" id="testsPane" role="tabpanel">
             <div class="profile-card p-4">
+                <div class="mb-3">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="hideNoAssignment">
+                        <label class="form-check-label" for="hideNoAssignment">Скрыть результаты без назначения</label>
+                    </div>
+                </div>
                 <table id="myTestsTable" class="table table-modern">
                     <thead>
                     <tr>
@@ -54,7 +61,7 @@
                     </tr>
                     </thead>
                     <tbody>
-                    <tr th:each="s, index : ${sessions}">
+                    <tr th:each="s, index : ${sessions}" th:data-has-assignment="${s.hasAssignment}">
                         <td class="row-number" th:text="${index.index + 1}"></td>
                         <td>
                             <a th:href="@{/employee/specialist/results/detailsResult/{id}(id=${s.id})}"
@@ -127,10 +134,58 @@
     </div>
 </div>
 <script>
-    initPagination('myTestsTable', { perPage: 20 });
+    // Фильтр + поиск + пагинация для таблицы тестов
+    var testsFilter = initTableFilter('myTestsTable', {
+        searchPlaceholder: 'Поиск по названию теста...',
+        filters: [
+            { column: 2, label: 'Тип', options: [
+                { value: 'Экзамен', text: 'Экзамен' },
+                { value: 'Тест', text: 'Тест' }
+            ]},
+            { column: 7, label: 'Результат', options: [
+                { value: 'Пройден', text: 'Пройден' },
+                { value: 'Не пройден', text: 'Не пройден' }
+            ]}
+        ],
+        perPage: 20
+    });
     initSortable('myTestsTable');
-    initPagination('mySimTable', { perPage: 20 });
+
+    // Фильтр + поиск + пагинация для таблицы симуляций
+    initTableFilter('mySimTable', {
+        searchPlaceholder: 'Поиск по названию сценария...',
+        filters: [
+            { column: 4, label: 'Статус', options: [
+                { value: 'Завершён', text: 'Завершён' },
+                { value: 'Время истекло', text: 'Время истекло' },
+                { value: 'Провален', text: 'Провален' }
+            ]}
+        ],
+        perPage: 20
+    });
     initSortable('mySimTable');
+
+    // Скрытие результатов без назначения
+    (function() {
+        var checkbox = document.getElementById('hideNoAssignment');
+        var table = document.getElementById('myTestsTable');
+        if (!checkbox || !table) return;
+
+        checkbox.addEventListener('change', function() {
+            var rows = table.querySelectorAll('tbody tr[data-has-assignment]');
+            var hide = checkbox.checked;
+            rows.forEach(function(row) {
+                if (hide && row.getAttribute('data-has-assignment') === 'false') {
+                    row.style.display = 'none';
+                    row.classList.add('filtered-out');
+                } else if (!row.classList.contains('filtered-out') || !hide) {
+                    row.style.display = '';
+                    row.classList.remove('filtered-out');
+                }
+            });
+            if (testsFilter) testsFilter.refresh();
+        });
+    })();
 </script>
 </body>
 </html>
