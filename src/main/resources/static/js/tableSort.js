@@ -2,6 +2,8 @@
  * Клиентская сортировка таблиц по клику на заголовок.
  * Использование: initSortable('tableId')
  * Атрибуты на <th>: data-sortable, data-sort-type="text|number|date|percent"
+ *
+ * Интеграция: после сортировки вызывает table._paginationRefresh() (если есть).
  */
 (function () {
     'use strict';
@@ -53,6 +55,7 @@
         icon.textContent = newDir === 'asc' ? '↑' : '↓';
         icon.className = 'sort-icon ms-1';
 
+        // Сортируем ВСЕ строки (включая отфильтрованные) — чтобы DOM-порядок был правильным
         var rows = Array.from(tbody.querySelectorAll('tr')).filter(function (tr) {
             return !tr.classList.contains('pagination-empty-row');
         });
@@ -68,10 +71,14 @@
             tbody.appendChild(row);
         });
 
-        // Обновить номера строк
-        rows.forEach(function (row, i) {
-            var numCell = row.querySelector('.row-number');
-            if (numCell) numCell.textContent = i + 1;
+        // Перенумерация только видимых строк
+        var visibleIdx = 0;
+        rows.forEach(function (row) {
+            if (!row.classList.contains('filtered-out')) {
+                visibleIdx++;
+                var numCell = row.querySelector('.row-number');
+                if (numCell) numCell.textContent = visibleIdx;
+            }
         });
 
         // Пересчитать пагинацию

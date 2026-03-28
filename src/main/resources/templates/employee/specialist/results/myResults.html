@@ -165,25 +165,19 @@
     });
     initSortable('mySimTable');
 
-    // Скрытие результатов без назначения
+    // Скрытие результатов без назначения — через кастомный фильтр
     (function() {
         var checkbox = document.getElementById('hideNoAssignment');
-        var table = document.getElementById('myTestsTable');
-        if (!checkbox || !table) return;
+        if (!checkbox || !testsFilter) return;
+
+        testsFilter.addCustomFilter(function(row) {
+            if (!checkbox.checked) return true;
+            var attr = row.getAttribute('data-has-assignment');
+            return attr !== 'false';
+        });
 
         checkbox.addEventListener('change', function() {
-            var rows = table.querySelectorAll('tbody tr[data-has-assignment]');
-            var hide = checkbox.checked;
-            rows.forEach(function(row) {
-                if (hide && row.getAttribute('data-has-assignment') === 'false') {
-                    row.style.display = 'none';
-                    row.classList.add('filtered-out');
-                } else if (!row.classList.contains('filtered-out') || !hide) {
-                    row.style.display = '';
-                    row.classList.remove('filtered-out');
-                }
-            });
-            if (testsFilter) testsFilter.refresh();
+            testsFilter.refresh();
         });
     })();
 </script>

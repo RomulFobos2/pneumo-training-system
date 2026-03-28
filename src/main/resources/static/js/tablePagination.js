@@ -1,6 +1,10 @@
 /**
  * Клиентская пагинация таблиц.
  * Использование: initPagination('tableId', { perPage: 20 })
+ *
+ * Интеграция с tableFilter.js:
+ *   - Строки с классом 'filtered-out' исключаются из пагинации.
+ *   - tableFilter.js вызывает table._paginationRefresh() после применения фильтров.
  */
 (function () {
     'use strict';
@@ -13,18 +17,19 @@
         var tbody = table.querySelector('tbody');
         if (!tbody) return;
 
-        var allRows = [];
+        var visibleRows = [];
         var currentPage = 1;
         var wrapper = null;
 
-        function collectRows() {
-            allRows = Array.from(tbody.querySelectorAll('tr')).filter(function (tr) {
-                return !tr.classList.contains('pagination-empty-row');
+        function collectVisibleRows() {
+            visibleRows = Array.from(tbody.querySelectorAll('tr')).filter(function (tr) {
+                return !tr.classList.contains('pagination-empty-row') &&
+                       !tr.classList.contains('filtered-out');
             });
         }
 
         function totalPages() {
-            return Math.max(1, Math.ceil(allRows.length / opts.perPage));
+            return Math.max(1, Math.ceil(visibleRows.length / opts.perPage));
         }
 
         function showPage(page) {
@@ -32,9 +37,9 @@
             var start = (currentPage - 1) * opts.perPage;
             var end = start + opts.perPage;
 
-            allRows.forEach(function (row, i) {
-                row.style.display = (i >= start && i < end) ? '' : 'none';
-            });
+            for (var i = 0; i < visibleRows.length; i++) {
+                visibleRows[i].style.display = (i >= start && i < end) ? '' : 'none';
+            }
 
             renderControls();
         }
@@ -47,16 +52,20 @@
             }
 
             var total = totalPages();
-            if (allRows.length <= opts.perPage) {
+            if (visibleRows.length <= opts.perPage) {
                 wrapper.style.display = 'none';
+                // Показать все видимые строки если пагинация не нужна
+                for (var k = 0; k < visibleRows.length; k++) {
+                    visibleRows[k].style.display = '';
+                }
                 return;
             }
             wrapper.style.display = '';
 
             var start = (currentPage - 1) * opts.perPage + 1;
-            var end = Math.min(currentPage * opts.perPage, allRows.length);
+            var end = Math.min(currentPage * opts.perPage, visibleRows.length);
 
-            var html = '<div class="text-muted small">Показано ' + start + '–' + end + ' из ' + allRows.length + '</div>';
+            var html = '<div class="text-muted small">Показано ' + start + '–' + end + ' из ' + visibleRows.length + '</div>';
             html += '<nav><ul class="pagination pagination-sm mb-0">';
 
             html += '<li class="page-item' + (currentPage === 1 ? ' disabled' : '') + '">';
@@ -103,14 +112,14 @@
             return pages;
         }
 
-        // Публичный API для пересчёта после сортировки
+        // Публичный API: пересчёт после фильтрации/сортировки
         table._paginationRefresh = function () {
-            collectRows();
+            collectVisibleRows();
             showPage(1);
         };
 
-        collectRows();
-        if (allRows.length > opts.perPage) {
+        collectVisibleRows();
+        if (visibleRows.length > opts.perPage) {
             showPage(1);
         }
     };

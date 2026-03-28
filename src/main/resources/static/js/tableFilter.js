@@ -7,6 +7,11 @@
  *   filters (array)           — массив фильтров: { column: number, label: string, options: [{value, text}] }
  *   perPage (number)          — кол-во строк на странице, 0 = без встроенной пагинации
  *
+ * Порядок работы:
+ *   1. Фильтр помечает строки классом 'filtered-out' и скрывает их (display:none).
+ *   2. Пагинация (tablePagination.js) работает только с НЕ-отфильтрованными строками.
+ *   3. Сортировка (tableSort.js) сортирует все строки, потом вызывает _paginationRefresh.
+ *
  * Возвращает объект с методом refresh() для принудительного пересчёта фильтров извне.
  */
 (function () {
@@ -30,6 +35,7 @@
         // =====================================================================
         var searchTerm = '';
         var filterValues = {};   // column -> value
+        var customFilters = [];  // массив function(row) -> boolean
         var debounceTimer = null;
         var emptyMessage = null; // элемент «ничего не найдено»
 
@@ -44,7 +50,7 @@
         searchInput.type = 'text';
         searchInput.className = 'form-control';
         searchInput.placeholder = opts.searchPlaceholder;
-        searchInput.style.maxWidth = '260px';
+        searchInput.style.maxWidth = '300px';
         bar.appendChild(searchInput);
 
         // Выпадающие фильтры
@@ -73,6 +79,14 @@
             bar.appendChild(select);
         }
 
+        // Кнопка сброса
+        var resetBtn = document.createElement('button');
+        resetBtn.type = 'button';
+        resetBtn.className = 'btn btn-outline-secondary btn-sm';
+        resetBtn.innerHTML = '<i class="bi bi-x-lg"></i> Сброс';
+        resetBtn.style.display = 'none';
+        bar.appendChild(resetBtn);
+
         // Вставляем панель перед таблицей внутри родительского контейнера
         table.parentNode.insertBefore(bar, table);
 
@@ -100,6 +114,14 @@
 
             var visibleCount = 0;
             var term = searchTerm.toLowerCase();
+            var hasActiveFilter = !!term;
+
+            for (var col in filterValues) {
+                if (filterValues.hasOwnProperty(col) && filterValues[col]) {
+                    hasActiveFilter = true;
+                    break;
+                }
+            }
 
             for (var r = 0; r < rows.length; r++) {
                 var row = rows[r];
@@ -135,26 +157,39 @@
                     }
                 }
 
-                // --- Применяем видимость ---
+                // --- Пользовательские фильтры ---
                 if (visible) {
-                    row.style.display = '';
+                    for (var cf = 0; cf < customFilters.length; cf++) {
+                        if (!customFilters[cf](row)) {
+                            visible = false;
+                            break;
+                        }
+                    }
+                }
+
+                // --- Помечаем строку ---
+                if (visible) {
                     row.classList.remove('filtered-out');
+                    row.style.display = '';
                     visibleCount++;
                 } else {
-                    row.style.display = 'none';
                     row.classList.add('filtered-out');
+                    row.style.display = 'none';
                 }
             }
 
             // Перенумерация видимых строк
             renumberRows();
 
+            // Кнопка сброса
+            resetBtn.style.display = hasActiveFilter ? '' : 'none';
+
             // Сообщение «ничего не найдено»
             var msg = getEmptyMessage();
             msg.style.display = visibleCount === 0 ? '' : 'none';
             table.style.display = visibleCount === 0 ? 'none' : '';
 
-            // Интеграция с пагинацией
+            // Интеграция с пагинацией — пересчитать после фильтрации
             if (table._paginationRefresh) {
                 table._paginationRefresh();
             }
@@ -172,6 +207,21 @@
                 var numCell = rows[i].querySelector('.row-number');
                 if (numCell) numCell.textContent = i + 1;
             }
+        }
+
+        // =====================================================================
+        // Сброс фильтров
+        // =====================================================================
+        function resetFilters() {
+            searchInput.value = '';
+            searchTerm = '';
+            var selects = bar.querySelectorAll('select[data-filter-col]');
+            for (var s = 0; s < selects.length; s++) {
+                selects[s].selectedIndex = 0;
+                var col = selects[s].getAttribute('data-filter-col');
+                filterValues[col] = '';
+            }
+            applyFilters();
         }
 
         // =====================================================================
@@ -198,6 +248,9 @@
             });
         }
 
+        // Кнопка сброса
+        resetBtn.addEventListener('click', resetFilters);
+
         // =====================================================================
         // Встроенная пагинация (если perPage > 0 и нет внешней)
         // =====================================================================
@@ -214,6 +267,10 @@
             /** Принудительно пересчитать фильтры (например, после добавления строк) */
             refresh: function () {
                 applyFilters();
+            },
+            /** Добавить пользовательский фильтр: fn(row) -> boolean (true = показать) */
+            addCustomFilter: function (fn) {
+                customFilters.push(fn);
             }
         };
     };
