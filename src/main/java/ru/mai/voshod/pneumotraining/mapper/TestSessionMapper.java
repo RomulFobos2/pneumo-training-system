@@ -16,7 +16,6 @@ public interface TestSessionMapper {
     @Mapping(source = "employee.fullName", target = "employeeFullName")
     @Mapping(source = "test.id", target = "testId")
     @Mapping(source = "test.title", target = "testTitle")
-    @Mapping(source = "test.exam", target = "testIsExam")
     @Mapping(source = "test.passingScore", target = "testPassingScore")
     @Mapping(source = "test.allowBackNavigation", target = "allowBackNavigation")
     @Mapping(source = "sessionStatus.displayName", target = "sessionStatusDisplayName")

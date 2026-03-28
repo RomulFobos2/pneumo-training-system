@@ -20,7 +20,6 @@ public class TestSessionDTO {
     private String employeeFullName;
     private Long testId;
     private String testTitle;
-    private boolean testIsExam;
     private Integer testPassingScore;
     private boolean allowBackNavigation;
     private int questionCount;

@@ -44,7 +44,7 @@ public class TestService {
 
     @Transactional
     public Optional<Long> saveTest(String title, String description, Integer timeLimit,
-                                    Integer passingScore, boolean isExam, boolean allowBackNavigation,
+                                    Integer passingScore, boolean allowBackNavigation,
                                     boolean availableWithoutAssignment, List<Long> departmentIds,
                                     Employee createdBy) {
         log.info("Создание теста: title={}", title);
@@ -60,7 +60,6 @@ public class TestService {
             test.setDescription(description);
             test.setTimeLimit(timeLimit != null ? timeLimit : 0);
             test.setPassingScore(passingScore != null ? passingScore : 60);
-            test.setExam(isExam);
             test.setAllowBackNavigation(allowBackNavigation);
             test.setAvailableWithoutAssignment(availableWithoutAssignment);
             test.setCreatedBy(createdBy);
@@ -81,7 +80,7 @@ public class TestService {
 
     @Transactional
     public Optional<Long> editTest(Long id, String title, String description, Integer timeLimit,
-                                    Integer passingScore, boolean isExam, boolean allowBackNavigation,
+                                    Integer passingScore, boolean allowBackNavigation,
                                     boolean availableWithoutAssignment, List<Long> departmentIds) {
         log.info("Редактирование теста: id={}", id);
 
@@ -102,7 +101,6 @@ public class TestService {
             test.setDescription(description);
             test.setTimeLimit(timeLimit != null ? timeLimit : 0);
             test.setPassingScore(passingScore != null ? passingScore : 60);
-            test.setExam(isExam);
             test.setAllowBackNavigation(allowBackNavigation);
             test.setAvailableWithoutAssignment(availableWithoutAssignment);
 

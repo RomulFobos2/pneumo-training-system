@@ -44,10 +44,6 @@
                         <span th:text="${testDTO.passingScore + '%'}"></span>
                     </div>
                     <div class="col-auto">
-                        <small class="text-muted">Экзамен:</small>
-                        <span th:text="${testDTO.isExam() ? 'Да' : 'Нет'}"></span>
-                    </div>
-                    <div class="col-auto">
                         <small class="text-muted">Вопросов:</small>
                         <span th:text="${testDTO.questionCount}"></span>
                     </div>

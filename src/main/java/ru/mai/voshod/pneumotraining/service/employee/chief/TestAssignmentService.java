@@ -265,7 +265,6 @@ public class TestAssignmentService {
         dto.setQuestionCount((int) testQuestionRepository.countByTestId(test.getId()));
         dto.setTimeLimit(test.getTimeLimit() != null ? test.getTimeLimit() : 0);
         dto.setPassingScore(test.getPassingScore() != null ? test.getPassingScore() : 60);
-        dto.setExam(test.isExam());
         dto.setDeadline(ae.getAssignment().getDeadline());
         dto.setCreatedAt(ae.getAssignment().getCreatedAt());
         dto.setStatusName(ae.getStatus().name());

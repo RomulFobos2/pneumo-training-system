@@ -117,7 +117,6 @@
                                     <i class="bi bi-calendar-plus"></i> Назначено:
                                     <span th:text="${#temporals.format(at.createdAt, 'dd.MM.yyyy HH:mm')}"></span>
                                 </div>
-                                <span class="badge bg-warning text-dark mt-2" th:if="${at.exam}">Экзамен</span>
                             </div>
                             <a th:if="${at.statusName == 'PENDING'}"
                                th:href="@{/employee/specialist/testing/startTest/{id}(id=${at.testId})}"
@@ -166,9 +165,6 @@
                                 <i class="bi bi-check-circle"></i>
                                 <span th:text="${test.passingScore}"></span>%
                             </span>
-                        </div>
-                        <div class="mb-2" th:if="${test.isExam()}">
-                            <span class="badge bg-warning text-dark">Экзамен</span>
                         </div>
                         <a th:href="@{/employee/specialist/testing/startTest/{id}(id=${test.id})}"
                            class="btn btn-primary btn-sm mt-auto">

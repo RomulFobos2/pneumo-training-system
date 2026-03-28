@@ -27,7 +27,6 @@
                         <div class="mb-2">
                             <span class="badge bg-info text-dark" th:text="${sessionDTO.employeeFullName}"></span>
                         </div>
-                        <span class="badge bg-warning text-dark me-1" th:if="${sessionDTO.testIsExam}">Экзамен</span>
                         <span class="badge"
                               th:classappend="${sessionDTO.sessionStatusName == 'COMPLETED' ? 'bg-success' : 'bg-secondary'}"
                               th:text="${sessionDTO.sessionStatusDisplayName}"></span>

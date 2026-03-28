@@ -40,7 +40,6 @@
                         <th style="width: 100px" data-sortable data-sort-type="number">Вопросов</th>
                         <th style="width: 100px" data-sortable data-sort-type="number">Время</th>
                         <th style="width: 100px" data-sortable data-sort-type="number">Проходной</th>
-                        <th style="width: 80px">Экзамен</th>
                         <th style="width: 140px">Доступность</th>
                     </tr>
                     </thead>
@@ -58,16 +57,12 @@
                         </td>
                         <td th:text="${test.passingScore + '%'}"></td>
                         <td>
-                            <span th:if="${test.isExam()}" class="badge bg-warning text-dark">Да</span>
-                            <span th:if="${!test.isExam()}" class="text-muted">Нет</span>
-                        </td>
-                        <td>
                             <span th:if="${test.availableWithoutAssignment}" class="badge bg-success">Свободный доступ</span>
                             <span th:if="${!test.availableWithoutAssignment}" class="badge bg-info">Только по назначению</span>
                         </td>
                     </tr>
                     <tr th:if="${#lists.isEmpty(allTests)}">
-                        <td colspan="7" class="text-center text-muted">Тесты ещё не созданы</td>
+                        <td colspan="6" class="text-center text-muted">Тесты ещё не созданы</td>
                     </tr>
                     </tbody>
                 </table>
@@ -81,11 +76,7 @@
     initTableFilter('allTestsTable', {
         searchPlaceholder: 'Поиск по названию...',
         filters: [
-            { column: 5, label: 'Экзамен', options: [
-                { value: 'Да', text: 'Да' },
-                { value: 'Нет', text: 'Нет' }
-            ]},
-            { column: 6, label: 'Доступность', options: [
+            { column: 5, label: 'Доступность', options: [
                 { value: 'Свободный доступ', text: 'Свободный доступ' },
                 { value: 'Только по назначению', text: 'Только по назначению' }
             ]}
