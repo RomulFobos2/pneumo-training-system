@@ -58,8 +58,6 @@ public class TestingService {
         this.objectMapper = new ObjectMapper();
     }
 
-    // ========== Доступные тесты ==========
-
     @Transactional(readOnly = true)
     public List<TestDTO> getAvailableTests(Employee employee) {
         if (employee.getDepartment() == null) {
@@ -85,8 +83,6 @@ public class TestingService {
                 });
     }
 
-    // ========== Старт теста ==========
-
     @Transactional
     public Optional<Long> startTest(Long testId, Employee employee) {
         log.info("Старт теста id={} для сотрудника id={}", testId, employee.getId());
@@ -104,7 +100,6 @@ public class TestingService {
             return Optional.empty();
         }
 
-        // Проверка: нет ли уже IN_PROGRESS сессии для этого теста
         List<TestSession> existingSessions = testSessionRepository
                 .findByEmployeeIdAndTestIdAndSessionStatus(employee.getId(), testId, TestSessionStatus.IN_PROGRESS);
         if (!existingSessions.isEmpty()) {
@@ -113,7 +108,6 @@ public class TestingService {
         }
 
         try {
-            // Загрузить и перемешать вопросы
             List<TestQuestion> questions = testQuestionRepository.findByTestIdOrderBySortOrderAsc(testId);
             List<Long> questionIds = questions.stream().map(TestQuestion::getId).collect(Collectors.toList());
             Collections.shuffle(questionIds);
@@ -139,8 +133,6 @@ public class TestingService {
         }
     }
 
-    // ========== Получение вопроса для отображения ==========
-
     @Transactional(readOnly = true)
     public Optional<Map<String, Object>> getQuestionForDisplay(Long sessionId, int questionIndex, Employee employee) {
         Optional<TestSession> sessionOpt = testSessionRepository.findByIdAndEmployeeId(sessionId, employee.getId());
@@ -156,10 +148,9 @@ public class TestingService {
             return Optional.empty();
         }
 
-        // Проверка времени
         if (session.getEndTime() != null && LocalDateTime.now().isAfter(session.getEndTime())) {
             log.info("Время сессии истекло: id={}", sessionId);
-            return Optional.empty(); // Контроллер вызовет finishTest с EXPIRED
+            return Optional.empty();
         }
 
         List<Long> questionIds = parseQuestionOrder(session.getQuestionOrder());
@@ -177,14 +168,12 @@ public class TestingService {
         TestQuestion question = questionOpt.get();
         List<TestAnswer> answers = testAnswerRepository.findByQuestionIdOrderBySortOrderAsc(questionId);
 
-        // Перемешиваем варианты для SINGLE/MULTIPLE (не для SEQUENCE/MATCHING)
         List<TestAnswer> displayAnswers = new ArrayList<>(answers);
         if (question.getQuestionType() == QuestionType.SINGLE_CHOICE
                 || question.getQuestionType() == QuestionType.MULTIPLE_CHOICE) {
             Collections.shuffle(displayAnswers);
         }
 
-        // Проверяем, есть ли уже ответ (для allowBackNavigation)
         Optional<TestSessionAnswer> existingAnswer = testSessionAnswerRepository
                 .findByTestSessionIdAndTestQuestionId(sessionId, questionId);
 
@@ -202,7 +191,6 @@ public class TestingService {
         result.put("hasExistingAnswer", existingAnswer.isPresent());
         result.put("testTitle", session.getTest().getTitle());
 
-        // Если есть ответ и разрешена навигация назад, передаём его для предзаполнения
         if (existingAnswer.isPresent() && session.getTest().isAllowBackNavigation()) {
             TestSessionAnswer sa = existingAnswer.get();
             result.put("existingAnswerText", sa.getAnswerText());
@@ -212,8 +200,6 @@ public class TestingService {
 
         return Optional.of(result);
     }
-
-    // ========== Сохранение ответа ==========
 
     @Transactional
     public Optional<Integer> submitAnswer(Long sessionId, int questionIndex, Employee employee,
@@ -228,10 +214,9 @@ public class TestingService {
             return Optional.empty();
         }
 
-        // Проверка времени
         if (session.getEndTime() != null && LocalDateTime.now().isAfter(session.getEndTime())) {
             finishTest(sessionId, employee, TestSessionStatus.EXPIRED);
-            return Optional.of(-1); // Сигнал: время истекло
+            return Optional.of(-1);
         }
 
         List<Long> questionIds = parseQuestionOrder(session.getQuestionOrder());
@@ -248,7 +233,6 @@ public class TestingService {
         try {
             TestQuestion question = questionOpt.get();
 
-            // Если allowBackNavigation — проверить, есть ли уже ответ → обновить
             Optional<TestSessionAnswer> existingOpt = testSessionAnswerRepository
                     .findByTestSessionIdAndTestQuestionId(sessionId, questionId);
 
@@ -262,22 +246,18 @@ public class TestingService {
                 sessionAnswer.setTestSession(session);
                 sessionAnswer.setTestQuestion(question);
             } else {
-                // Уже есть ответ и навигация назад запрещена — пропускаем
                 return Optional.of(questionIndex + 1);
             }
 
-            // Заполняем ответ в зависимости от типа вопроса
             fillAnswer(sessionAnswer, question, params);
 
-            // Вычисляем правильность
             sessionAnswer.setCorrect(evaluateAnswer(sessionAnswer, question));
 
             testSessionAnswerRepository.save(sessionAnswer);
 
-            // Возвращаем следующий индекс (или -2 если это последний вопрос)
             int nextIndex = questionIndex + 1;
             if (nextIndex >= questionIds.size()) {
-                return Optional.of(-2); // Сигнал: последний вопрос
+                return Optional.of(-2);
             }
             return Optional.of(nextIndex);
         } catch (Exception e) {
@@ -286,8 +266,6 @@ public class TestingService {
             return Optional.empty();
         }
     }
-
-    // ========== Завершение теста ==========
 
     @Transactional
     public Optional<Long> finishTest(Long sessionId, Employee employee, TestSessionStatus status) {
@@ -300,7 +278,6 @@ public class TestingService {
 
         TestSession session = sessionOpt.get();
 
-        // Идемпотентность: если уже завершена — просто вернуть
         if (session.getSessionStatus() != TestSessionStatus.IN_PROGRESS) {
             return Optional.of(sessionId);
         }
@@ -323,7 +300,6 @@ public class TestingService {
             session.setSessionStatus(status);
             testSessionRepository.save(session);
 
-            // Пометить назначение как выполненное или не сданное
             if (session.getIsPassed()) {
                 testAssignmentService.markAssignmentCompleted(
                         employee.getId(), session.getTest().getId(), session);
@@ -341,8 +317,6 @@ public class TestingService {
             return Optional.empty();
         }
     }
-
-    // ========== Результат ==========
 
     @Transactional(readOnly = true)
     public Optional<TestSessionDTO> getSessionResult(Long sessionId, Employee employee) {
@@ -373,7 +347,6 @@ public class TestingService {
             dto.setQuestionText(sa.getTestQuestion().getQuestionText());
             dto.setQuestionTypeName(sa.getTestQuestion().getQuestionType().getDisplayName());
 
-            // Человекочитаемый answerText для SEQUENCE и MATCHING
             QuestionType qType = sa.getTestQuestion().getQuestionType();
             if (qType == QuestionType.SEQUENCE && sa.getAnswerText() != null && !sa.getAnswerText().isBlank()) {
                 try {
@@ -400,10 +373,8 @@ public class TestingService {
                 dto.setAnswerText(readable);
             }
 
-            // Выбранные ответы
             dto.setSelectedAnswers(TestAnswerMapper.INSTANCE.toDTOList(sa.getSelectedAnswers()));
 
-            // Правильные ответы
             List<TestAnswer> correctAnswers = testAnswerRepository
                     .findByQuestionIdOrderBySortOrderAsc(sa.getTestQuestion().getId())
                     .stream()
@@ -421,8 +392,6 @@ public class TestingService {
         return result;
     }
 
-    // ========== Проверка: истекло ли время ==========
-
     @Transactional(readOnly = true)
     public boolean isSessionExpired(Long sessionId, Employee employee) {
         Optional<TestSession> sessionOpt = testSessionRepository.findByIdAndEmployeeId(sessionId, employee.getId());
@@ -431,8 +400,6 @@ public class TestingService {
         if (session.getSessionStatus() != TestSessionStatus.IN_PROGRESS) return true;
         return session.getEndTime() != null && LocalDateTime.now().isAfter(session.getEndTime());
     }
-
-    // ========== Вспомогательные методы ==========
 
     private List<Long> parseQuestionOrder(String json) {
         if (json == null || json.isBlank()) return null;
@@ -474,7 +441,6 @@ public class TestingService {
                 break;
             }
             case MATCHING: {
-                // Для каждого ответа: match_{answerId} = выбранный matchTarget
                 List<TestAnswer> allAnswers = testAnswerRepository
                         .findByQuestionIdOrderBySortOrderAsc(question.getId());
                 StringBuilder sb = new StringBuilder();
@@ -520,12 +486,10 @@ public class TestingService {
             }
             case SEQUENCE: {
                 if (sa.getAnswerText() == null || sa.getAnswerText().isBlank()) return false;
-                // Правильный порядок: ответы отсортированы по sortOrder
                 List<Long> correctOrder = correctAnswers.stream()
                         .sorted(Comparator.comparingInt(TestAnswer::getSortOrder))
                         .map(TestAnswer::getId)
                         .toList();
-                // Порядок пользователя
                 try {
                     List<Long> userOrder = Arrays.stream(sa.getAnswerText().split(","))
                             .map(String::trim)
@@ -538,7 +502,6 @@ public class TestingService {
             }
             case MATCHING: {
                 if (sa.getAnswerText() == null || sa.getAnswerText().isBlank()) return false;
-                // Формат: "id1=target1|||id2=target2|||..."
                 Map<Long, String> userPairs = new HashMap<>();
                 for (String pair : sa.getAnswerText().split("\\|\\|\\|")) {
                     String[] parts = pair.split("=", 2);
@@ -567,14 +530,12 @@ public class TestingService {
     }
 
     private boolean canEmployeeAccessTest(Test test, Employee employee) {
-        // Доступен без назначения — проверяем подразделение сотрудника с наследованием вверх по дереву
         if (test.isAvailableWithoutAssignment() && employee.getDepartment() != null) {
             List<Long> ancestorIds = departmentService.getAncestorIds(employee.getDepartment().getId());
             boolean departmentAllowed = test.getAllowedDepartments().stream()
                     .anyMatch(d -> ancestorIds.contains(d.getId()));
             if (departmentAllowed) return true;
         }
-        // Есть активное назначение (PENDING) для этого теста
         List<TestAssignmentEmployee> pending = testAssignmentEmployeeRepository
                 .findByEmployeeIdAndAssignment_TestIdAndStatus(employee.getId(), test.getId(), AssignmentStatus.PENDING);
         return !pending.isEmpty();

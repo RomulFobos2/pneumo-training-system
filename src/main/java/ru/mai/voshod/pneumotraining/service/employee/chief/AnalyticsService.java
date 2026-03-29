@@ -51,7 +51,6 @@ public class AnalyticsService {
                                                  Long testId, Long employeeId, Long departmentId) {
         Map<String, Object> data = new HashMap<>();
 
-        // === Обзорные метрики ===
         long totalEmployees = employeeRepository.count();
         long activeEmployees = employeeRepository.countByIsActiveTrue();
         long totalTests = testRepository.count();
@@ -62,36 +61,30 @@ public class AnalyticsService {
         data.put("totalTests", totalTests);
         data.put("activeTests", activeTests);
 
-        // Все завершённые сессии
         List<TestSession> allSessions = testSessionRepository
                 .findAllBySessionStatusNotOrderByStartedAtDesc(TestSessionStatus.IN_PROGRESS);
 
-        // Период по умолчанию — 30 дней
         LocalDate effectiveTo = dateTo != null ? dateTo : LocalDate.now();
         LocalDate effectiveFrom = dateFrom != null ? dateFrom : effectiveTo.minusDays(29);
         LocalDateTime dtFrom = effectiveFrom.atStartOfDay();
-        LocalDateTime dtTo = effectiveTo.plusDays(1).atStartOfDay(); // включительно до конца дня
+        LocalDateTime dtTo = effectiveTo.plusDays(1).atStartOfDay();
 
-        // Фильтрация по периоду
         List<TestSession> filteredSessions = allSessions.stream()
                 .filter(s -> !s.getStartedAt().isBefore(dtFrom) && s.getStartedAt().isBefore(dtTo))
                 .toList();
 
-        // Фильтрация по тесту
         if (testId != null) {
             filteredSessions = filteredSessions.stream()
                     .filter(s -> s.getTest().getId().equals(testId))
                     .toList();
         }
 
-        // Фильтрация по сотруднику
         if (employeeId != null) {
             filteredSessions = filteredSessions.stream()
                     .filter(s -> s.getEmployee().getId().equals(employeeId))
                     .toList();
         }
 
-        // Фильтрация по подразделению (включая дочерние)
         if (departmentId != null) {
             List<Long> deptIds = departmentService.getDescendantIdsIncludingSelf(departmentId);
             filteredSessions = filteredSessions.stream()
@@ -109,7 +102,6 @@ public class AnalyticsService {
                 : (passedCount * 100.0) / filteredSessions.size();
         data.put("passRate", Math.round(passRate * 10.0) / 10.0);
 
-        // === Метрики симуляций ===
         List<SimulationSession> allSimSessions = simulationSessionRepository
                 .findAllBySessionStatusNotOrderByStartedAtDesc(SimulationSessionStatus.IN_PROGRESS);
         List<SimulationSession> filteredSimSessions = allSimSessions.stream()
@@ -130,7 +122,6 @@ public class AnalyticsService {
         data.put("simSessionsCount", simSessionsCount);
         data.put("simPassRate", Math.round(simPassRate * 10.0) / 10.0);
 
-        // === Статистика по тестам ===
         Map<Long, List<TestSession>> byTest = filteredSessions.stream()
                 .collect(Collectors.groupingBy(s -> s.getTest().getId()));
 
@@ -148,7 +139,6 @@ public class AnalyticsService {
         testStats.sort((a, b) -> Integer.compare((int) b.get("total"), (int) a.get("total")));
         data.put("testStats", testStats);
 
-        // === Топ-5 сотрудников по среднему баллу ===
         Map<Long, List<TestSession>> byEmployee = filteredSessions.stream()
                 .collect(Collectors.groupingBy(s -> s.getEmployee().getId()));
 
@@ -169,7 +159,6 @@ public class AnalyticsService {
                 .toList();
         data.put("topPerformers", topPerformers);
 
-        // === Топ-5 сложных вопросов ===
         List<TestSessionAnswer> allAnswers = new ArrayList<>();
         for (TestSession session : filteredSessions) {
             allAnswers.addAll(testSessionAnswerRepository.findByTestSessionIdOrderByIdAsc(session.getId()));
@@ -195,7 +184,6 @@ public class AnalyticsService {
                 .toList();
         data.put("hardestQuestions", hardestQuestions);
 
-        // === Активность по дням (тесты) ===
         DateTimeFormatter dayFmt = DateTimeFormatter.ofPattern("dd.MM");
         Map<LocalDate, List<TestSession>> byDay = filteredSessions.stream()
                 .collect(Collectors.groupingBy(s -> s.getStartedAt().toLocalDate()));
@@ -216,7 +204,6 @@ public class AnalyticsService {
         }
         data.put("dailyActivity", dailyActivity);
 
-        // === Статистика по сценариям симуляций ===
         if (employeeId != null) {
             filteredSimSessions = filteredSimSessions.stream()
                     .filter(s -> s.getEmployee().getId().equals(employeeId))
@@ -241,7 +228,6 @@ public class AnalyticsService {
         simStats.sort((a, b) -> Integer.compare((int) b.get("total"), (int) a.get("total")));
         data.put("simStats", simStats);
 
-        // === Топ-5 сотрудников по симуляциям ===
         Map<Long, List<SimulationSession>> simByEmployee = filteredSimSessions.stream()
                 .collect(Collectors.groupingBy(s -> s.getEmployee().getId()));
 
@@ -262,7 +248,6 @@ public class AnalyticsService {
                 .toList();
         data.put("simTopPerformers", simTopPerformers);
 
-        // === Активность по дням (симуляции) ===
         Map<LocalDate, List<SimulationSession>> simByDay = filteredSimSessions.stream()
                 .collect(Collectors.groupingBy(s -> s.getStartedAt().toLocalDate()));
 
@@ -281,7 +266,6 @@ public class AnalyticsService {
         }
         data.put("simDailyActivity", simDailyActivity);
 
-        // Данные для фильтров
         data.put("allEmployees", employeeRepository.findAllByOrderByLastNameAsc());
         data.put("allTests", testRepository.findAllByOrderByTitleAsc());
         data.put("allDepartments", departmentService.getAllDepartmentsFlat());
@@ -303,7 +287,6 @@ public class AnalyticsService {
         try (XWPFDocument doc = new XWPFDocument();
              ByteArrayOutputStream out = new ByteArrayOutputStream()) {
 
-            // === Заголовок ===
             XWPFParagraph title = doc.createParagraph();
             title.setAlignment(ParagraphAlignment.CENTER);
             XWPFRun titleRun = title.createRun();
@@ -314,7 +297,6 @@ public class AnalyticsService {
 
             addEmptyLine(doc);
 
-            // === Период и фильтры ===
             LocalDate from = (LocalDate) data.get("dateFrom");
             LocalDate to = (LocalDate) data.get("dateTo");
 
@@ -352,7 +334,6 @@ public class AnalyticsService {
 
             addEmptyLine(doc);
 
-            // === Обзорные метрики ===
             addSectionTitle(doc, "Обзорные метрики");
 
             XWPFTable metricsTable = doc.createTable(4, 2);
@@ -368,7 +349,6 @@ public class AnalyticsService {
 
             addEmptyLine(doc);
 
-            // === Статистика по тестам ===
             @SuppressWarnings("unchecked")
             List<Map<String, Object>> testStats = (List<Map<String, Object>>) data.get("testStats");
 
@@ -390,7 +370,6 @@ public class AnalyticsService {
                 addEmptyLine(doc);
             }
 
-            // === Топ-5 сотрудников ===
             @SuppressWarnings("unchecked")
             List<Map<String, Object>> topPerformers = (List<Map<String, Object>>) data.get("topPerformers");
 
@@ -412,7 +391,6 @@ public class AnalyticsService {
                 addEmptyLine(doc);
             }
 
-            // === Топ-5 сложных вопросов ===
             @SuppressWarnings("unchecked")
             List<Map<String, Object>> hardestQuestions = (List<Map<String, Object>>) data.get("hardestQuestions");
 
@@ -434,7 +412,6 @@ public class AnalyticsService {
                 addEmptyLine(doc);
             }
 
-            // === Подвал ===
             XWPFParagraph footer = doc.createParagraph();
             footer.setAlignment(ParagraphAlignment.RIGHT);
             XWPFRun footerRun = footer.createRun();

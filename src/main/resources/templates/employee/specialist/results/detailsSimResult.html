@@ -21,7 +21,6 @@
             <div class="row justify-content-center">
                 <div class="col-12 col-lg-9">
 
-                    <!-- Заголовок -->
                     <div class="profile-card p-4 mb-3 text-center">
                         <h1 class="page-title mb-2" th:text="${simSession.scenarioTitle}"></h1>
                         <span class="badge"
@@ -29,7 +28,6 @@
                               th:text="${simSession.sessionStatusDisplayName}"></span>
                     </div>
 
-                    <!-- Результат -->
                     <div class="profile-card p-4 mb-3">
                         <div class="text-center mb-4">
                             <div class="mb-2">
@@ -71,7 +69,6 @@
                             </div>
                         </div>
 
-                        <!-- Прогресс-бар -->
                         <th:block th:with="pct=${simSession.totalSteps > 0 ? (simSession.completedSteps * 100 / simSession.totalSteps) : 0}">
                             <div class="progress mb-2" style="height: 10px;">
                                 <div class="progress-bar"
@@ -87,7 +84,6 @@
                         </th:block>
                     </div>
 
-                    <!-- Разбор шагов -->
                     <div class="profile-card p-4 mb-3" th:if="${!#lists.isEmpty(stepResultsList)}">
                         <h5 class="mb-3"><i class="bi bi-list-ol"></i> Разбор шагов</h5>
 
@@ -108,7 +104,6 @@
                         </div>
                     </div>
 
-                    <!-- Кнопки -->
                     <div class="d-flex justify-content-between mb-4">
                         <a th:href="@{/employee/specialist/results/myResults}" class="btn btn-outline-secondary">
                             <i class="bi bi-arrow-left"></i> К списку результатов

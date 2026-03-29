@@ -33,7 +33,6 @@
         .sim-feedback.error { background: #f8d7da; color: #842029; }
         .sim-feedback.info { background: #cff4fc; color: #055160; }
 
-        /* Tooltip */
         .sim-tooltip { position: fixed; z-index: 9999; pointer-events: none;
             background: #fff; border: 1px solid #dee2e6; border-radius: 8px;
             padding: 10px 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
@@ -47,15 +46,11 @@
         .sim-tooltip-hint { color: #adb5bd; font-size: 0.75rem; margin-top: 4px; font-style: italic; }
         .label-group { cursor: default !important; }
 
-        /* Fault: locked elements */
         .element-locked .element-border { stroke: #dc3545 !important; stroke-width: 2.5 !important; }
         .locked-icon { fill: #dc3545; font-size: 14px; pointer-events: none; }
-        /* Fault: anomalous sensor */
         .sensor-anomaly { fill: #dc3545 !important; animation: blink-anomaly 0.5s infinite; }
         @keyframes blink-anomaly { 50% { opacity: 0.3; } }
-        /* Fault: step timer */
         .step-timer-badge { font-size: 0.85rem; font-variant-numeric: tabular-nums; }
-        /* Fault: warning feedback */
         .sim-feedback.warning { background: #fff3cd; color: #664d03; }
     </style>
 </head>
@@ -68,13 +63,11 @@
         <main class="p-0">
 
             <div class="sim-wrapper">
-                <!-- Header: timer + progress -->
                 <div class="sim-header">
                     <div>
                         <strong th:text="${simSession.scenarioTitle}" style="font-size:1rem;"></strong>
                     </div>
                     <div class="sim-progress" id="stepProgress">
-                        <!-- Rendered by JS -->
                     </div>
                     <div>
                         <span th:if="${simSession.endTime != null}" class="sim-timer" id="simTimer"
@@ -83,7 +76,6 @@
                     </div>
                 </div>
 
-                <!-- Instruction -->
                 <div class="sim-instruction" id="simInstruction">
                     <i class="bi bi-arrow-right-circle"></i>
                     <strong>Шаг <span id="currentStepNum" th:text="${simSession.currentStep}"></span>:</strong>
@@ -93,15 +85,12 @@
                     </span>
                 </div>
 
-                <!-- Feedback -->
                 <div class="sim-feedback" id="simFeedback"></div>
 
-                <!-- SVG Canvas -->
                 <div class="sim-canvas">
                     <svg id="simSvg" xmlns="http://www.w3.org/2000/svg"></svg>
                 </div>
 
-                <!-- Footer: check step button -->
                 <div class="sim-footer">
                     <button class="btn btn-success" id="btnCheckStep">
                         <i class="bi bi-check-circle"></i> Проверить шаг
