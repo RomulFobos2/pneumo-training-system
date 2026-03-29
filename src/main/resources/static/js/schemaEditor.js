@@ -207,6 +207,58 @@ var SchemaEditor = (function () {
             '<rect x="2" y="10" width="56" height="40" rx="4" fill="#fff" stroke="#adb5bd" stroke-width="1.5" stroke-dasharray="4,2"/>' +
             '<text x="30" y="36" text-anchor="middle" font-size="14" fill="#495057">Aa</text>' +
             '</symbol>' +
+            // REDUCER off (трапеция — сужение давления)
+            '<symbol id="symbol-REDUCER-off" viewBox="0 0 60 60">' +
+            '<polygon points="8,15 52,22 52,38 8,45" fill="#f3e8ff" stroke="#8e44ad" stroke-width="2.5"/>' +
+            '<path d="M30 25 L30 35" stroke="#8e44ad" stroke-width="2"/>' +
+            '<path d="M25 30 L35 30" stroke="#8e44ad" stroke-width="2"/>' +
+            '</symbol>' +
+            // REDUCER on
+            '<symbol id="symbol-REDUCER-on" viewBox="0 0 60 60">' +
+            '<polygon points="8,15 52,22 52,38 8,45" fill="#d4edda" stroke="#27ae60" stroke-width="2.5"/>' +
+            '<path d="M30 25 L30 35" stroke="#27ae60" stroke-width="2"/>' +
+            '<path d="M25 30 L35 30" stroke="#27ae60" stroke-width="2"/>' +
+            '</symbol>' +
+            // SAFETY_VALVE off (клапан с пружиной)
+            '<symbol id="symbol-SAFETY_VALVE-off" viewBox="0 0 60 60">' +
+            '<polygon points="20,42 30,18 40,42" fill="#fef3e2" stroke="#e67e22" stroke-width="2.5"/>' +
+            '<path d="M25 12 L28 16 L32 10 L35 16" stroke="#e67e22" stroke-width="2" fill="none"/>' +
+            '<line x1="30" y1="18" x2="30" y2="12" stroke="#e67e22" stroke-width="2"/>' +
+            '<line x1="18" y1="48" x2="42" y2="48" stroke="#e67e22" stroke-width="2.5"/>' +
+            '</symbol>' +
+            // SAFETY_VALVE on (то же, не переключается)
+            '<symbol id="symbol-SAFETY_VALVE-on" viewBox="0 0 60 60">' +
+            '<polygon points="20,42 30,18 40,42" fill="#fef3e2" stroke="#e67e22" stroke-width="2.5"/>' +
+            '<path d="M25 12 L28 16 L32 10 L35 16" stroke="#e67e22" stroke-width="2" fill="none"/>' +
+            '<line x1="30" y1="18" x2="30" y2="12" stroke="#e67e22" stroke-width="2"/>' +
+            '<line x1="18" y1="48" x2="42" y2="48" stroke="#e67e22" stroke-width="2.5"/>' +
+            '</symbol>' +
+            // FILTER off (прямоугольник с сеткой)
+            '<symbol id="symbol-FILTER-off" viewBox="0 0 60 60">' +
+            '<rect x="10" y="10" width="40" height="40" rx="4" fill="#e8f8f5" stroke="#1abc9c" stroke-width="2.5"/>' +
+            '<line x1="10" y1="22" x2="50" y2="22" stroke="#1abc9c" stroke-width="1.5"/>' +
+            '<line x1="10" y1="34" x2="50" y2="34" stroke="#1abc9c" stroke-width="1.5"/>' +
+            '<line x1="22" y1="10" x2="22" y2="50" stroke="#1abc9c" stroke-width="1.5"/>' +
+            '<line x1="38" y1="10" x2="38" y2="50" stroke="#1abc9c" stroke-width="1.5"/>' +
+            '</symbol>' +
+            // FILTER on (то же)
+            '<symbol id="symbol-FILTER-on" viewBox="0 0 60 60">' +
+            '<rect x="10" y="10" width="40" height="40" rx="4" fill="#e8f8f5" stroke="#1abc9c" stroke-width="2.5"/>' +
+            '<line x1="10" y1="22" x2="50" y2="22" stroke="#1abc9c" stroke-width="1.5"/>' +
+            '<line x1="10" y1="34" x2="50" y2="34" stroke="#1abc9c" stroke-width="1.5"/>' +
+            '<line x1="22" y1="10" x2="22" y2="50" stroke="#1abc9c" stroke-width="1.5"/>' +
+            '<line x1="38" y1="10" x2="38" y2="50" stroke="#1abc9c" stroke-width="1.5"/>' +
+            '</symbol>' +
+            // CHECK_VALVE off (треугольник с вертикальной чертой — обратный клапан)
+            '<symbol id="symbol-CHECK_VALVE-off" viewBox="0 0 60 60">' +
+            '<polygon points="15,15 42,30 15,45" fill="#eef2f7" stroke="#34495e" stroke-width="2.5"/>' +
+            '<line x1="42" y1="12" x2="42" y2="48" stroke="#34495e" stroke-width="3"/>' +
+            '</symbol>' +
+            // CHECK_VALVE on (то же)
+            '<symbol id="symbol-CHECK_VALVE-on" viewBox="0 0 60 60">' +
+            '<polygon points="15,15 42,30 15,45" fill="#eef2f7" stroke="#34495e" stroke-width="2.5"/>' +
+            '<line x1="42" y1="12" x2="42" y2="48" stroke="#34495e" stroke-width="3"/>' +
+            '</symbol>' +
             '</defs>';
     }
 
@@ -232,6 +284,8 @@ var SchemaEditor = (function () {
                         height: el.height || 60,
                         initialState: el.initialState,
                         rotation: el.rotation || 0,
+                        minValue: el.minValue != null ? el.minValue : null,
+                        maxValue: el.maxValue != null ? el.maxValue : null,
                         svgGroup: null
                     };
                     elements.push(elem);
@@ -267,7 +321,9 @@ var SchemaEditor = (function () {
                     width: el.width,
                     height: el.height,
                     initialState: el.initialState,
-                    rotation: el.rotation
+                    rotation: el.rotation,
+                    minValue: el.minValue != null ? el.minValue : null,
+                    maxValue: el.maxValue != null ? el.maxValue : null
                 };
             }),
             connections: connections.map(function (c) {
@@ -620,7 +676,8 @@ var SchemaEditor = (function () {
         var typeNames = {
             'VALVE': 'VP', 'PUMP': 'N', 'SWITCH': 'WS',
             'SENSOR_PRESSURE': 'PT', 'SENSOR_TEMPERATURE': 'TT',
-            'HEATER': 'NR', 'LOCK': 'BH', 'LABEL': 'L'
+            'HEATER': 'NR', 'LOCK': 'BH', 'LABEL': 'L',
+            'REDUCER': 'RD', 'SAFETY_VALVE': 'SV', 'FILTER': 'FL', 'CHECK_VALVE': 'CV'
         };
         var prefix = typeNames[type] || type;
         var count = elements.filter(function (el) { return el.elementType === type; }).length + 1;
@@ -635,6 +692,8 @@ var SchemaEditor = (function () {
             height: 60,
             initialState: false,
             rotation: 0,
+            minValue: null,
+            maxValue: null,
             svgGroup: null
         };
         elements.push(elem);
@@ -728,7 +787,9 @@ var SchemaEditor = (function () {
         var typeNames = {
             'VALVE': 'Клапан', 'PUMP': 'Насос', 'SWITCH': 'Переключатель',
             'SENSOR_PRESSURE': 'Датчик давления', 'SENSOR_TEMPERATURE': 'Датчик температуры',
-            'HEATER': 'Нагреватель', 'LOCK': 'Блокировка'
+            'HEATER': 'Нагреватель', 'LOCK': 'Блокировка',
+            'REDUCER': 'Редуктор', 'SAFETY_VALVE': 'Предохр. клапан',
+            'FILTER': 'Фильтр', 'CHECK_VALVE': 'Обратный клапан'
         };
 
         document.getElementById('propName').value = elem.name || '';
@@ -739,6 +800,17 @@ var SchemaEditor = (function () {
         document.getElementById('propHeight').value = elem.height;
         document.getElementById('propRotation').value = elem.rotation;
         document.getElementById('propInitialState').checked = elem.initialState;
+
+        // Поля min/max для датчиков
+        var sensorRangeBlock = document.getElementById('sensorRangeProps');
+        if (sensorRangeBlock) {
+            var isSensor = elem.elementType === 'SENSOR_PRESSURE' || elem.elementType === 'SENSOR_TEMPERATURE';
+            sensorRangeBlock.style.display = isSensor ? 'block' : 'none';
+            if (isSensor) {
+                document.getElementById('propMinValue').value = elem.minValue != null ? elem.minValue : '';
+                document.getElementById('propMaxValue').value = elem.maxValue != null ? elem.maxValue : '';
+            }
+        }
     }
 
     function showConnectionProps(conn) {

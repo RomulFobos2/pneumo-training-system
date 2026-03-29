@@ -13,4 +13,6 @@ public class SchemaElementDTO {
     private Double height;
     private boolean initialState;
     private Integer rotation;
+    private Double minValue;
+    private Double maxValue;
 }

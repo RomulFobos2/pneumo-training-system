@@ -195,6 +195,8 @@ public class MnemoSchemaService {
                 element.setHeight(dto.getHeight() != null ? dto.getHeight() : 60.0);
                 element.setInitialState(dto.isInitialState());
                 element.setRotation(dto.getRotation() != null ? dto.getRotation() : 0);
+                element.setMinValue(dto.getMinValue());
+                element.setMaxValue(dto.getMaxValue());
                 element.setSchema(schema);
 
                 SchemaElement saved = elementRepository.save(element);

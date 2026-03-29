@@ -83,7 +83,7 @@ public class SimulationService {
             MnemoSchema schema = actualScenario.getSchema();
             if (schema != null && schema.getElements() != null) {
                 schema.getElements().stream()
-                        .filter(el -> el.getElementType() != ru.mai.voshod.pneumotraining.enumeration.ElementType.LABEL)
+                        .filter(el -> !isNonToggleable(el.getElementType()))
                         .forEach(el -> initialState.put(el.getName(), el.isInitialState()));
             }
 
@@ -280,7 +280,7 @@ public class SimulationService {
             MnemoSchema schema = session.getScenario().getSchema();
             if (schema != null && schema.getElements() != null) {
                 schema.getElements().stream()
-                        .filter(el -> el.getElementType() != ru.mai.voshod.pneumotraining.enumeration.ElementType.LABEL)
+                        .filter(el -> !isNonToggleable(el.getElementType()))
                         .forEach(el -> fullExpected.put(el.getName(), el.isInitialState()));
             }
 
@@ -505,7 +505,10 @@ public class SimulationService {
     private boolean isNonToggleable(ElementType type) {
         return type == ElementType.SENSOR_PRESSURE
                 || type == ElementType.SENSOR_TEMPERATURE
-                || type == ElementType.LABEL;
+                || type == ElementType.LABEL
+                || type == ElementType.SAFETY_VALVE
+                || type == ElementType.FILTER
+                || type == ElementType.CHECK_VALVE;
     }
 
     private Map<String, Boolean> deserializeState(String json) {
