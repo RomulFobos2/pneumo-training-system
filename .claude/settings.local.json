@@ -34,7 +34,10 @@
       "Bash(grep -rn [Ee]xam C:UsersRomulDesktopDiplom_2_26pneumo-training-systemsrcmainjavarumaivoshodpneumotraining --include=*.java)",
       "mcp__plugin_context-mode_context-mode__execute",
       "Bash(grep -n \"exportExamProtocol\\\\|exportProtocol\\\\|ПРОТОКОЛ\\\\|Протокол\" src/main/resources/templates/employee/chief/results/*.html)",
-      "Bash(grep -n \"isExam\\\\|testIsExam\" src/main/resources/templates/employee/chief/tests/*.html)"
+      "Bash(grep -n \"isExam\\\\|testIsExam\" src/main/resources/templates/employee/chief/tests/*.html)",
+      "Bash(grep -r \"Заблокировать\\\\|заблокировать\" /c/Users/Romul/Desktop/Diplom_2_26/pneumo-training-system/src --include=*.html --include=*.js)",
+      "Bash(pip install:*)",
+      "Bash(python -c \":*)"
     ]
   }
 }
