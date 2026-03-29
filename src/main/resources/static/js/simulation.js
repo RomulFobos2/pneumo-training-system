@@ -61,8 +61,13 @@ var Simulation = (function () {
 
         // Показать аварийное событие текущего шага (если есть)
         if (typeof simFaultEvent === 'string' && simFaultEvent) {
-            try { showFaultEventModal(JSON.parse(simFaultEvent)); } catch (e) { /* ignore */ }
+            try {
+                var initFault = JSON.parse(simFaultEvent);
+                applySensorOverrides(initFault);
+                showFaultEventModal(initFault);
+            } catch (e) { /* ignore */ }
         } else if (typeof simFaultEvent === 'object' && simFaultEvent !== null) {
+            applySensorOverrides(simFaultEvent);
             showFaultEventModal(simFaultEvent);
         }
 
@@ -136,6 +141,19 @@ var Simulation = (function () {
     // ========== Значения датчиков (pseudo-random, стабильные для одного имени) ==========
 
     var sensorCache = {};
+    var sensorOverrides = {};
+
+    function applySensorOverrides(fault) {
+        if (fault && fault.sensorOverrides) {
+            var ov = fault.sensorOverrides;
+            for (var key in ov) {
+                if (ov.hasOwnProperty(key)) {
+                    sensorOverrides[key] = Number(ov[key]);
+                }
+            }
+            updateSensorValues();
+        }
+    }
 
     function getSensorValue(name, range) {
         if (sensorCache[name] !== undefined) return sensorCache[name];
@@ -191,6 +209,13 @@ var Simulation = (function () {
             var el = eg.el;
             var range = SENSOR_RANGES[el.elementType];
             if (!range) return;
+
+            // Аварийное переопределение значения датчика
+            if (sensorOverrides[name] !== undefined) {
+                eg.valueText.textContent = sensorOverrides[name].toFixed(2) + ' ' + range.unit;
+                eg.valueText.setAttribute('fill', '#dc3545');
+                return;
+            }
 
             var hasFlow = checkSensorFlow(name);
             if (hasFlow) {
@@ -494,11 +519,12 @@ var Simulation = (function () {
                     updateLockedVisuals();
                 }
 
-                // Показать аварийное событие нового шага
+                // Показать аварийное событие нового шага + переопределения датчиков
                 if (data.faultEvent) {
                     try {
                         var fault = typeof data.faultEvent === 'string'
                             ? JSON.parse(data.faultEvent) : data.faultEvent;
+                        applySensorOverrides(fault);
                         showFaultEventModal(fault);
                     } catch (e) { /* ignore */ }
                 }
