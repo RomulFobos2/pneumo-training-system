@@ -17,7 +17,10 @@ SET @test2_title := CONVERT('Тестовые вопросы по пневмои
 
 -- ====== Кто создаёт тесты/назначения ======
 SET @created_by_id := (
-    SELECT e.id FROM t_employee e WHERE e.username = @chief_username LIMIT 1
+    SELECT e.id
+    FROM t_employee e
+    WHERE e.username COLLATE utf8mb4_general_ci = @chief_username COLLATE utf8mb4_general_ci
+    LIMIT 1
 );
 SET @created_by_id := COALESCE(
     @created_by_id,
@@ -48,47 +51,75 @@ FROM t_test_session_answer_selected_answers s_sel
 JOIN t_test_session_answer s_ans ON s_ans.id = s_sel.test_session_answer_id
 JOIN t_test_session s ON s.id = s_ans.test_session_id
 JOIN t_test t ON t.id = s.test_id
-WHERE t.title IN (@test1_title, @test2_title);
+WHERE t.title COLLATE utf8mb4_general_ci IN (
+    @test1_title COLLATE utf8mb4_general_ci,
+    @test2_title COLLATE utf8mb4_general_ci
+);
 
 DELETE s_ans
 FROM t_test_session_answer s_ans
 JOIN t_test_session s ON s.id = s_ans.test_session_id
 JOIN t_test t ON t.id = s.test_id
-WHERE t.title IN (@test1_title, @test2_title);
+WHERE t.title COLLATE utf8mb4_general_ci IN (
+    @test1_title COLLATE utf8mb4_general_ci,
+    @test2_title COLLATE utf8mb4_general_ci
+);
 
 DELETE s
 FROM t_test_session s
 JOIN t_test t ON t.id = s.test_id
-WHERE t.title IN (@test1_title, @test2_title);
+WHERE t.title COLLATE utf8mb4_general_ci IN (
+    @test1_title COLLATE utf8mb4_general_ci,
+    @test2_title COLLATE utf8mb4_general_ci
+);
 
 DELETE tae
 FROM t_test_assignment_employee tae
 JOIN t_test_assignment ta ON ta.id = tae.assignment_id
 JOIN t_test t ON t.id = ta.test_id
-WHERE t.title IN (@test1_title, @test2_title);
+WHERE t.title COLLATE utf8mb4_general_ci IN (
+    @test1_title COLLATE utf8mb4_general_ci,
+    @test2_title COLLATE utf8mb4_general_ci
+);
 
 DELETE ta
 FROM t_test_assignment ta
 JOIN t_test t ON t.id = ta.test_id
-WHERE t.title IN (@test1_title, @test2_title);
+WHERE t.title COLLATE utf8mb4_general_ci IN (
+    @test1_title COLLATE utf8mb4_general_ci,
+    @test2_title COLLATE utf8mb4_general_ci
+);
 
 DELETE a
 FROM t_test_answer a
 JOIN t_test_question q ON q.id = a.question_id
 JOIN t_test t ON t.id = q.test_id
-WHERE t.title IN (@test1_title, @test2_title);
+WHERE t.title COLLATE utf8mb4_general_ci IN (
+    @test1_title COLLATE utf8mb4_general_ci,
+    @test2_title COLLATE utf8mb4_general_ci
+);
 
 DELETE q
 FROM t_test_question q
 JOIN t_test t ON t.id = q.test_id
-WHERE t.title IN (@test1_title, @test2_title);
+WHERE t.title COLLATE utf8mb4_general_ci IN (
+    @test1_title COLLATE utf8mb4_general_ci,
+    @test2_title COLLATE utf8mb4_general_ci
+);
 
 DELETE td
 FROM t_test_department td
 JOIN t_test t ON t.id = td.test_id
-WHERE t.title IN (@test1_title, @test2_title);
+WHERE t.title COLLATE utf8mb4_general_ci IN (
+    @test1_title COLLATE utf8mb4_general_ci,
+    @test2_title COLLATE utf8mb4_general_ci
+);
 
-DELETE FROM t_test WHERE title IN (@test1_title, @test2_title);
+DELETE FROM t_test
+WHERE title COLLATE utf8mb4_general_ci IN (
+    @test1_title COLLATE utf8mb4_general_ci,
+    @test2_title COLLATE utf8mb4_general_ci
+);
 
 -- ====== Создание тестов ======
 INSERT INTO t_test (title, description, time_limit, passing_score, available_without_assignment, allow_back_navigation, created_by_id)
@@ -96,8 +127,18 @@ VALUES
 (@test1_title, 'Нормативные и практические вопросы по пневмоиспытаниям с использованием ППИ.', 45, 80, false, true, @created_by_id),
 (@test2_title, 'Базовые вопросы по пневмоиспытаниям двигательной установки.', 35, 75, false, true, @created_by_id);
 
-SET @test1_id := (SELECT id FROM t_test WHERE title = @test1_title LIMIT 1);
-SET @test2_id := (SELECT id FROM t_test WHERE title = @test2_title LIMIT 1);
+SET @test1_id := (
+    SELECT id
+    FROM t_test
+    WHERE title COLLATE utf8mb4_general_ci = @test1_title COLLATE utf8mb4_general_ci
+    LIMIT 1
+);
+SET @test2_id := (
+    SELECT id
+    FROM t_test
+    WHERE title COLLATE utf8mb4_general_ci = @test2_title COLLATE utf8mb4_general_ci
+    LIMIT 1
+);
 
 -- ====== Временные таблицы для массовой загрузки вопросов/ответов ======
 DROP TEMPORARY TABLE IF EXISTS tmp_seed_questions;
