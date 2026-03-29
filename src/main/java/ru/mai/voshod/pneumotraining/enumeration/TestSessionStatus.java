@@ -2,9 +2,6 @@ package ru.mai.voshod.pneumotraining.enumeration;
 
 import lombok.Getter;
 
-/**
- * Статус тестовой сессии
- */
 @Getter
 public enum TestSessionStatus {
 

@@ -2,9 +2,6 @@ package ru.mai.voshod.pneumotraining.enumeration;
 
 import lombok.Getter;
 
-/**
- * Тип учебного материала
- */
 @Getter
 public enum MaterialType {
 

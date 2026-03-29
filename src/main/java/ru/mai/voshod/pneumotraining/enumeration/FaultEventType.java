@@ -2,9 +2,6 @@ package ru.mai.voshod.pneumotraining.enumeration;
 
 import lombok.Getter;
 
-/**
- * Тип аварийного события на шаге сценария.
- */
 @Getter
 public enum FaultEventType {
 

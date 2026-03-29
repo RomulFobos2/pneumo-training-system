@@ -12,10 +12,6 @@ import ru.mai.voshod.pneumotraining.repo.DepartmentRepository;
 import ru.mai.voshod.pneumotraining.repo.EmployeeRepository;
 import ru.mai.voshod.pneumotraining.repo.RoleRepository;
 
-/**
- * Инициализация начальных данных при запуске приложения.
- * Создаёт 4 роли и учётную запись администратора по умолчанию.
- */
 @Component
 @Slf4j
 public class DataInitializer implements CommandLineRunner {

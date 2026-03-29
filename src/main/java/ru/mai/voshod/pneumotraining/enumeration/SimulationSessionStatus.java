@@ -2,9 +2,6 @@ package ru.mai.voshod.pneumotraining.enumeration;
 
 import lombok.Getter;
 
-/**
- * Статус сессии симуляции мнемосхемы
- */
 @Getter
 public enum SimulationSessionStatus {
 
