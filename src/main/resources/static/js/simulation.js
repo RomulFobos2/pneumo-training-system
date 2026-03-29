@@ -99,14 +99,21 @@ var Simulation = (function () {
         } else if (isSensorType(el.elementType)) {
             // Датчик — пассивный элемент, показания зависят от потока
             var range = SENSOR_RANGES[el.elementType];
-            var hasFlow = checkSensorFlow(el.name);
-            var val = hasFlow && range ? getSensorValue(el.name, range) : 0;
-            var valText = range ? val.toFixed(2) + ' ' + range.unit : '—';
+            var valText = '—';
+            var valColor = '';
+            if (sensorOverrides[el.name] !== undefined && range) {
+                valText = sensorOverrides[el.name].toFixed(2) + ' ' + range.unit;
+                valColor = ' style="color:#dc3545"';
+            } else {
+                var hasFlow = checkSensorFlow(el.name);
+                var val = hasFlow && range ? getSensorValue(el.name, range) : 0;
+                valText = range ? val.toFixed(2) + ' ' + range.unit : '—';
+            }
 
             tooltipEl.innerHTML =
                 '<div class="sim-tooltip-name">' + (el.name || '—') + '</div>' +
                 '<div class="sim-tooltip-type">' + typeName + '</div>' +
-                '<div class="sim-tooltip-value">' + valText + '</div>' +
+                '<div class="sim-tooltip-value"' + valColor + '>' + valText + '</div>' +
                 '<div class="sim-tooltip-hint">Пассивный элемент (показания зависят от потока)</div>';
         } else {
             var stateText = isOn ? 'ВКЛ' : 'ВЫКЛ';
