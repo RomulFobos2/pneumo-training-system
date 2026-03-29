@@ -465,6 +465,22 @@ var ScenarioEditor = (function () {
             '</div>' +
             '</div>';
 
+        // --- Sensor overrides ---
+        var overrides = (faultObj && faultObj.sensorOverrides) ? faultObj.sensorOverrides : {};
+        html += '<div class="mb-2">' +
+            '<label class="form-label fault-label"><i class="bi bi-speedometer2"></i> Показания датчиков (переопределение)</label>' +
+            '<div class="sensor-overrides-list" data-step-index="' + index + '">';
+
+        Object.keys(overrides).forEach(function (sName) {
+            html += buildSensorOverrideRowHtml(sName, overrides[sName]);
+        });
+
+        html += '</div>' +
+            '<button type="button" class="btn btn-outline-secondary btn-sm mt-1 btn-add-sensor-override">' +
+            '  <i class="bi bi-plus"></i> Добавить датчик' +
+            '</button>' +
+            '</div>';
+
         // --- Forbidden actions ---
         html += '<div class="mb-1">' +
             '<label class="form-label fault-label"><i class="bi bi-ban"></i> Запрещённые действия</label>' +
@@ -481,6 +497,20 @@ var ScenarioEditor = (function () {
             '</div>';
 
         return html;
+    }
+
+    function buildSensorOverrideRowHtml(sName, sValue) {
+        return '<div class="row g-1 mb-1 sensor-override-row">' +
+            '<div class="col-md-4">' +
+            '  <input type="text" class="form-control form-control-sm so-name" placeholder="Имя датчика (PT1)" value="' + escapeHtml(sName || '') + '">' +
+            '</div>' +
+            '<div class="col-md-4">' +
+            '  <input type="number" class="form-control form-control-sm so-value" step="0.01" placeholder="Значение" value="' + (sValue != null ? sValue : '') + '">' +
+            '</div>' +
+            '<div class="col-md-2">' +
+            '  <button type="button" class="btn btn-outline-danger btn-sm btn-remove-sensor-override"><i class="bi bi-x"></i></button>' +
+            '</div>' +
+            '</div>';
     }
 
     function buildForbiddenActionRowHtml(stepIndex, faIndex, fa) {
@@ -534,18 +564,52 @@ var ScenarioEditor = (function () {
                 steps[index].faultEvent = '';
                 return;
             }
-            steps[index].faultEvent = JSON.stringify({
+            var faultObj = {
                 type: type,
                 elementName: faultElement.value.trim(),
                 message: faultMessage.value.trim(),
                 lockElement: faultLock.checked
+            };
+            // Собрать переопределения датчиков
+            var overrides = {};
+            var soRows = card.querySelectorAll('.sensor-override-row');
+            soRows.forEach(function (row) {
+                var name = row.querySelector('.so-name').value.trim();
+                var val = row.querySelector('.so-value').value;
+                if (name && val !== '') {
+                    overrides[name] = parseFloat(val);
+                }
             });
+            if (Object.keys(overrides).length > 0) {
+                faultObj.sensorOverrides = overrides;
+            }
+            steps[index].faultEvent = JSON.stringify(faultObj);
         }
 
         if (faultType) faultType.addEventListener('change', updateFaultEvent);
         if (faultElement) faultElement.addEventListener('input', updateFaultEvent);
         if (faultMessage) faultMessage.addEventListener('input', updateFaultEvent);
         if (faultLock) faultLock.addEventListener('change', updateFaultEvent);
+
+        // Sensor overrides: add button
+        var addSoBtn = card.querySelector('.btn-add-sensor-override');
+        if (addSoBtn) {
+            addSoBtn.addEventListener('click', function () {
+                var list = card.querySelector('.sensor-overrides-list');
+                var newRow = document.createElement('div');
+                newRow.innerHTML = buildSensorOverrideRowHtml('', '');
+                var row = newRow.firstChild;
+                list.appendChild(row);
+                bindSensorOverrideRowListeners(card, index, row);
+                updateFaultEvent();
+            });
+        }
+
+        // Existing sensor override rows
+        var soRows = card.querySelectorAll('.sensor-override-row');
+        soRows.forEach(function (row) {
+            bindSensorOverrideRowListeners(card, index, row);
+        });
 
         // Forbidden actions: add button
         var addBtn = card.querySelector('.btn-add-forbidden');
@@ -565,6 +629,25 @@ var ScenarioEditor = (function () {
         var rows = card.querySelectorAll('.forbidden-action-row');
         rows.forEach(function (row) {
             bindForbiddenRowListeners(card, index, row);
+        });
+    }
+
+    function bindSensorOverrideRowListeners(card, stepIndex, row) {
+        var removeBtn = row.querySelector('.btn-remove-sensor-override');
+        if (removeBtn) {
+            removeBtn.addEventListener('click', function () {
+                row.remove();
+                // Перезапустить updateFaultEvent через симуляцию change
+                var faultType = card.querySelector('.fault-type');
+                if (faultType) faultType.dispatchEvent(new Event('change'));
+            });
+        }
+        var inputs = row.querySelectorAll('input');
+        inputs.forEach(function (inp) {
+            inp.addEventListener('input', function () {
+                var faultType = card.querySelector('.fault-type');
+                if (faultType) faultType.dispatchEvent(new Event('change'));
+            });
         });
     }
 
