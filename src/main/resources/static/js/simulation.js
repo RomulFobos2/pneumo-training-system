@@ -23,7 +23,11 @@ var Simulation = (function () {
         'SENSOR_TEMPERATURE': 'Датчик температуры',
         'HEATER': 'Нагреватель',
         'LOCK': 'Блокиратор',
-        'LABEL': 'Надпись'
+        'LABEL': 'Надпись',
+        'REDUCER': 'Редуктор',
+        'SAFETY_VALVE': 'Предохр. клапан',
+        'FILTER': 'Фильтр',
+        'CHECK_VALVE': 'Обратный клапан'
     };
 
     /** Диапазоны значений датчиков при ВКЛ */
@@ -167,6 +171,11 @@ var Simulation = (function () {
         return type === 'SENSOR_PRESSURE' || type === 'SENSOR_TEMPERATURE';
     }
 
+    function isNonToggleableType(type) {
+        return type === 'SENSOR_PRESSURE' || type === 'SENSOR_TEMPERATURE'
+            || type === 'SAFETY_VALVE' || type === 'FILTER' || type === 'CHECK_VALVE';
+    }
+
     /** Проверяет, доходит ли поток до датчика (есть ли активная входящая труба) */
     function checkSensorFlow(sensorName) {
         return connectionLines.some(function (conn) {
@@ -185,7 +194,11 @@ var Simulation = (function () {
 
             var hasFlow = checkSensorFlow(name);
             if (hasFlow) {
-                var val = getSensorValue(el.name, range);
+                var effectiveRange = range;
+                if (el.minValue != null && el.maxValue != null) {
+                    effectiveRange = { min: el.minValue, max: el.maxValue, unit: range.unit };
+                }
+                var val = getSensorValue(el.name, effectiveRange);
                 eg.valueText.textContent = val.toFixed(2) + ' ' + range.unit;
                 eg.valueText.setAttribute('fill', '#0d6efd');
             } else {
@@ -327,11 +340,15 @@ var Simulation = (function () {
                 group.addEventListener('mousemove', function (evt) { positionTooltip(evt); });
                 group.addEventListener('mouseleave', function () { hideTooltip(); });
 
-                // Клик — переключение (не для LABEL и датчиков)
+                // Клик — переключение (не для LABEL, датчиков и пассивных элементов)
                 group.addEventListener('click', function () {
                     hideTooltip();
-                    if (isSensorType(el.elementType)) {
-                        showFeedback(el.name + ': показания зависят от потока', 'info');
+                    if (isNonToggleableType(el.elementType)) {
+                        if (isSensorType(el.elementType)) {
+                            showFeedback(el.name + ': показания зависят от потока', 'info');
+                        } else {
+                            showFeedback(el.name + ': элемент не переключается вручную', 'info');
+                        }
                         return;
                     }
                     toggleElement(el.name, group, use, el, valueText);
@@ -381,7 +398,8 @@ var Simulation = (function () {
     }
 
     function isNeutralElement(el) {
-        return el.elementType === 'LABEL' || el.elementType === 'SENSOR_PRESSURE' || el.elementType === 'SENSOR_TEMPERATURE';
+        return el.elementType === 'LABEL' || el.elementType === 'SENSOR_PRESSURE' || el.elementType === 'SENSOR_TEMPERATURE'
+            || el.elementType === 'SAFETY_VALVE' || el.elementType === 'FILTER' || el.elementType === 'CHECK_VALVE';
     }
 
     // ========== Переключение элемента ==========

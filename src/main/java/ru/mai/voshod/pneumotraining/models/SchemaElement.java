@@ -62,6 +62,14 @@ public class SchemaElement {
     @Column(nullable = false)
     private Integer rotation = 0;
 
+    /** Минимальное значение для датчика (null = по умолчанию) */
+    @Column
+    private Double minValue;
+
+    /** Максимальное значение для датчика (null = по умолчанию) */
+    @Column
+    private Double maxValue;
+
     /** Схема, которой принадлежит элемент */
     @ManyToOne
     @JoinColumn(name = "schema_id", nullable = false)
