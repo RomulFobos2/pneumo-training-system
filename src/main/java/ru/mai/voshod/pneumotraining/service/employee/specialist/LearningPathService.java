@@ -42,7 +42,6 @@ public class LearningPathService {
         return buildRecommendations(sessionOpt.get());
     }
 
-    /** Для начальника — без проверки владельца сессии */
     @Transactional(readOnly = true)
     public LearningRecommendationDTO getRecommendationsById(Long sessionId) {
         Optional<TestSession> sessionOpt = testSessionRepository.findById(sessionId);
@@ -62,7 +61,6 @@ public class LearningPathService {
         result.setCorrectCount((int) answers.stream().filter(TestSessionAnswer::isCorrect).count());
         result.setWrongCount(result.getTotalQuestions() - result.getCorrectCount());
 
-        // Группируем неправильные ответы по разделу теории
         Map<Long, List<TestSessionAnswer>> wrongBySection = new LinkedHashMap<>();
         Map<Long, Integer> totalBySection = new HashMap<>();
 
@@ -80,7 +78,6 @@ public class LearningPathService {
             }
         }
 
-        // Для каждого слабого раздела формируем рекомендации
         for (Map.Entry<Long, List<TestSessionAnswer>> entry : wrongBySection.entrySet()) {
             Long sectionId = entry.getKey();
             List<TestSessionAnswer> wrongAnswers = entry.getValue();
@@ -93,7 +90,6 @@ public class LearningPathService {
             topic.setWrongCount(wrongAnswers.size());
             topic.setTotalInSection(totalBySection.getOrDefault(sectionId, 0));
 
-            // Материалы из этого раздела
             if (section.getMaterials() != null) {
                 List<TheoryMaterialDTO> materialDTOs = section.getMaterials().stream()
                         .map(TheoryMaterialMapper.INSTANCE::toDTO)
@@ -101,7 +97,6 @@ public class LearningPathService {
                 topic.setMaterials(materialDTOs);
             }
 
-            // Тесты с вопросами из этого раздела (кроме текущего теста)
             List<TestQuestion> questionsInSection = testQuestionRepository.findByTheorySectionId(sectionId);
             Set<Test> relatedTests = questionsInSection.stream()
                     .map(TestQuestion::getTest)
@@ -116,7 +111,6 @@ public class LearningPathService {
             result.getWeakTopics().add(topic);
         }
 
-        // Сортируем по количеству ошибок (по убыванию)
         result.getWeakTopics().sort(Comparator.comparingInt(WeakTopicDTO::getWrongCount).reversed());
 
         return result;

@@ -43,20 +43,15 @@ public class SimulationService {
         this.objectMapper = objectMapper;
     }
 
-    // ========== Доступные сценарии ==========
-
     @Transactional(readOnly = true)
     public List<ru.mai.voshod.pneumotraining.dto.SimulationScenarioDTO> getAvailableScenarios(Employee employee) {
         return scenarioService.getAvailableScenariosForEmployee(employee);
     }
 
-    // ========== Старт симуляции ==========
-
     @Transactional
     public Optional<Long> startSimulation(Long scenarioId, Employee employee) {
         log.info("Старт симуляции: scenarioId={}, employee={}", scenarioId, employee.getId());
         try {
-            // Проверка на уже активную сессию по этому сценарию (или его аварийным вариантам)
             List<SimulationSession> existing = sessionRepository
                     .findByEmployeeIdAndScenarioIdAndSessionStatus(employee.getId(), scenarioId,
                             SimulationSessionStatus.IN_PROGRESS);
@@ -65,7 +60,6 @@ public class SimulationService {
                 return Optional.of(existing.get(0).getId());
             }
 
-            // Загрузить сценарий со схемой
             var scenarioOpt = scenarioService.getScenarioEntity(scenarioId);
             if (scenarioOpt.isEmpty()) return Optional.empty();
 
@@ -75,10 +69,8 @@ public class SimulationService {
                 return Optional.empty();
             }
 
-            // Случайный выбор: штатный сценарий или один из его аварийных вариантов
             SimulationScenario actualScenario = pickScenarioVariant(scenario);
 
-            // Начальное состояние из элементов схемы
             Map<String, Boolean> initialState = new LinkedHashMap<>();
             MnemoSchema schema = actualScenario.getSchema();
             if (schema != null && schema.getElements() != null) {
@@ -106,7 +98,6 @@ public class SimulationService {
 
             sessionRepository.save(session);
 
-            // Применить аварийное событие первого шага (если есть)
             applyFaultEvent(session, actualScenario.getSteps(), 1);
             sessionRepository.save(session);
             log.info("Сессия симуляции создана: id={}", session.getId());
@@ -118,8 +109,6 @@ public class SimulationService {
         }
     }
 
-    // ========== Получение состояния ==========
-
     @Transactional(readOnly = true)
     public Optional<SimulationSessionDTO> getSessionState(Long sessionId, Employee employee) {
         Optional<SimulationSession> sessionOpt = sessionRepository
@@ -128,15 +117,13 @@ public class SimulationService {
 
         SimulationSession session = sessionOpt.get();
 
-        // Проверка истечения таймера
         if (session.getSessionStatus() == SimulationSessionStatus.IN_PROGRESS && isExpired(session)) {
-            return Optional.empty(); // Будет обработано через checkAndExpire
+            return Optional.empty();
         }
 
         SimulationSessionDTO dto = SimulationSessionMapper.INSTANCE.toDTO(session);
         dto.setCurrentState(session.getCurrentState());
 
-        // Текущая инструкция + fault-данные
         if (session.getScenario() != null && session.getScenario().getSteps() != null) {
             session.getScenario().getSteps().stream()
                     .filter(s -> s.getStepNumber().equals(session.getCurrentStep()))
@@ -149,8 +136,6 @@ public class SimulationService {
 
         return Optional.of(dto);
     }
-
-    // ========== Переключение элемента ==========
 
     @Transactional
     public Optional<Map<String, Object>> toggleElement(Long sessionId, String elementName, Employee employee) {
@@ -165,13 +150,11 @@ public class SimulationService {
                 return Optional.empty();
             }
 
-            // Проверка таймера
             if (isExpired(session)) {
                 expireSession(session);
                 return Optional.of(Map.of("expired", true));
             }
 
-            // Проверка: датчики и надписи не переключаются
             MnemoSchema schema = session.getScenario().getSchema();
             if (schema != null) {
                 Optional<SchemaElement> schemaElement = schema.getElements().stream()
@@ -185,7 +168,6 @@ public class SimulationService {
                 }
             }
 
-            // Проверка: заблокированный элемент (отказ)
             List<String> locked = deserializeLockedElements(session.getLockedElements());
             if (locked.contains(elementName)) {
                 Map<String, Object> res = new LinkedHashMap<>();
@@ -195,10 +177,8 @@ public class SimulationService {
                 return Optional.of(res);
             }
 
-            // Проверка: запрещённые действия
             Map<String, Object> forbiddenResult = checkForbiddenAction(session, elementName);
             if (forbiddenResult != null && Boolean.TRUE.equals(forbiddenResult.get("failed"))) {
-                // FAIL — сессия провалена, toggle не выполняется
                 return Optional.of(forbiddenResult);
             }
 
@@ -218,7 +198,6 @@ public class SimulationService {
             result.put("newState", newValue);
             result.put("expired", false);
 
-            // Если было предупреждение (WARNING/TIME_PENALTY) — добавить в ответ
             if (forbiddenResult != null) {
                 result.put("warning", forbiddenResult.get("message"));
                 result.put("penalty", forbiddenResult.get("penalty"));
@@ -230,8 +209,6 @@ public class SimulationService {
             return Optional.empty();
         }
     }
-
-    // ========== Проверка шага (кумулятивная) ==========
 
     @Transactional
     public Optional<Map<String, Object>> checkStep(Long sessionId, Employee employee) {
@@ -246,14 +223,12 @@ public class SimulationService {
                 return Optional.empty();
             }
 
-            // Проверка глобального таймера
             if (isExpired(session)) {
                 recordStepResult(session, session.getCurrentStep(), false);
                 expireSession(session);
                 return Optional.of(Map.of("status", "expired"));
             }
 
-            // Проверка таймера шага
             List<ScenarioStep> allSteps = session.getScenario().getSteps();
             if (isStepExpired(session, allSteps)) {
                 int stepNum = session.getCurrentStep();
@@ -274,8 +249,6 @@ public class SimulationService {
             List<ScenarioStep> steps = session.getScenario().getSteps();
             int currentStepNum = session.getCurrentStep();
 
-            // 1. Собрать полное ожидаемое состояние: начальное + кумулятивные шаги
-            // Базис — initialState из элементов схемы
             Map<String, Boolean> fullExpected = new LinkedHashMap<>();
             MnemoSchema schema = session.getScenario().getSchema();
             if (schema != null && schema.getElements() != null) {
@@ -284,14 +257,12 @@ public class SimulationService {
                         .forEach(el -> fullExpected.put(el.getName(), el.isInitialState()));
             }
 
-            // Наложить ожидаемые состояния всех шагов от 1 до currentStep
             for (ScenarioStep step : steps) {
                 if (step.getStepNumber() > currentStepNum) break;
                 Map<String, Boolean> stepExpected = deserializeState(step.getExpectedState());
                 fullExpected.putAll(stepExpected);
             }
 
-            // 2. Исключить непереключаемые элементы (датчики, надписи) из проверки
             Set<String> nonToggleableNames = new HashSet<>();
             if (schema != null && schema.getElements() != null) {
                 schema.getElements().stream()
@@ -299,7 +270,6 @@ public class SimulationService {
                         .forEach(el -> nonToggleableNames.add(el.getName()));
             }
 
-            // 3. Проверить ВСЕ переключаемые элементы
             for (Map.Entry<String, Boolean> entry : fullExpected.entrySet()) {
                 if (nonToggleableNames.contains(entry.getKey())) continue;
                 Boolean actual = currentState.get(entry.getKey());
@@ -317,13 +287,11 @@ public class SimulationService {
                 }
             }
 
-            // Все шаги до текущего верны — advance
             recordStepResult(session, currentStepNum, true);
             session.setCompletedSteps(currentStepNum);
 
             Map<String, Object> result = new LinkedHashMap<>();
             if (currentStepNum >= session.getTotalSteps()) {
-                // Последний шаг — COMPLETED
                 session.setSessionStatus(SimulationSessionStatus.COMPLETED);
                 session.setFinishedAt(LocalDateTime.now());
                 sessionRepository.save(session);
@@ -332,12 +300,10 @@ public class SimulationService {
                 log.info("Симуляция завершена успешно: sessionId={}", sessionId);
                 result.put("status", "completed");
             } else {
-                // Переход к следующему шагу
                 int nextStepNum = currentStepNum + 1;
                 session.setCurrentStep(nextStepNum);
                 session.setStepStartedAt(LocalDateTime.now());
 
-                // Применить аварийное событие следующего шага
                 applyFaultEvent(session, steps, nextStepNum);
                 sessionRepository.save(session);
 
@@ -346,7 +312,6 @@ public class SimulationService {
                 result.put("nextStep", nextStepNum);
                 result.put("lockedElements", session.getLockedElements());
 
-                // Инструкция и fault-данные следующего шага
                 steps.stream()
                         .filter(s -> s.getStepNumber() == nextStepNum)
                         .findFirst()
@@ -368,8 +333,6 @@ public class SimulationService {
         }
     }
 
-    // ========== Проверка и expire таймера ==========
-
     @Transactional
     public Optional<SimulationSessionDTO> checkAndExpire(Long sessionId, Employee employee) {
         Optional<SimulationSession> sessionOpt = sessionRepository
@@ -383,8 +346,6 @@ public class SimulationService {
         return Optional.of(SimulationSessionMapper.INSTANCE.toDTO(session));
     }
 
-    // ========== Результат ==========
-
     @Transactional(readOnly = true)
     public Optional<SimulationSessionDTO> getResult(Long sessionId, Employee employee) {
         return sessionRepository.findByIdAndEmployeeId(sessionId, employee.getId())
@@ -394,8 +355,6 @@ public class SimulationService {
                     return dto;
                 });
     }
-
-    // ========== Мои результаты ==========
 
     @Transactional(readOnly = true)
     public List<SimulationSessionDTO> getMyResults(Employee employee) {
@@ -413,8 +372,6 @@ public class SimulationService {
                 .toList();
     }
 
-    // ========== Fault event для текущего шага ==========
-
     @Transactional(readOnly = true)
     public String getCurrentStepFaultEvent(Long sessionId, Employee employee) {
         return sessionRepository.findByIdAndEmployeeId(sessionId, employee.getId())
@@ -426,12 +383,6 @@ public class SimulationService {
                 .orElse(null);
     }
 
-    // ========== Вспомогательные ==========
-
-    /**
-     * Для аварийного сценария возвращает ID родительского (штатного) сценария.
-     * Для штатного — свой ID. Нужно для корректной привязки назначений.
-     */
     private Long resolveNormalScenarioId(SimulationScenario scenario) {
         if (scenario.getParentScenario() != null) {
             return scenario.getParentScenario().getId();
@@ -439,10 +390,6 @@ public class SimulationService {
         return scenario.getId();
     }
 
-    /**
-     * Для штатного сценария случайно выбирает: оставить штатный или подставить один из его аварийных вариантов.
-     * Если аварийных нет — возвращает исходный сценарий.
-     */
     private SimulationScenario pickScenarioVariant(SimulationScenario scenario) {
         if (scenario.getScenarioType() != ru.mai.voshod.pneumotraining.enumeration.ScenarioType.NORMAL) {
             return scenario;
@@ -451,7 +398,6 @@ public class SimulationService {
         if (faultVariants.isEmpty()) {
             return scenario;
         }
-        // Выбор: штатный (индекс 0) или один из аварийных (индексы 1..N)
         int pick = ThreadLocalRandom.current().nextInt(faultVariants.size() + 1);
         if (pick == 0) {
             log.info("Выбран штатный сценарий: id={}", scenario.getId());
@@ -521,11 +467,6 @@ public class SimulationService {
         }
     }
 
-    // ========== Fault-логика ==========
-
-    /**
-     * Применить аварийное событие шага: заблокировать элемент если lockElement=true.
-     */
     private void applyFaultEvent(SimulationSession session, List<ScenarioStep> steps, int stepNumber) {
         steps.stream()
                 .filter(s -> s.getStepNumber() == stepNumber)
@@ -553,9 +494,6 @@ public class SimulationService {
                 });
     }
 
-    /**
-     * Десериализовать список заблокированных элементов.
-     */
     private List<String> deserializeLockedElements(String json) {
         if (json == null || json.isBlank() || json.equals("[]")) return new ArrayList<>();
         try {
@@ -566,12 +504,6 @@ public class SimulationService {
         }
     }
 
-    /**
-     * Проверить запрещённые действия на текущем шаге.
-     * Возвращает null — действие разрешено (или нет запрещённых).
-     * Возвращает Map с failed=true — FAIL-штраф (сессия провалена).
-     * Возвращает Map с warning — WARNING/TIME_PENALTY (действие разрешено, но со штрафом).
-     */
     private Map<String, Object> checkForbiddenAction(SimulationSession session, String elementName) {
         int currentStepNum = session.getCurrentStep();
         List<ScenarioStep> steps = session.getScenario().getSteps();
@@ -600,7 +532,6 @@ public class SimulationService {
                     String message = rule.get("message");
 
                     if ("FAIL".equals(penalty)) {
-                        // Немедленный провал сессии
                         session.setSessionStatus(SimulationSessionStatus.FAILED);
                         session.setFinishedAt(LocalDateTime.now());
                         recordStepResult(session, currentStepNum, false);
@@ -644,9 +575,6 @@ public class SimulationService {
         return null;
     }
 
-    /**
-     * Добавить предупреждение в лог сессии.
-     */
     private void addWarning(SimulationSession session, int step, String message) {
         try {
             List<Map<String, Object>> warnings;
@@ -668,9 +596,6 @@ public class SimulationService {
         }
     }
 
-    /**
-     * Вычесть 30 секунд из глобального таймера.
-     */
     private void applyTimePenalty(SimulationSession session) {
         if (session.getEndTime() != null) {
             session.setEndTime(session.getEndTime().minusSeconds(30));
@@ -678,9 +603,6 @@ public class SimulationService {
         }
     }
 
-    /**
-     * Проверка: истёк ли таймер текущего шага.
-     */
     private boolean isStepExpired(SimulationSession session, List<ScenarioStep> steps) {
         if (session.getStepStartedAt() == null) return false;
         return steps.stream()

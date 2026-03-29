@@ -34,7 +34,6 @@
             <div class="row justify-content-center">
                 <div class="col-12 col-lg-9">
 
-                    <!-- Заголовок + таймер + прогресс -->
                     <div class="profile-card p-3 mb-3 d-flex justify-content-between align-items-center flex-wrap">
                         <div>
                             <span class="text-muted" th:text="${testTitle}"></span>
@@ -47,13 +46,11 @@
                         </div>
                     </div>
 
-                    <!-- Прогресс-бар -->
                     <div class="progress mb-3" style="height: 6px;">
                         <div class="progress-bar" role="progressbar"
                              th:style="'width: ' + ${(questionIndex + 1) * 100 / totalQuestions} + '%'"></div>
                     </div>
 
-                    <!-- Вопрос -->
                     <div class="profile-card p-4 mb-3">
                         <h5 class="mb-4" th:text="${questionText}"></h5>
 
@@ -61,7 +58,6 @@
                               th:action="@{/employee/specialist/testing/submitAnswer/{sid}/{qi}(sid=${sessionId},qi=${questionIndex})}"
                               method="post">
 
-                            <!-- ===== SINGLE_CHOICE ===== -->
                             <div th:if="${questionType == 'SINGLE_CHOICE'}">
                                 <div class="form-check mb-3" th:each="answer : ${answers}">
                                     <input class="form-check-input" type="radio" name="selectedAnswer"
@@ -72,7 +68,6 @@
                                 </div>
                             </div>
 
-                            <!-- ===== MULTIPLE_CHOICE ===== -->
                             <div th:if="${questionType == 'MULTIPLE_CHOICE'}">
                                 <div class="form-check mb-3" th:each="answer : ${answers}">
                                     <input class="form-check-input" type="checkbox" name="selectedAnswers"
@@ -83,7 +78,6 @@
                                 </div>
                             </div>
 
-                            <!-- ===== SEQUENCE ===== -->
                             <div th:if="${questionType == 'SEQUENCE'}">
                                 <p class="text-muted small"><i class="bi bi-grip-vertical"></i> Перетащите элементы в правильном порядке</p>
                                 <div id="sequenceSortable">
@@ -98,7 +92,6 @@
                                 <input type="hidden" name="sequenceOrder" id="sequenceOrderInput">
                             </div>
 
-                            <!-- ===== MATCHING ===== -->
                             <div th:if="${questionType == 'MATCHING'}">
                                 <p class="text-muted small">Установите соответствие для каждого элемента</p>
                                 <div th:each="answer : ${answers}" class="row mb-2 align-items-center">
@@ -119,7 +112,6 @@
                                 </div>
                             </div>
 
-                            <!-- ===== OPEN_TEXT ===== -->
                             <div th:if="${questionType == 'OPEN_TEXT'}">
                                 <textarea name="openAnswer" class="form-control" rows="4"
                                           placeholder="Введите ваш ответ"
@@ -129,7 +121,6 @@
                         </form>
                     </div>
 
-                    <!-- Кнопки навигации -->
                     <div class="d-flex justify-content-between">
                         <div>
                             <a th:if="${allowBackNavigation && questionIndex > 0}"
@@ -152,7 +143,6 @@
     </div>
 </div>
 
-<!-- Скрытая форма для автосабмита по таймеру -->
 <form id="autoSubmitForm"
       th:action="@{/employee/specialist/testing/submitAnswer/{sid}/{qi}(sid=${sessionId},qi=${questionIndex})}"
       method="post" class="d-none">
@@ -164,12 +154,10 @@
     var allowBack = [[${allowBackNavigation}]];
 </script>
 <script>
-    // Инициализация таймера
     if (endTimeStr) {
         initTimer(endTimeStr);
     }
 
-    // Инициализация DnD для SEQUENCE
     if (questionType === 'SEQUENCE') {
         initSequenceDnD();
         updateSequenceOrder();

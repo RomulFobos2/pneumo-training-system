@@ -25,7 +25,6 @@
                 <h1 class="page-title mb-0">Мои результаты</h1>
             </div>
 
-            <!-- Tabs -->
             <ul class="nav nav-tabs mb-3" role="tablist">
                 <li class="nav-item" role="presentation">
                     <button class="nav-link active" id="tests-tab" data-bs-toggle="tab"
@@ -38,7 +37,6 @@
             </ul>
 
             <div class="tab-content">
-            <!-- Tests tab -->
             <div class="tab-pane fade show active" id="testsPane" role="tabpanel">
             <div class="profile-card p-4">
                 <div class="mb-3">
@@ -87,7 +85,6 @@
             </div>
             </div>
 
-            <!-- Simulations tab -->
             <div class="tab-pane fade" id="simPane" role="tabpanel">
             <div class="profile-card p-4">
                 <div class="mb-3">
@@ -135,7 +132,6 @@
     </div>
 </div>
 <script>
-    // Фильтр + поиск + пагинация для таблицы тестов
     var testsFilter = initTableFilter('myTestsTable', {
         searchPlaceholder: 'Поиск по названию теста...',
         filters: [
@@ -148,7 +144,6 @@
     });
     initSortable('myTestsTable');
 
-    // Фильтр + поиск + пагинация для таблицы симуляций
     var simFilter = initTableFilter('mySimTable', {
         searchPlaceholder: 'Поиск по названию сценария...',
         filters: [
@@ -162,7 +157,6 @@
     });
     initSortable('mySimTable');
 
-    // Refresh при переключении на вкладку (Bootstrap tab скрывает контент)
     document.getElementById('sim-tab').addEventListener('shown.bs.tab', function() {
         if (simFilter) simFilter.refresh();
     });
@@ -170,7 +164,6 @@
         if (testsFilter) testsFilter.refresh();
     });
 
-    // Скрытие результатов без назначения — тесты
     (function() {
         var checkbox = document.getElementById('hideNoAssignment');
         if (!checkbox || !testsFilter) return;
@@ -186,7 +179,6 @@
         });
     })();
 
-    // Скрытие результатов без назначения — симуляции
     (function() {
         var checkbox = document.getElementById('hideNoAssignmentSim');
         if (!checkbox || !simFilter) return;
