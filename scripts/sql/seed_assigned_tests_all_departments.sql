@@ -47,9 +47,9 @@ SET @created_by_id := COALESCE(
 
 -- ====== Очистка старых данных по этим 2 тестам (для повторного запуска) ======
 DELETE s_sel
-FROM t_testSessionAnswer_selectedAnswers s_sel
-JOIN t_testSessionAnswer s_ans ON s_ans.id = s_sel.session_answer_id
-JOIN t_testSession s ON s.id = s_ans.test_session_id
+FROM t_test_session_answer_selected_answers s_sel
+JOIN t_test_session_answer s_ans ON s_ans.id = s_sel.session_answer_id
+JOIN t_test_session s ON s.id = s_ans.test_session_id
 JOIN t_test t ON t.id = s.test_id
 WHERE t.title COLLATE utf8mb4_general_ci IN (
     @test1_title COLLATE utf8mb4_general_ci,
@@ -57,8 +57,8 @@ WHERE t.title COLLATE utf8mb4_general_ci IN (
 );
 
 DELETE s_ans
-FROM t_testSessionAnswer s_ans
-JOIN t_testSession s ON s.id = s_ans.test_session_id
+FROM t_test_session_answer s_ans
+JOIN t_test_session s ON s.id = s_ans.test_session_id
 JOIN t_test t ON t.id = s.test_id
 WHERE t.title COLLATE utf8mb4_general_ci IN (
     @test1_title COLLATE utf8mb4_general_ci,
@@ -66,7 +66,7 @@ WHERE t.title COLLATE utf8mb4_general_ci IN (
 );
 
 DELETE s
-FROM t_testSession s
+FROM t_test_session s
 JOIN t_test t ON t.id = s.test_id
 WHERE t.title COLLATE utf8mb4_general_ci IN (
     @test1_title COLLATE utf8mb4_general_ci,
