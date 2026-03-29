@@ -2,9 +2,6 @@ package ru.mai.voshod.pneumotraining.enumeration;
 
 import lombok.Getter;
 
-/**
- * Тип вопроса в тесте
- */
 @Getter
 public enum QuestionType {
 

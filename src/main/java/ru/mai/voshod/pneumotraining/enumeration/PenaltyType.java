@@ -2,9 +2,6 @@ package ru.mai.voshod.pneumotraining.enumeration;
 
 import lombok.Getter;
 
-/**
- * Тип штрафа за запрещённое действие в симуляции.
- */
 @Getter
 public enum PenaltyType {
 

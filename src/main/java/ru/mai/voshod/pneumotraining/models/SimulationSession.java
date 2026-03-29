@@ -9,16 +9,6 @@ import ru.mai.voshod.pneumotraining.enumeration.SimulationSessionStatus;
 
 import java.time.LocalDateTime;
 
-/**
- * Сессия прохождения симуляции мнемосхемы.
- *
- * Создаётся при старте сценария специалистом.
- * Хранит текущее состояние элементов (JSON), прогресс и результат.
- *
- * Связи:
- * - Сотрудник (Employee)
- * - Сценарий (SimulationScenario)
- */
 @Data
 @NoArgsConstructor
 @EqualsAndHashCode(of = "id")
@@ -30,65 +20,50 @@ public class SimulationSession {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /** Время начала */
     @Column(nullable = false)
     private LocalDateTime startedAt;
 
-    /** Время окончания (вычисляется: startedAt + timeLimit). Null = без ограничения */
+    // startedAt + timeLimit; null = без ограничения
     private LocalDateTime endTime;
 
-    /** Фактическое время завершения */
     private LocalDateTime finishedAt;
 
-    /** Текущий шаг (0-based) */
     @Column(nullable = false)
     private Integer currentStep = 0;
 
-    /** Количество успешно пройденных шагов */
     @Column(nullable = false)
     private Integer completedSteps = 0;
 
-    /** Общее количество шагов в сценарии */
     @Column(nullable = false)
     private Integer totalSteps = 0;
 
-    /** Статус сессии */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private SimulationSessionStatus sessionStatus;
 
-    /**
-     * Текущее состояние всех элементов схемы.
-     * JSON: {"elementId": true/false, ...}
-     */
+    // JSON: {"elementName": true/false, ...}
     @Column(columnDefinition = "TEXT")
     private String currentState;
 
-    /**
-     * Результаты прохождения каждого шага.
-     * JSON: [{"step":1,"instruction":"...","passed":true,"timestamp":"..."}, ...]
-     */
+    // JSON: [{"step":1,"instruction":"...","passed":true,"timestamp":"..."}, ...]
     @Column(columnDefinition = "TEXT")
     private String stepResults;
 
-    /** Заблокированные элементы (из-за неисправности). JSON: ["VP5","NR2"] */
+    // JSON: ["VP5","NR2"]
     @Column(columnDefinition = "TEXT")
     private String lockedElements;
 
-    /** Лог предупреждений. JSON: [{"step":2,"message":"...","timestamp":"..."}] */
+    // JSON: [{"step":2,"message":"...","timestamp":"..."}]
     @Column(columnDefinition = "TEXT")
     private String warnings;
 
-    /** Время начала текущего шага (для stepTimeLimit) */
     private LocalDateTime stepStartedAt;
 
-    /** Сотрудник, проходящий симуляцию */
     @ManyToOne
     @JoinColumn(name = "employee_id", nullable = false)
     @ToString.Exclude
     private Employee employee;
 
-    /** Сценарий */
     @ManyToOne
     @JoinColumn(name = "scenario_id", nullable = false)
     @ToString.Exclude

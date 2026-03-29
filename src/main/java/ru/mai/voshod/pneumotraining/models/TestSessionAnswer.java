@@ -9,18 +9,11 @@ import lombok.ToString;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Ответ пользователя на вопрос в рамках тестовой сессии.
- *
- * Для разных типов вопросов:
- * - SINGLE_CHOICE / MULTIPLE_CHOICE / MATCHING: selectedAnswers (ManyToMany)
- * - SEQUENCE: answerText содержит порядок ID через запятую
- * - OPEN_TEXT: answerText содержит текст ответа
- *
- * Связи:
- * - Тестовая сессия (TestSession)
- * - Вопрос (TestQuestion)
- * - Выбранные ответы (TestAnswer, ManyToMany)
+/*
+ * Хранение зависит от типа вопроса:
+ * SINGLE_CHOICE / MULTIPLE_CHOICE / MATCHING — selectedAnswers (ManyToMany)
+ * SEQUENCE — answerText с порядком ID через запятую
+ * OPEN_TEXT — answerText с текстом ответа
  */
 @Data
 @NoArgsConstructor
@@ -29,33 +22,28 @@ import java.util.List;
 @Table(name = "t_testSessionAnswer")
 public class TestSessionAnswer {
 
-    // ========== ПОЛЯ ==========
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /** Текстовый ответ (для OPEN_TEXT и SEQUENCE) */
+    // для OPEN_TEXT и SEQUENCE
     @Column(columnDefinition = "TEXT")
     private String answerText;
 
-    /** Правильность ответа (вычисляется при сабмите) */
     @Column(nullable = false)
     private boolean isCorrect = false;
 
-    /** Тестовая сессия */
     @ManyToOne
     @JoinColumn(name = "test_session_id", nullable = false)
     @ToString.Exclude
     private TestSession testSession;
 
-    /** Вопрос */
     @ManyToOne
     @JoinColumn(name = "test_question_id", nullable = false)
     @ToString.Exclude
     private TestQuestion testQuestion;
 
-    /** Выбранные варианты ответа (для SINGLE/MULTIPLE/MATCHING) */
+    // для SINGLE/MULTIPLE/MATCHING
     @ManyToMany
     @JoinTable(name = "t_testSessionAnswer_selectedAnswers",
             joinColumns = @JoinColumn(name = "session_answer_id"),
