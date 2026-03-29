@@ -52,7 +52,7 @@ DELETE FROM t_mnemo_schema WHERE title = @schema_title;
 INSERT INTO t_mnemo_schema (title, description, width, height, created_by_id)
 VALUES (
     @schema_title,
-    'Пневмощиток изделия 8У016 для пневмоиспытаний ДУ РКН. На основе документации заказчика (раздел II, фиг.1).',
+    'Пневмощиток изделия 8У016 для пневмоиспытаний ДУ РКН.',
     1500,
     750,
     @created_by_id

@@ -37,7 +37,20 @@
       "Bash(grep -n \"isExam\\\\|testIsExam\" src/main/resources/templates/employee/chief/tests/*.html)",
       "Bash(grep -r \"Заблокировать\\\\|заблокировать\" /c/Users/Romul/Desktop/Diplom_2_26/pneumo-training-system/src --include=*.html --include=*.js)",
       "Bash(pip install:*)",
-      "Bash(python -c \":*)"
+      "Bash(python -c \":*)",
+      "Bash(find /c/Users/Romul/Desktop/Diplom_2_26/pneumo-training-system -type f \\\\\\(-name *.java -o -name *.html -o -name *.js -o -name *.md \\\\\\))",
+      "Bash(grep -r \"This method\\\\|This class\\\\|This function\\\\|This interface\" /c/Users/Romul/Desktop/Diplom_2_26/pneumo-training-system --include=*.java --include=*.html --include=*.js -n)",
+      "Bash(grep -r \"TODO:\\\\|FIXME:\\\\|XXX:\" /c/Users/Romul/Desktop/Diplom_2_26/pneumo-training-system --include=*.java --include=*.html --include=*.js --include=*.md -n)",
+      "Bash(grep -r \"========\\\\|--------\\\\|+++++++\" /c/Users/Romul/Desktop/Diplom_2_26/pneumo-training-system --include=*.java --include=*.js -n)",
+      "Bash(grep -r \"Javadoc\\\\|This class\\\\|This interface\\\\|This enum\\\\|represents\\\\|contains\\\\|provides\\\\|stores\" /c/Users/Romul/Desktop/Diplom_2_26/pneumo-training-system/src/main/java --include=*.java -n)",
+      "Bash(grep -r \"aria-label\\\\|aria-description\" /c/Users/Romul/Desktop/Diplom_2_26/pneumo-training-system/src/main/resources/templates --include=*.html -n)",
+      "Bash(xargs grep:*)",
+      "Bash(grep -r \"This method\\\\|This class\\\\|This field\\\\|represents\\\\|contains the\\\\|provides the\\\\|is used for\\\\|is responsible\" /c/Users/Romul/Desktop/Diplom_2_26/pneumo-training-system/src/main/java --include=*.java)",
+      "Bash(grep -r \"<!-- \\\\|Tooltip\\\\|aria-label\\\\|aria-description\" /c/Users/Romul/Desktop/Diplom_2_26/pneumo-training-system/src/main/resources/templates --include=*.html -n)",
+      "Bash(grep -r \"// This\\\\|//This\\\\|This method\\\\|This class\" /c/Users/Romul/Desktop/Diplom_2_26/pneumo-training-system/src --include=*.java -i)",
+      "Bash(grep -r \"@param\\\\|@return\\\\|@throws\" /c/Users/Romul/Desktop/Diplom_2_26/pneumo-training-system/src/main/java --include=*.java -n)",
+      "Bash(grep -r \"ensures\\\\|facilitates\\\\|leverages\\\\|utilizing\\\\|allows\\\\|enables\\\\|provides\\\\|represents\\\\|contains\\\\|stores\" /c/Users/Romul/Desktop/Diplom_2_26/pneumo-training-system/src/main/java --include=*.java -i)",
+      "Bash(grep -i \"comment\\\\|/\\\\*\\\\|//\")"
     ]
   }
 }
