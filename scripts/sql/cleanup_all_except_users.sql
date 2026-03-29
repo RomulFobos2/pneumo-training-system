@@ -1,6 +1,5 @@
 -- MySQL 8+
 -- Очистка ВСЕХ таблиц, кроме t_employee, t_role, t_department.
--- Порядок DELETE строго по FK-зависимостям (работает даже без FOREIGN_KEY_CHECKS=0).
 
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;

@@ -1,7 +1,5 @@
 -- MySQL 8+
 -- Очистка и создание учебной мнемосхемы со сценарием.
--- Таблицы в MySQL: t_mnemo_schema, t_schema_element, t_schema_connection,
--- t_simulation_scenario, t_scenario_step, t_scenario_department, t_simulation_session.
 -- expected_state использует ИМЕНА элементов (например "VP1"), не numeric id.
 
 SET NAMES utf8mb4;
