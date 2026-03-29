@@ -74,6 +74,10 @@
                     <i class="bi bi-floppy"></i> Сохранить
                 </button>
                 <span id="saveIndicator" class="save-indicator ms-2"></span>
+                <div class="vr mx-1"></div>
+                <button type="button" class="tool-btn" data-bs-toggle="modal" data-bs-target="#schemaSettingsModal" title="Настройки схемы">
+                    <i class="bi bi-gear"></i> Настройки
+                </button>
                 <div class="ms-auto d-flex align-items-center gap-2">
                     <span class="text-muted" style="font-size:0.8rem">Zoom:</span>
                     <button type="button" class="tool-btn" onclick="SchemaEditor.zoomIn()" title="Увеличить">+</button>
@@ -378,6 +382,44 @@
             </div>
 
         </main>
+    </div>
+</div>
+
+<!-- Modal: Schema Settings -->
+<div class="modal fade" id="schemaSettingsModal" tabindex="-1" aria-labelledby="schemaSettingsLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" th:action="@{/employee/chief/schemas/editSchema/{id}(id=${schema.id})}">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="schemaSettingsLabel">Настройки схемы</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Название <span class="text-danger">*</span></label>
+                        <input type="text" name="inputTitle" class="form-control" th:value="${schema.title}" required maxlength="255"/>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Описание</label>
+                        <textarea name="inputDescription" class="form-control" rows="3" th:text="${schema.description}"></textarea>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Ширина холста (px)</label>
+                            <input type="number" name="inputWidth" class="form-control" th:value="${schema.width}" min="400" max="4000"/>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Высота холста (px)</label>
+                            <input type="number" name="inputHeight" class="form-control" th:value="${schema.height}" min="300" max="3000"/>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg"></i> Сохранить</button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 
