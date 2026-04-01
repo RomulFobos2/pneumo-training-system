@@ -91,7 +91,6 @@ public class TestQuestionController {
     @PostMapping("/employee/chief/tests/editQuestion/{questionId}")
     public String editQuestion(@PathVariable(value = "questionId") long questionId,
                                @RequestParam String inputQuestionText,
-                               @RequestParam Integer inputSortOrder,
                                @RequestParam Integer inputDifficultyLevel,
                                @RequestParam String inputQuestionType,
                                @RequestParam(required = false) Long inputTheorySectionId,
@@ -106,7 +105,7 @@ public class TestQuestionController {
                 answerCorrect, answerSortOrder, answerMatchTarget);
 
         Optional<Long> result = testQuestionService.editQuestion(questionId, inputQuestionText,
-                inputSortOrder, inputDifficultyLevel, inputQuestionType, inputTheorySectionId, answerDTOs);
+                null, inputDifficultyLevel, inputQuestionType, inputTheorySectionId, answerDTOs);
 
         if (result.isEmpty()) {
             redirectAttributes.addFlashAttribute("questionError", "Ошибка при сохранении. Проверьте варианты ответа и правильные ответы.");

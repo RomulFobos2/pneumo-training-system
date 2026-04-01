@@ -179,7 +179,9 @@ public class TestQuestionService {
             TestQuestion question = questionOptional.get();
 
             question.setQuestionText(questionText);
-            question.setSortOrder(sortOrder);
+            if (sortOrder != null) {
+                question.setSortOrder(sortOrder);
+            }
             question.setDifficultyLevel(normalizeDifficulty(difficultyLevel));
             question.setQuestionType(questionType);
             if (theorySectionId != null) {
