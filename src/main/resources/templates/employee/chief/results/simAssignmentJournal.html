@@ -33,7 +33,13 @@
                         <form method="post" th:action="@{/employee/chief/results/exportSimJournal}">
                             <input type="hidden" name="assignmentId" th:value="${assignment.id}">
                             <button type="submit" class="btn btn-success btn-profile">
-                                <i class="bi bi-file-earmark-excel"></i> Excel
+                                <i class="bi bi-file-earmark-excel"></i> Протокол
+                            </button>
+                        </form>
+                        <form method="post" th:action="@{/employee/chief/results/exportDetailedSimJournal}">
+                            <input type="hidden" name="assignmentId" th:value="${assignment.id}">
+                            <button type="submit" class="btn btn-success btn-profile">
+                                <i class="bi bi-file-earmark-excel"></i> Журнал
                             </button>
                         </form>
                         <a th:href="@{/employee/chief/results/allSimResults}" class="btn btn-outline-secondary btn-profile">
