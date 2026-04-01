@@ -125,6 +125,21 @@ public class ReportController {
                 .body(data);
     }
 
+    @PostMapping("/exportDetailedJournal")
+    public ResponseEntity<byte[]> exportDetailedJournal(@RequestParam Long assignmentId) {
+        byte[] data = reportService.exportDetailedAssignmentJournal(assignmentId);
+        if (data == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=assignment_detailed_journal_" + assignmentId + ".xlsx")
+                .contentType(MediaType.parseMediaType(
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(data);
+    }
+
     // ========== Результаты симуляций ==========
 
     @GetMapping("/allSimResults")
@@ -221,6 +236,21 @@ public class ReportController {
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=sim_assignment_journal_" + assignmentId + ".xlsx")
+                .contentType(MediaType.parseMediaType(
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(data);
+    }
+
+    @PostMapping("/exportDetailedSimJournal")
+    public ResponseEntity<byte[]> exportDetailedSimJournal(@RequestParam Long assignmentId) {
+        byte[] data = reportService.exportDetailedSimulationAssignmentJournal(assignmentId);
+        if (data == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=sim_assignment_detailed_journal_" + assignmentId + ".xlsx")
                 .contentType(MediaType.parseMediaType(
                         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
                 .body(data);

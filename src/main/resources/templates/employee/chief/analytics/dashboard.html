@@ -159,7 +159,7 @@
                         <span><span style="display:inline-block;width:12px;height:12px;background:#ef4444;border-radius:2px;vertical-align:middle;margin-right:4px;"></span>Не пройдены</span>
                     </div>
                 </div>
-                <canvas id="activityChart" height="200"></canvas>
+                <canvas id="activityChart" class="analytics-chart-canvas" height="200"></canvas>
             </div>
 
             <!-- Статистика тестов -->
@@ -269,7 +269,7 @@
                         <span><span style="display:inline-block;width:12px;height:12px;background:#ef4444;border-radius:2px;vertical-align:middle;margin-right:4px;"></span>Не выполнены</span>
                     </div>
                 </div>
-                <canvas id="simActivityChart" height="200"></canvas>
+                <canvas id="simActivityChart" class="analytics-chart-canvas" height="200"></canvas>
             </div>
 
             <!-- Статистика сценариев -->
@@ -362,14 +362,14 @@
 
         var ctx = canvas.getContext('2d');
         var dpr = window.devicePixelRatio || 1;
-        var rect = canvas.parentElement.getBoundingClientRect();
-        canvas.width = rect.width * dpr;
+        var width = Math.max(canvas.parentElement.clientWidth, 320);
+        canvas.width = width * dpr;
         canvas.height = 200 * dpr;
-        canvas.style.width = rect.width + 'px';
+        canvas.style.width = '100%';
         canvas.style.height = '200px';
         ctx.scale(dpr, dpr);
 
-        var W = rect.width;
+        var W = width;
         var H = 200;
         var padLeft = 40;
         var padBottom = 30;
@@ -438,14 +438,14 @@
         function drawSimChart() {
             var ctx = canvas.getContext('2d');
             var dpr = window.devicePixelRatio || 1;
-            var rect = canvas.parentElement.getBoundingClientRect();
-            canvas.width = rect.width * dpr;
+            var width = Math.max(canvas.parentElement.clientWidth, 320);
+            canvas.width = width * dpr;
             canvas.height = 200 * dpr;
-            canvas.style.width = rect.width + 'px';
+            canvas.style.width = '100%';
             canvas.style.height = '200px';
             ctx.scale(dpr, dpr);
 
-            var W = rect.width;
+            var W = width;
             var H = 200;
             var padLeft = 40, padBottom = 30, padTop = 10, padRight = 10;
             var chartW = W - padLeft - padRight;

@@ -175,6 +175,16 @@ public class ReportService {
     }
 
     @Transactional(readOnly = true)
+    public byte[] exportDetailedAssignmentJournal(Long assignmentId) {
+        Optional<TestAssignment> assignmentOpt = testAssignmentRepository.findById(assignmentId);
+        if (assignmentOpt.isEmpty()) {
+            return null;
+        }
+        List<TestAssignmentEmployeeDTO> journal = getAssignmentJournal(assignmentId);
+        return exportDetailedTestAssignmentWorkbook(assignmentOpt.get(), journal);
+    }
+
+    @Transactional(readOnly = true)
     public List<SimulationAssignmentDTO> getAllSimulationResults(Long employeeId, Long scenarioId, LocalDate dateFrom, LocalDate dateTo) {
         return simulationAssignmentRepository.findAllByOrderByCreatedAtDesc().stream()
                 .filter(a -> employeeId == null || a.getAssignedEmployees().stream().anyMatch(ae -> ae.getEmployee().getId().equals(employeeId)))
@@ -341,6 +351,16 @@ public class ReportService {
         return exportSimulationAssignmentWorkbook(assignmentOpt.get(), journal);
     }
 
+    @Transactional(readOnly = true)
+    public byte[] exportDetailedSimulationAssignmentJournal(Long assignmentId) {
+        Optional<SimulationAssignment> assignmentOpt = simulationAssignmentRepository.findById(assignmentId);
+        if (assignmentOpt.isEmpty()) {
+            return null;
+        }
+        List<SimulationAssignmentEmployeeDTO> journal = getSimulationAssignmentJournal(assignmentId);
+        return exportDetailedSimulationAssignmentWorkbook(assignmentOpt.get(), journal);
+    }
+
     private TestAssignmentDTO toAssignmentResultDTO(TestAssignment assignment) {
         TestAssignmentDTO dto = TestAssignmentMapper.INSTANCE.toDTO(assignment);
         fillAssignmentCounters(dto, assignment.getAssignedEmployees());
@@ -430,7 +450,7 @@ public class ReportService {
 
             Row title = sheet.createRow(0);
             Cell titleCell = title.createCell(0);
-            titleCell.setCellValue("ЖУРНАЛ ПО НАЗНАЧЕНИЮ ТЕСТА");
+            titleCell.setCellValue("ПРОТОКОЛ ПРОВЕДЕНИЯ ТЕСТИРОВАНИЯ");
             titleCell.setCellStyle(boldStyle);
             sheet.addMergedRegion(new CellRangeAddress(0, 0, 0, 5));
 
@@ -479,6 +499,150 @@ public class ReportService {
         }
     }
 
+    private byte[] exportDetailedTestAssignmentWorkbook(TestAssignment assignment, List<TestAssignmentEmployeeDTO> journal) {
+        try (XSSFWorkbook workbook = new XSSFWorkbook(); ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            CellStyle boldStyle = createBoldStyle(workbook);
+            CellStyle headerStyle = createHeaderStyle(workbook);
+            CellStyle wrapStyle = createWrapStyle(workbook);
+            CellStyle passStyle = createFillStyle(workbook, IndexedColors.LIGHT_GREEN);
+            CellStyle failStyle = createFillStyle(workbook, IndexedColors.ROSE);
+            CellStyle partialStyle = createFillStyle(workbook, IndexedColors.LIGHT_YELLOW);
+            DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+            DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
+
+            Sheet summarySheet = workbook.createSheet("Сводка");
+            Row title = summarySheet.createRow(0);
+            Cell titleCell = title.createCell(0);
+            titleCell.setCellValue("ПОДРОБНЫЙ ЖУРНАЛ НАЗНАЧЕНИЯ ТЕСТА");
+            titleCell.setCellStyle(boldStyle);
+            summarySheet.addMergedRegion(new CellRangeAddress(0, 0, 0, 5));
+
+            summarySheet.createRow(1).createCell(0).setCellValue("Дата формирования: " + LocalDate.now().format(dateFormatter));
+            summarySheet.createRow(2).createCell(0).setCellValue("Название назначения: " + assignment.getAssignmentTitle());
+            summarySheet.createRow(3).createCell(0).setCellValue("Тест: " + assignment.getTest().getTitle());
+            summarySheet.createRow(4).createCell(0).setCellValue("Дедлайн: " + assignment.getDeadline().format(dateFormatter));
+            summarySheet.createRow(5).createCell(0).setCellValue("Назначено сотрудников: " + journal.size());
+
+            Row headerRow = summarySheet.createRow(7);
+            String[] headers = {"#", "ФИО", "Статус", "Дата завершения", "Балл", "Результат"};
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+                cell.setCellStyle(headerStyle);
+            }
+
+            for (int i = 0; i < journal.size(); i++) {
+                TestAssignmentEmployeeDTO item = journal.get(i);
+                Row row = summarySheet.createRow(8 + i);
+                row.createCell(0).setCellValue(i + 1);
+                row.createCell(1).setCellValue(item.getEmployeeFullName());
+                row.createCell(2).setCellValue(item.getStatusDisplayName());
+                row.createCell(3).setCellValue(item.getFinishedAt() != null ? item.getFinishedAt().format(dateTimeFormatter) : "—");
+                row.createCell(4).setCellValue(item.getScore() != null && item.getTotalScore() != null
+                        ? item.getScore() + " / " + item.getTotalScore()
+                        : "—");
+
+                Cell resultCell = row.createCell(5);
+                if (item.getScorePercent() != null) {
+                    resultCell.setCellValue(String.format("%.1f%%", item.getScorePercent()));
+                    resultCell.setCellStyle(Boolean.TRUE.equals(item.getPassed()) ? passStyle : failStyle);
+                } else {
+                    resultCell.setCellValue("—");
+                }
+            }
+            setJournalColumnWidths(summarySheet);
+
+            for (int i = 0; i < journal.size(); i++) {
+                TestAssignmentEmployeeDTO item = journal.get(i);
+                Sheet employeeSheet = workbook.createSheet(buildEmployeeSheetName(i + 1, item.getEmployeeFullName()));
+
+                Row employeeTitle = employeeSheet.createRow(0);
+                Cell employeeTitleCell = employeeTitle.createCell(0);
+                employeeTitleCell.setCellValue("Подробный журнал сотрудника");
+                employeeTitleCell.setCellStyle(boldStyle);
+
+                employeeSheet.createRow(1).createCell(0).setCellValue("ФИО:");
+                employeeSheet.getRow(1).createCell(1).setCellValue(item.getEmployeeFullName());
+                employeeSheet.createRow(2).createCell(0).setCellValue("Статус назначения:");
+                employeeSheet.getRow(2).createCell(1).setCellValue(item.getStatusDisplayName());
+                employeeSheet.createRow(3).createCell(0).setCellValue("Дата завершения:");
+                employeeSheet.getRow(3).createCell(1).setCellValue(item.getFinishedAt() != null ? item.getFinishedAt().format(dateTimeFormatter) : "—");
+
+                if (item.getCompletedSessionId() == null) {
+                    employeeSheet.createRow(5).createCell(0).setCellValue("Подробное прохождение отсутствует.");
+                    setDetailedTestSheetWidths(employeeSheet);
+                    continue;
+                }
+
+                Optional<TestSessionDTO> sessionOpt = getSessionResult(item.getCompletedSessionId());
+                if (sessionOpt.isEmpty()) {
+                    employeeSheet.createRow(5).createCell(0).setCellValue("Сессия прохождения не найдена.");
+                    setDetailedTestSheetWidths(employeeSheet);
+                    continue;
+                }
+
+                TestSessionDTO session = sessionOpt.get();
+                List<TestSessionAnswerDTO> details = getSessionAnswerDetails(item.getCompletedSessionId());
+
+                employeeSheet.createRow(4).createCell(0).setCellValue("Полностью верные ответы:");
+                employeeSheet.getRow(4).createCell(1).setCellValue(session.getScore() + " / " + session.getTotalScore());
+                employeeSheet.createRow(5).createCell(0).setCellValue("Итоговый процент:");
+                employeeSheet.getRow(5).createCell(1).setCellValue(String.format("%.1f%%", session.getScorePercent()));
+                employeeSheet.createRow(6).createCell(0).setCellValue("Результат:");
+                employeeSheet.getRow(6).createCell(1).setCellValue(Boolean.TRUE.equals(session.getIsPassed()) ? "Пройден" : "Не пройден");
+
+                Row detailHeader = employeeSheet.createRow(8);
+                String[] detailHeaders = {"#", "Вопрос", "Тип", "Сложность", "Коэффициент", "Ответ сотрудника", "Правильный ответ", "Результат"};
+                for (int j = 0; j < detailHeaders.length; j++) {
+                    Cell cell = detailHeader.createCell(j);
+                    cell.setCellValue(detailHeaders[j]);
+                    cell.setCellStyle(headerStyle);
+                }
+
+                for (int j = 0; j < details.size(); j++) {
+                    TestSessionAnswerDTO detail = details.get(j);
+                    Row row = employeeSheet.createRow(9 + j);
+                    row.createCell(0).setCellValue(j + 1);
+
+                    Cell questionCell = row.createCell(1);
+                    questionCell.setCellValue(detail.getQuestionText());
+                    questionCell.setCellStyle(wrapStyle);
+
+                    row.createCell(2).setCellValue(detail.getQuestionTypeName());
+                    row.createCell(3).setCellValue(detail.getDifficultyLevel() != null ? detail.getDifficultyLevel() : 1);
+                    row.createCell(4).setCellValue(detail.getEarnedScoreRatio() != null ? detail.getEarnedScoreRatio() : 0.0);
+
+                    Cell answerCell = row.createCell(5);
+                    answerCell.setCellValue(getUserAnswerText(detail));
+                    answerCell.setCellStyle(wrapStyle);
+
+                    Cell correctCell = row.createCell(6);
+                    correctCell.setCellValue(getCorrectAnswerText(detail));
+                    correctCell.setCellStyle(wrapStyle);
+
+                    Cell resultCell = row.createCell(7);
+                    resultCell.setCellValue(detail.getScoreLevelDisplayName());
+                    double ratio = detail.getEarnedScoreRatio() != null ? detail.getEarnedScoreRatio() : 0.0;
+                    if (ratio >= 1.0) {
+                        resultCell.setCellStyle(passStyle);
+                    } else if (ratio > 0.0) {
+                        resultCell.setCellStyle(partialStyle);
+                    } else {
+                        resultCell.setCellStyle(failStyle);
+                    }
+                }
+
+                setDetailedTestSheetWidths(employeeSheet);
+            }
+
+            workbook.write(baos);
+            return baos.toByteArray();
+        } catch (Exception e) {
+            log.error("Ошибка при создании подробного журнала назначения теста: {}", e.getMessage(), e);
+            return null;
+        }
+    }
+
     private byte[] exportSimulationAssignmentWorkbook(SimulationAssignment assignment, List<SimulationAssignmentEmployeeDTO> journal) {
         try (XSSFWorkbook workbook = new XSSFWorkbook(); ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
             Sheet sheet = workbook.createSheet("Журнал назначения");
@@ -491,7 +655,7 @@ public class ReportService {
 
             Row title = sheet.createRow(0);
             Cell titleCell = title.createCell(0);
-            titleCell.setCellValue("ЖУРНАЛ ПО НАЗНАЧЕНИЮ МНЕМОСХЕМЫ");
+            titleCell.setCellValue("ПРОТОКОЛ ПРОВЕДЕНИЯ СИМУЛЯЦИИ");
             titleCell.setCellStyle(boldStyle);
             sheet.addMergedRegion(new CellRangeAddress(0, 0, 0, 5));
 
@@ -540,6 +704,137 @@ public class ReportService {
         }
     }
 
+    private byte[] exportDetailedSimulationAssignmentWorkbook(SimulationAssignment assignment, List<SimulationAssignmentEmployeeDTO> journal) {
+        try (XSSFWorkbook workbook = new XSSFWorkbook(); ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            CellStyle boldStyle = createBoldStyle(workbook);
+            CellStyle headerStyle = createHeaderStyle(workbook);
+            CellStyle wrapStyle = createWrapStyle(workbook);
+            CellStyle passStyle = createFillStyle(workbook, IndexedColors.LIGHT_GREEN);
+            CellStyle failStyle = createFillStyle(workbook, IndexedColors.ROSE);
+            DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+            DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
+
+            Sheet summarySheet = workbook.createSheet("Сводка");
+            Row title = summarySheet.createRow(0);
+            Cell titleCell = title.createCell(0);
+            titleCell.setCellValue("ПОДРОБНЫЙ ЖУРНАЛ НАЗНАЧЕНИЯ МНЕМОСХЕМЫ");
+            titleCell.setCellStyle(boldStyle);
+            summarySheet.addMergedRegion(new CellRangeAddress(0, 0, 0, 5));
+
+            summarySheet.createRow(1).createCell(0).setCellValue("Дата формирования: " + LocalDate.now().format(dateFormatter));
+            summarySheet.createRow(2).createCell(0).setCellValue("Название назначения: " + assignment.getAssignmentTitle());
+            summarySheet.createRow(3).createCell(0).setCellValue("Сценарий: " + assignment.getScenario().getTitle());
+            summarySheet.createRow(4).createCell(0).setCellValue("Дедлайн: " + assignment.getDeadline().format(dateFormatter));
+            summarySheet.createRow(5).createCell(0).setCellValue("Назначено сотрудников: " + journal.size());
+
+            Row headerRow = summarySheet.createRow(7);
+            String[] headers = {"#", "ФИО", "Статус", "Дата завершения", "Шаги", "Результат"};
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+                cell.setCellStyle(headerStyle);
+            }
+
+            for (int i = 0; i < journal.size(); i++) {
+                SimulationAssignmentEmployeeDTO item = journal.get(i);
+                Row row = summarySheet.createRow(8 + i);
+                row.createCell(0).setCellValue(i + 1);
+                row.createCell(1).setCellValue(item.getEmployeeFullName());
+                row.createCell(2).setCellValue(item.getStatusDisplayName());
+                row.createCell(3).setCellValue(item.getFinishedAt() != null ? item.getFinishedAt().format(dateTimeFormatter) : "—");
+                row.createCell(4).setCellValue(item.getCompletedSteps() != null && item.getTotalSteps() != null
+                        ? item.getCompletedSteps() + " / " + item.getTotalSteps()
+                        : "—");
+
+                Cell resultCell = row.createCell(5);
+                if ("COMPLETED".equals(item.getSessionStatus())) {
+                    resultCell.setCellValue("Выполнено");
+                    resultCell.setCellStyle(passStyle);
+                } else if (item.getSessionStatusDisplayName() != null) {
+                    resultCell.setCellValue(item.getSessionStatusDisplayName());
+                    resultCell.setCellStyle(failStyle);
+                } else {
+                    resultCell.setCellValue("—");
+                }
+            }
+            setJournalColumnWidths(summarySheet);
+
+            for (int i = 0; i < journal.size(); i++) {
+                SimulationAssignmentEmployeeDTO item = journal.get(i);
+                Sheet employeeSheet = workbook.createSheet(buildEmployeeSheetName(i + 1, item.getEmployeeFullName()));
+
+                Row employeeTitle = employeeSheet.createRow(0);
+                Cell employeeTitleCell = employeeTitle.createCell(0);
+                employeeTitleCell.setCellValue("Подробный журнал сотрудника");
+                employeeTitleCell.setCellStyle(boldStyle);
+
+                employeeSheet.createRow(1).createCell(0).setCellValue("ФИО:");
+                employeeSheet.getRow(1).createCell(1).setCellValue(item.getEmployeeFullName());
+                employeeSheet.createRow(2).createCell(0).setCellValue("Статус назначения:");
+                employeeSheet.getRow(2).createCell(1).setCellValue(item.getStatusDisplayName());
+                employeeSheet.createRow(3).createCell(0).setCellValue("Дата завершения:");
+                employeeSheet.getRow(3).createCell(1).setCellValue(item.getFinishedAt() != null ? item.getFinishedAt().format(dateTimeFormatter) : "—");
+
+                if (item.getCompletedSimulationSessionId() == null) {
+                    employeeSheet.createRow(5).createCell(0).setCellValue("Подробное прохождение отсутствует.");
+                    setDetailedSimulationSheetWidths(employeeSheet);
+                    continue;
+                }
+
+                Optional<SimulationSessionDTO> sessionOpt = getSimulationSessionResult(item.getCompletedSimulationSessionId());
+                if (sessionOpt.isEmpty()) {
+                    employeeSheet.createRow(5).createCell(0).setCellValue("Сессия прохождения не найдена.");
+                    setDetailedSimulationSheetWidths(employeeSheet);
+                    continue;
+                }
+
+                SimulationSessionDTO session = sessionOpt.get();
+                employeeSheet.createRow(4).createCell(0).setCellValue("Пройдено шагов:");
+                employeeSheet.getRow(4).createCell(1).setCellValue(session.getCompletedSteps() + " / " + session.getTotalSteps());
+                employeeSheet.createRow(5).createCell(0).setCellValue("Итоговый статус:");
+                employeeSheet.getRow(5).createCell(1).setCellValue(session.getSessionStatusDisplayName());
+
+                List<Map<String, Object>> stepResults = parseStepResults(session.getStepResults());
+                if (stepResults.isEmpty()) {
+                    employeeSheet.createRow(7).createCell(0).setCellValue("Детализация шагов отсутствует.");
+                    setDetailedSimulationSheetWidths(employeeSheet);
+                    continue;
+                }
+
+                Row detailHeader = employeeSheet.createRow(7);
+                String[] detailHeaders = {"#", "Инструкция", "Результат"};
+                for (int j = 0; j < detailHeaders.length; j++) {
+                    Cell cell = detailHeader.createCell(j);
+                    cell.setCellValue(detailHeaders[j]);
+                    cell.setCellStyle(headerStyle);
+                }
+
+                for (int j = 0; j < stepResults.size(); j++) {
+                    Map<String, Object> stepResult = stepResults.get(j);
+                    Row row = employeeSheet.createRow(8 + j);
+                    row.createCell(0).setCellValue(((Number) stepResult.get("step")).intValue());
+
+                    Cell instructionCell = row.createCell(1);
+                    instructionCell.setCellValue((String) stepResult.get("instruction"));
+                    instructionCell.setCellStyle(wrapStyle);
+
+                    Cell resultCell = row.createCell(2);
+                    boolean passed = Boolean.TRUE.equals(stepResult.get("passed"));
+                    resultCell.setCellValue(passed ? "Выполнен" : "Ошибка");
+                    resultCell.setCellStyle(passed ? passStyle : failStyle);
+                }
+
+                setDetailedSimulationSheetWidths(employeeSheet);
+            }
+
+            workbook.write(baos);
+            return baos.toByteArray();
+        } catch (Exception e) {
+            log.error("Ошибка при создании подробного журнала назначения мнемосхемы: {}", e.getMessage(), e);
+            return null;
+        }
+    }
+
     private void setJournalColumnWidths(Sheet sheet) {
         sheet.setColumnWidth(0, 2000);
         sheet.setColumnWidth(1, 9000);
@@ -547,6 +842,23 @@ public class ReportService {
         sheet.setColumnWidth(3, 5000);
         sheet.setColumnWidth(4, 3500);
         sheet.setColumnWidth(5, 4500);
+    }
+
+    private void setDetailedTestSheetWidths(Sheet sheet) {
+        sheet.setColumnWidth(0, 2000);
+        sheet.setColumnWidth(1, 14000);
+        sheet.setColumnWidth(2, 5000);
+        sheet.setColumnWidth(3, 3500);
+        sheet.setColumnWidth(4, 3500);
+        sheet.setColumnWidth(5, 10000);
+        sheet.setColumnWidth(6, 10000);
+        sheet.setColumnWidth(7, 5000);
+    }
+
+    private void setDetailedSimulationSheetWidths(Sheet sheet) {
+        sheet.setColumnWidth(0, 2000);
+        sheet.setColumnWidth(1, 16000);
+        sheet.setColumnWidth(2, 5000);
     }
 
     private CellStyle createBoldStyle(Workbook workbook) {
@@ -569,11 +881,59 @@ public class ReportService {
         return style;
     }
 
+    private CellStyle createWrapStyle(Workbook workbook) {
+        CellStyle style = workbook.createCellStyle();
+        style.setWrapText(true);
+        style.setVerticalAlignment(VerticalAlignment.TOP);
+        return style;
+    }
+
     private CellStyle createFillStyle(Workbook workbook, IndexedColors color) {
         CellStyle style = workbook.createCellStyle();
         style.setFillForegroundColor(color.getIndex());
         style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
         style.setAlignment(HorizontalAlignment.CENTER);
         return style;
+    }
+
+    private String buildEmployeeSheetName(int index, String fullName) {
+        String normalized = (index + "_" + fullName)
+                .replaceAll("[\\\\/?*\\[\\]:]", "_")
+                .trim();
+        return normalized.length() > 31 ? normalized.substring(0, 31) : normalized;
+    }
+
+    private List<Map<String, Object>> parseStepResults(String stepResultsJson) {
+        if (stepResultsJson == null || stepResultsJson.isBlank()) {
+            return List.of();
+        }
+        try {
+            return objectMapper.readValue(stepResultsJson, new TypeReference<>() {});
+        } catch (Exception e) {
+            log.error("Ошибка при чтении stepResults: {}", e.getMessage());
+            return List.of();
+        }
+    }
+
+    private String getUserAnswerText(TestSessionAnswerDTO detail) {
+        if (!detail.getSelectedAnswers().isEmpty()) {
+            return detail.getSelectedAnswers().stream()
+                    .map(TestAnswerDTO::getAnswerText)
+                    .reduce((left, right) -> left + ", " + right)
+                    .orElse("");
+        }
+        return detail.getAnswerText() != null && !detail.getAnswerText().isBlank()
+                ? detail.getAnswerText()
+                : "нет ответа";
+    }
+
+    private String getCorrectAnswerText(TestSessionAnswerDTO detail) {
+        if (!detail.getCorrectAnswers().isEmpty()) {
+            return detail.getCorrectAnswers().stream()
+                    .map(TestAnswerDTO::getAnswerText)
+                    .reduce((left, right) -> left + ", " + right)
+                    .orElse("");
+        }
+        return "—";
     }
 }
