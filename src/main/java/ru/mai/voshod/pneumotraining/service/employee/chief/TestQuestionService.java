@@ -90,7 +90,8 @@ public class TestQuestionService {
 
     @Transactional
     public Optional<Long> saveQuestion(Long testId, String questionText, Integer sortOrder,
-                                        String questionTypeName, Long theorySectionId, List<TestAnswerDTO> answerDTOs) {
+                                       Integer difficultyLevel, String questionTypeName,
+                                       Long theorySectionId, List<TestAnswerDTO> answerDTOs) {
         log.info("Создание вопроса для теста id={}", testId);
 
         Optional<Test> testOptional = testRepository.findById(testId);
@@ -119,6 +120,7 @@ public class TestQuestionService {
                 question.setSortOrder(maxOrder + 1);
             }
             question.setQuestionType(questionType);
+            question.setDifficultyLevel(normalizeDifficulty(difficultyLevel));
             question.setTest(testOptional.get());
             if (theorySectionId != null) {
                 question.setTheorySection(theorySectionRepository.findById(theorySectionId).orElse(null));
@@ -156,7 +158,8 @@ public class TestQuestionService {
 
     @Transactional
     public Optional<Long> editQuestion(Long questionId, String questionText, Integer sortOrder,
-                                        String questionTypeName, Long theorySectionId, List<TestAnswerDTO> answerDTOs) {
+                                       Integer difficultyLevel, String questionTypeName,
+                                       Long theorySectionId, List<TestAnswerDTO> answerDTOs) {
         log.info("Редактирование вопроса: id={}", questionId);
 
         Optional<TestQuestion> questionOptional = testQuestionRepository.findById(questionId);
@@ -177,6 +180,7 @@ public class TestQuestionService {
 
             question.setQuestionText(questionText);
             question.setSortOrder(sortOrder);
+            question.setDifficultyLevel(normalizeDifficulty(difficultyLevel));
             question.setQuestionType(questionType);
             if (theorySectionId != null) {
                 question.setTheorySection(theorySectionRepository.findById(theorySectionId).orElse(null));
@@ -290,5 +294,12 @@ public class TestQuestionService {
             TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
             return false;
         }
+    }
+
+    private int normalizeDifficulty(Integer difficultyLevel) {
+        if (difficultyLevel == null) {
+            return 1;
+        }
+        return Math.max(1, Math.min(3, difficultyLevel));
     }
 }

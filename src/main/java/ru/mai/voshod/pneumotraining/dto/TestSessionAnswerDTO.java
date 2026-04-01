@@ -13,6 +13,9 @@ public class TestSessionAnswerDTO {
     private Long testQuestionId;
     private String questionText;
     private String questionTypeName;
+    private Integer difficultyLevel;
+    private Double earnedScoreRatio;
+    private String scoreLevelDisplayName;
     private List<TestAnswerDTO> selectedAnswers = new ArrayList<>();
     private List<TestAnswerDTO> correctAnswers = new ArrayList<>();
 }

@@ -33,6 +33,9 @@ public class TestSessionAnswer {
     @Column(nullable = false)
     private boolean isCorrect = false;
 
+    @Column
+    private Double earnedScoreRatio;
+
     @ManyToOne
     @JoinColumn(name = "test_session_id", nullable = false)
     @ToString.Exclude
