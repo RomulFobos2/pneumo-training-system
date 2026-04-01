@@ -155,6 +155,14 @@ CREATE TEMPORARY TABLE tmp_seed_answers (
     PRIMARY KEY (test_no, q_no, answer_no)
 ) ENGINE=InnoDB;
 
+DROP TEMPORARY TABLE IF EXISTS tmp_seed_question_ids;
+CREATE TEMPORARY TABLE tmp_seed_question_ids (
+    test_no INT NOT NULL,
+    q_no INT NOT NULL,
+    question_id BIGINT NOT NULL,
+    PRIMARY KEY (test_no, q_no)
+) ENGINE=InnoDB;
+
 -- ====== ТЕСТ 1: 39 вопросов (нумерация в источнике: 1..4, 6..40) ======
 INSERT INTO tmp_seed_questions (test_no, q_no, question_text) VALUES
 (1,1,'Какая среда разрешена для проведения пневматических испытаний?'),
@@ -298,15 +306,23 @@ INSERT INTO tmp_seed_answers (test_no, q_no, answer_no, answer_text, is_correct)
 (2,27,1,'Для сохранения жизни сотрудников и предотвращения повреждений оборудования',true),(2,27,2,'Чтобы ускорить процесс тестирования',false),(2,27,3,'Чтобы снизить расходы на испытания',false),(2,27,4,'Для повышения температуры внутри системы',false);
 
 -- ====== Перенос вопросов в t_test_question ======
-INSERT INTO t_test_question (question_text, sort_order, question_type, theory_section_id, test_id)
+INSERT INTO t_test_question (question_text, question_type, theory_section_id, test_id)
 SELECT
     q.question_text,
-    q.q_no,
     'SINGLE_CHOICE',
     NULL,
     CASE WHEN q.test_no = 1 THEN @test1_id ELSE @test2_id END
 FROM tmp_seed_questions q
 ORDER BY q.test_no, q.q_no;
+
+INSERT INTO tmp_seed_question_ids (test_no, q_no, question_id)
+SELECT
+    q.test_no,
+    q.q_no,
+    tq.id
+FROM tmp_seed_questions q
+JOIN t_test_question tq ON tq.test_id = CASE WHEN q.test_no = 1 THEN @test1_id ELSE @test2_id END
+                      AND tq.question_text = q.question_text;
 
 -- ====== Перенос ответов в t_test_answer ======
 INSERT INTO t_test_answer (answer_text, is_correct, sort_order, match_target, question_id)
@@ -317,8 +333,9 @@ SELECT
     NULL,
     tq.id
 FROM tmp_seed_answers a
-JOIN t_test_question tq ON tq.test_id = CASE WHEN a.test_no = 1 THEN @test1_id ELSE @test2_id END
-                      AND tq.sort_order = a.q_no
+JOIN tmp_seed_question_ids q_map ON q_map.test_no = a.test_no
+                                AND q_map.q_no = a.q_no
+JOIN t_test_question tq ON tq.id = q_map.question_id
 ORDER BY a.test_no, a.q_no, a.answer_no;
 
 -- ====== Доступ тестов для всех подразделений ======
@@ -351,6 +368,7 @@ WHERE e.is_active = true
   AND e.department_id IS NOT NULL;
 
 DROP TEMPORARY TABLE IF EXISTS tmp_seed_answers;
+DROP TEMPORARY TABLE IF EXISTS tmp_seed_question_ids;
 DROP TEMPORARY TABLE IF EXISTS tmp_seed_questions;
 
 COMMIT;

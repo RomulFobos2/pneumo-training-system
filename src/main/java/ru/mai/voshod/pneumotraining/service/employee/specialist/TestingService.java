@@ -111,7 +111,7 @@ public class TestingService {
         }
 
         try {
-            List<TestQuestion> questions = testQuestionRepository.findByTestIdOrderBySortOrderAsc(testId);
+            List<TestQuestion> questions = testQuestionRepository.findByTestIdOrderByIdAsc(testId);
             List<Long> questionIds = questions.stream().map(TestQuestion::getId).collect(Collectors.toList());
             Collections.shuffle(questionIds);
 

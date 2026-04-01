@@ -1,10 +1,12 @@
 package ru.mai.voshod.pneumotraining.controllers.employee.chief;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import ru.mai.voshod.pneumotraining.dto.TestAnswerDTO;
 import ru.mai.voshod.pneumotraining.dto.TestDTO;
@@ -14,7 +16,11 @@ import ru.mai.voshod.pneumotraining.repo.TheorySectionRepository;
 import ru.mai.voshod.pneumotraining.service.employee.chief.TestQuestionService;
 import ru.mai.voshod.pneumotraining.service.employee.chief.TestService;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 
 @Controller
 @Slf4j
@@ -25,14 +31,12 @@ public class TestQuestionController {
     private final TheorySectionRepository theorySectionRepository;
 
     public TestQuestionController(TestQuestionService testQuestionService,
-                                   TestService testService,
-                                   TheorySectionRepository theorySectionRepository) {
+                                  TestService testService,
+                                  TheorySectionRepository theorySectionRepository) {
         this.testQuestionService = testQuestionService;
         this.testService = testService;
         this.theorySectionRepository = theorySectionRepository;
     }
-
-    // ========== Добавление вопроса ==========
 
     @GetMapping("/employee/chief/tests/addQuestion/{testId}")
     public String addQuestionForm(@PathVariable(value = "testId") long testId, Model model) {
@@ -62,7 +66,7 @@ public class TestQuestionController {
                 answerCorrect, answerSortOrder, answerMatchTarget);
 
         Optional<Long> result = testQuestionService.saveQuestion(testId, inputQuestionText,
-                null, inputDifficultyLevel, inputQuestionType, inputTheorySectionId, answerDTOs);
+                inputDifficultyLevel, inputQuestionType, inputTheorySectionId, answerDTOs);
 
         if (result.isEmpty()) {
             model.addAttribute("questionError", "Ошибка при сохранении. Проверьте варианты ответа и правильные ответы.");
@@ -73,8 +77,6 @@ public class TestQuestionController {
         }
         return "redirect:/employee/chief/tests/detailsTest/" + testId;
     }
-
-    // ========== Редактирование вопроса ==========
 
     @GetMapping("/employee/chief/tests/editQuestion/{questionId}")
     public String editQuestionForm(@PathVariable(value = "questionId") long questionId, Model model) {
@@ -105,7 +107,7 @@ public class TestQuestionController {
                 answerCorrect, answerSortOrder, answerMatchTarget);
 
         Optional<Long> result = testQuestionService.editQuestion(questionId, inputQuestionText,
-                null, inputDifficultyLevel, inputQuestionType, inputTheorySectionId, answerDTOs);
+                inputDifficultyLevel, inputQuestionType, inputTheorySectionId, answerDTOs);
 
         if (result.isEmpty()) {
             redirectAttributes.addFlashAttribute("questionError", "Ошибка при сохранении. Проверьте варианты ответа и правильные ответы.");
@@ -114,11 +116,9 @@ public class TestQuestionController {
         return "redirect:/employee/chief/tests/detailsTest/" + testIdOpt.orElse(0L);
     }
 
-    // ========== Удаление вопроса ==========
-
     @GetMapping("/employee/chief/tests/deleteQuestion/{questionId}")
     public String deleteQuestion(@PathVariable(value = "questionId") long questionId,
-                                  RedirectAttributes redirectAttributes) {
+                                 RedirectAttributes redirectAttributes) {
         Optional<Long> testIdOpt = testQuestionService.getTestIdByQuestionId(questionId);
         long testId = testIdOpt.orElse(0L);
 
@@ -130,20 +130,6 @@ public class TestQuestionController {
         return "redirect:/employee/chief/tests/detailsTest/" + testId;
     }
 
-    // ========== Перестановка (AJAX) ==========
-
-    @PostMapping("/employee/chief/tests/reorderQuestions/{testId}")
-    @ResponseBody
-    public ResponseEntity<Map<String, Boolean>> reorderQuestions(
-            @PathVariable(value = "testId") long testId,
-            @RequestBody List<Long> orderedIds) {
-        Map<String, Boolean> response = new HashMap<>();
-        response.put("success", testQuestionService.reorderQuestions(testId, orderedIds));
-        return ResponseEntity.ok(response);
-    }
-
-    // ========== Вспомогательный метод ==========
-
     /**
      * Собирает список TestAnswerDTO из параметров формы.
      * Каждый тип вопроса передаёт ответы по-своему:
@@ -153,14 +139,13 @@ public class TestQuestionController {
      * - OPEN_TEXT: answerText[0] — эталонный ответ
      */
     private List<TestAnswerDTO> buildAnswerDTOs(String questionType,
-                                                 List<String> answerText,
-                                                 List<String> answerCorrect,
-                                                 List<String> answerSortOrder,
-                                                 List<String> answerMatchTarget) {
+                                                List<String> answerText,
+                                                List<String> answerCorrect,
+                                                List<String> answerSortOrder,
+                                                List<String> answerMatchTarget) {
         List<TestAnswerDTO> result = new ArrayList<>();
         if (answerText == null || answerText.isEmpty()) return result;
 
-        // Множество индексов правильных ответов (для SINGLE/MULTIPLE)
         Set<String> correctIndices = new HashSet<>();
         if (answerCorrect != null) {
             correctIndices.addAll(answerCorrect);
@@ -183,7 +168,8 @@ public class TestQuestionController {
                     if (answerSortOrder != null && i < answerSortOrder.size()) {
                         try {
                             dto.setSortOrder(Integer.parseInt(answerSortOrder.get(i)));
-                        } catch (NumberFormatException ignored) {}
+                        } catch (NumberFormatException ignored) {
+                        }
                     }
                     break;
                 case "MATCHING":

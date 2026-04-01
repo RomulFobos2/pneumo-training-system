@@ -57,7 +57,7 @@ public class Test {
     private List<Department> allowedDepartments = new ArrayList<>();
 
     @OneToMany(mappedBy = "test", cascade = CascadeType.ALL, orphanRemoval = true)
-    @OrderBy("sortOrder ASC")
+    @OrderBy("id ASC")
     @ToString.Exclude
     private List<TestQuestion> questions = new ArrayList<>();
 }

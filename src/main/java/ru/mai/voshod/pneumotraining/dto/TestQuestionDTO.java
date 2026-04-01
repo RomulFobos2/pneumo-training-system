@@ -9,7 +9,6 @@ import java.util.List;
 public class TestQuestionDTO {
     private Long id;
     private String questionText;
-    private Integer sortOrder;
     private Integer difficultyLevel;
     private String questionTypeDisplayName;
     private String questionTypeName;

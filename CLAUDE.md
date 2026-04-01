@@ -102,7 +102,7 @@ src/main/resources/
 
 **Test** `t_test` — title, description, timeLimit *(минуты)*, passingScore *(%)*, isExam, isActive → ManyToOne Employee (createdBy) → OneToMany TestQuestion
 
-**TestQuestion** `t_testQuestion` — questionText, sortOrder, questionType *(QuestionType)* → ManyToOne Test → OneToMany TestAnswer
+**TestQuestion** `t_testQuestion` — questionText, questionType *(QuestionType)* → ManyToOne Test → OneToMany TestAnswer
 
 **QuestionType** — `SINGLE_CHOICE("Один ответ")`, `MULTIPLE_CHOICE("Несколько ответов")`, `SEQUENCE("Очерёдность")`, `MATCHING("Соответствие")`, `OPEN_TEXT("Открытый ответ")`
 

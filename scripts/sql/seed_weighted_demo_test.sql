@@ -143,8 +143,8 @@ SELECT @test_id, d.id
 FROM t_department d;
 
 -- ===== Вопрос 1: SINGLE_CHOICE, сложность 1 =====
-INSERT INTO t_test_question (question_text, sort_order, difficulty_level, question_type, theory_section_id, test_id)
-VALUES ('Вопрос 1. Выберите один.', 1, 1, 'SINGLE_CHOICE', NULL, @test_id);
+INSERT INTO t_test_question (question_text, difficulty_level, question_type, theory_section_id, test_id)
+VALUES ('Вопрос 1. Выберите один.', 1, 'SINGLE_CHOICE', NULL, @test_id);
 SET @q1_id := LAST_INSERT_ID();
 
 INSERT INTO t_test_answer (answer_text, is_correct, sort_order, match_target, question_id) VALUES
@@ -154,8 +154,8 @@ INSERT INTO t_test_answer (answer_text, is_correct, sort_order, match_target, qu
 ('Четыре',FALSE, 4, NULL, @q1_id);
 
 -- ===== Вопрос 2: SINGLE_CHOICE, сложность 1 =====
-INSERT INTO t_test_question (question_text, sort_order, difficulty_level, question_type, theory_section_id, test_id)
-VALUES ('Вопрос 2. Выберите один.', 2, 1, 'SINGLE_CHOICE', NULL, @test_id);
+INSERT INTO t_test_question (question_text, difficulty_level, question_type, theory_section_id, test_id)
+VALUES ('Вопрос 2. Выберите один.', 1, 'SINGLE_CHOICE', NULL, @test_id);
 SET @q2_id := LAST_INSERT_ID();
 
 INSERT INTO t_test_answer (answer_text, is_correct, sort_order, match_target, question_id) VALUES
@@ -165,8 +165,8 @@ INSERT INTO t_test_answer (answer_text, is_correct, sort_order, match_target, qu
 ('Четыре', FALSE, 4, NULL, @q2_id);
 
 -- ===== Вопрос 3: MULTIPLE_CHOICE, сложность 2 =====
-INSERT INTO t_test_question (question_text, sort_order, difficulty_level, question_type, theory_section_id, test_id)
-VALUES ('Вопрос 3. Выберите несколько вариантов.', 3, 2, 'MULTIPLE_CHOICE', NULL, @test_id);
+INSERT INTO t_test_question (question_text, difficulty_level, question_type, theory_section_id, test_id)
+VALUES ('Вопрос 3. Выберите несколько вариантов.', 2, 'MULTIPLE_CHOICE', NULL, @test_id);
 SET @q3_id := LAST_INSERT_ID();
 
 INSERT INTO t_test_answer (answer_text, is_correct, sort_order, match_target, question_id) VALUES
@@ -176,8 +176,8 @@ INSERT INTO t_test_answer (answer_text, is_correct, sort_order, match_target, qu
 ('Четыре', FALSE, 4, NULL, @q3_id);
 
 -- ===== Вопрос 4: MATCHING, сложность 2 =====
-INSERT INTO t_test_question (question_text, sort_order, difficulty_level, question_type, theory_section_id, test_id)
-VALUES ('Вопрос 4. Установите соответствие.', 4, 2, 'MATCHING', NULL, @test_id);
+INSERT INTO t_test_question (question_text, difficulty_level, question_type, theory_section_id, test_id)
+VALUES ('Вопрос 4. Установите соответствие.', 2, 'MATCHING', NULL, @test_id);
 SET @q4_id := LAST_INSERT_ID();
 
 INSERT INTO t_test_answer (answer_text, is_correct, sort_order, match_target, question_id) VALUES
@@ -187,8 +187,8 @@ INSERT INTO t_test_answer (answer_text, is_correct, sort_order, match_target, qu
 ('Четыре', FALSE, 4, 'Г', @q4_id);
 
 -- ===== Вопрос 5: SEQUENCE, сложность 3 =====
-INSERT INTO t_test_question (question_text, sort_order, difficulty_level, question_type, theory_section_id, test_id)
-VALUES ('Вопрос 5. Установите правильную последовательность.', 5, 3, 'SEQUENCE', NULL, @test_id);
+INSERT INTO t_test_question (question_text, difficulty_level, question_type, theory_section_id, test_id)
+VALUES ('Вопрос 5. Установите правильную последовательность.', 3, 'SEQUENCE', NULL, @test_id);
 SET @q5_id := LAST_INSERT_ID();
 
 INSERT INTO t_test_answer (answer_text, is_correct, sort_order, match_target, question_id) VALUES
