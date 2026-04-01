@@ -29,6 +29,9 @@ public class TestQuestion {
     @Column(nullable = false)
     private Integer sortOrder;
 
+    @Column(nullable = false)
+    private Integer difficultyLevel = 1;
+
     @NotNull
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)

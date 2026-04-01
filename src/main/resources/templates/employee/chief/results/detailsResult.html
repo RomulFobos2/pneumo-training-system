@@ -44,14 +44,14 @@
                         <div class="row g-3 justify-content-center mb-4">
                             <div class="col-auto">
                                 <div class="profile-card p-3 text-center">
-                                    <div class="text-muted small">Баллы</div>
+                                    <div class="text-muted small">Полностью верно</div>
                                     <div class="fs-4 fw-bold"
                                          th:text="${sessionDTO.score + ' / ' + sessionDTO.totalScore}"></div>
                                 </div>
                             </div>
                             <div class="col-auto">
                                 <div class="profile-card p-3 text-center">
-                                    <div class="text-muted small">Процент</div>
+                                    <div class="text-muted small">Итоговый процент</div>
                                     <div class="fs-4 fw-bold"
                                          th:text="${#numbers.formatDecimal(sessionDTO.scorePercent, 1, 1) + '%'}"></div>
                                 </div>
@@ -78,6 +78,10 @@
                             </div>
                         </div>
 
+                        <p class="text-muted text-center mb-3">
+                            Итоговый процент рассчитан по взвешенной формуле с учетом уровня сложности каждого вопроса.
+                        </p>
+
                         <div class="progress mb-2" style="height: 10px;">
                             <div class="progress-bar"
                                  th:classappend="${sessionDTO.isPassed ? 'bg-success' : 'bg-danger'}"
@@ -96,24 +100,40 @@
 
                         <div th:each="detail, stat : ${answerDetails}" class="mb-3">
                             <div class="profile-card p-3"
-                                 th:classappend="${detail.isCorrect() ? 'border-start border-success border-3' : 'border-start border-danger border-3'}">
+                                 th:classappend="${detail.earnedScoreRatio == null || detail.earnedScoreRatio == 0 ? 'border-start border-danger border-3' : (detail.earnedScoreRatio == 1 ? 'border-start border-success border-3' : 'border-start border-warning border-3')}">
 
                                 <div class="d-flex justify-content-between align-items-start mb-2">
                                     <div>
                                         <span class="badge bg-light text-dark me-1"
                                               th:text="'Вопрос ' + (${stat.index + 1})"></span>
-                                        <span class="badge bg-light text-dark"
+                                        <span class="badge bg-light text-dark me-1"
                                               th:text="${detail.questionTypeName}"></span>
+                                        <span class="badge bg-warning text-dark"
+                                              th:text="${'Сложность ' + detail.difficultyLevel}"></span>
                                     </div>
-                                    <span class="badge"
-                                          th:classappend="${detail.isCorrect() ? 'bg-success' : 'bg-danger'}"
-                                          th:text="${detail.isCorrect() ? 'Верно' : 'Неверно'}"></span>
+                                    <div class="text-end">
+                                        <span class="badge"
+                                              th:classappend="${detail.earnedScoreRatio == null || detail.earnedScoreRatio == 0 ? 'bg-danger' : (detail.earnedScoreRatio == 1 ? 'bg-success' : 'bg-warning text-dark')}"
+                                              th:text="${detail.scoreLevelDisplayName}"></span>
+                                    </div>
                                 </div>
 
                                 <p class="fw-bold mb-2" th:text="${detail.questionText}"></p>
 
+                                <div class="row g-3 mb-2">
+                                    <div class="col-md-6">
+                                        <span class="text-muted small">Коэффициент ответа:</span>
+                                        <span class="fw-bold"
+                                              th:text="${#numbers.formatDecimal(detail.earnedScoreRatio != null ? detail.earnedScoreRatio : 0, 1, 2)}"></span>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <span class="text-muted small">Полный зачет:</span>
+                                        <span th:text="${detail.isCorrect ? 'да' : 'нет'}"></span>
+                                    </div>
+                                </div>
+
                                 <div class="mb-1">
-                                    <span class="text-muted small">Ваш ответ: </span>
+                                    <span class="text-muted small">Ответ сотрудника: </span>
                                     <span th:if="${!detail.selectedAnswers.isEmpty()}">
                                         <span th:each="sa, saStat : ${detail.selectedAnswers}">
                                             <span th:text="${sa.answerText}"></span>

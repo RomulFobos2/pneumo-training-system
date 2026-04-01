@@ -60,6 +60,14 @@
                                                 th:selected="${section.id == questionDTO.theorySectionId}"></option>
                                     </select>
                                 </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Уровень сложности *</label>
+                                    <select name="inputDifficultyLevel" class="form-select" required>
+                                        <option value="1" th:selected="${questionDTO.difficultyLevel == 1}">1 — базовый</option>
+                                        <option value="2" th:selected="${questionDTO.difficultyLevel == 2}">2 — средний</option>
+                                        <option value="3" th:selected="${questionDTO.difficultyLevel == 3}">3 — повышенный</option>
+                                    </select>
+                                </div>
                             </div>
 
                             <!-- Блок вариантов ответа -->

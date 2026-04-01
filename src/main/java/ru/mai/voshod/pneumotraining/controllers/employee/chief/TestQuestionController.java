@@ -50,6 +50,7 @@ public class TestQuestionController {
     public String addQuestion(@PathVariable(value = "testId") long testId,
                               @RequestParam String inputQuestionText,
                               @RequestParam String inputQuestionType,
+                              @RequestParam Integer inputDifficultyLevel,
                               @RequestParam(required = false) Long inputTheorySectionId,
                               @RequestParam(required = false) List<String> answerText,
                               @RequestParam(required = false) List<String> answerCorrect,
@@ -61,7 +62,7 @@ public class TestQuestionController {
                 answerCorrect, answerSortOrder, answerMatchTarget);
 
         Optional<Long> result = testQuestionService.saveQuestion(testId, inputQuestionText,
-                null, inputQuestionType, inputTheorySectionId, answerDTOs);
+                null, inputDifficultyLevel, inputQuestionType, inputTheorySectionId, answerDTOs);
 
         if (result.isEmpty()) {
             model.addAttribute("questionError", "Ошибка при сохранении. Проверьте варианты ответа и правильные ответы.");
@@ -91,6 +92,7 @@ public class TestQuestionController {
     public String editQuestion(@PathVariable(value = "questionId") long questionId,
                                @RequestParam String inputQuestionText,
                                @RequestParam Integer inputSortOrder,
+                               @RequestParam Integer inputDifficultyLevel,
                                @RequestParam String inputQuestionType,
                                @RequestParam(required = false) Long inputTheorySectionId,
                                @RequestParam(required = false) List<String> answerText,
@@ -104,7 +106,7 @@ public class TestQuestionController {
                 answerCorrect, answerSortOrder, answerMatchTarget);
 
         Optional<Long> result = testQuestionService.editQuestion(questionId, inputQuestionText,
-                inputSortOrder, inputQuestionType, inputTheorySectionId, answerDTOs);
+                inputSortOrder, inputDifficultyLevel, inputQuestionType, inputTheorySectionId, answerDTOs);
 
         if (result.isEmpty()) {
             redirectAttributes.addFlashAttribute("questionError", "Ошибка при сохранении. Проверьте варианты ответа и правильные ответы.");

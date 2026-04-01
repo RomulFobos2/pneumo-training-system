@@ -7,12 +7,12 @@ import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.mai.voshod.pneumotraining.dto.SimulationSessionDTO;
 import ru.mai.voshod.pneumotraining.dto.TestSessionAnswerDTO;
 import ru.mai.voshod.pneumotraining.dto.TestSessionDTO;
 import ru.mai.voshod.pneumotraining.enumeration.TestSessionStatus;
-import ru.mai.voshod.pneumotraining.mapper.TestSessionMapper;
-import ru.mai.voshod.pneumotraining.dto.SimulationSessionDTO;
 import ru.mai.voshod.pneumotraining.mapper.SimulationSessionMapper;
+import ru.mai.voshod.pneumotraining.mapper.TestSessionMapper;
 import ru.mai.voshod.pneumotraining.models.Employee;
 import ru.mai.voshod.pneumotraining.models.SimulationSession;
 import ru.mai.voshod.pneumotraining.models.TestSession;
@@ -92,7 +92,9 @@ public class ResultService {
 
     public byte[] exportSessionToExcel(Long sessionId, Employee employee) {
         Optional<TestSessionDTO> sessionOpt = getSessionResult(sessionId, employee);
-        if (sessionOpt.isEmpty()) return null;
+        if (sessionOpt.isEmpty()) {
+            return null;
+        }
 
         TestSessionDTO session = sessionOpt.get();
         List<TestSessionAnswerDTO> details = getSessionAnswerDetails(sessionId, employee);
@@ -102,7 +104,6 @@ public class ResultService {
 
             Sheet sheet = workbook.createSheet("Результат тестирования");
 
-            // Стили
             CellStyle boldStyle = workbook.createCellStyle();
             Font boldFont = workbook.createFont();
             boldFont.setBold(true);
@@ -122,11 +123,10 @@ public class ResultService {
 
             DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
 
-            // Шапка
-            Row r0 = sheet.createRow(0);
-            Cell c0 = r0.createCell(0);
-            c0.setCellValue("Отчёт по результатам тестирования");
-            c0.setCellStyle(boldStyle);
+            Row titleRow = sheet.createRow(0);
+            Cell titleCell = titleRow.createCell(0);
+            titleCell.setCellValue("Отчёт по результатам тестирования");
+            titleCell.setCellStyle(boldStyle);
 
             sheet.createRow(2).createCell(0).setCellValue("Сотрудник:");
             sheet.getRow(2).createCell(1).setCellValue(session.getEmployeeFullName());
@@ -137,18 +137,21 @@ public class ResultService {
             sheet.createRow(4).createCell(0).setCellValue("Дата:");
             sheet.getRow(4).createCell(1).setCellValue(session.getStartedAt().format(dtf));
 
-            sheet.createRow(5).createCell(0).setCellValue("Результат:");
-            sheet.getRow(5).createCell(1).setCellValue(
-                    session.getScore() + " / " + session.getTotalScore()
-                            + " (" + String.format("%.1f", session.getScorePercent()) + "%)");
+            sheet.createRow(5).createCell(0).setCellValue("Полностью верные ответы:");
+            sheet.getRow(5).createCell(1).setCellValue(session.getScore() + " / " + session.getTotalScore());
 
-            sheet.createRow(6).createCell(0).setCellValue("Статус:");
-            sheet.getRow(6).createCell(1).setCellValue(
+            sheet.createRow(6).createCell(0).setCellValue("Итоговый процент:");
+            sheet.getRow(6).createCell(1).setCellValue(String.format("%.1f%%", session.getScorePercent()));
+
+            sheet.createRow(7).createCell(0).setCellValue("Примечание:");
+            sheet.getRow(7).createCell(1).setCellValue("Процент рассчитан с учетом сложности вопросов");
+
+            sheet.createRow(8).createCell(0).setCellValue("Статус:");
+            sheet.getRow(8).createCell(1).setCellValue(
                     Boolean.TRUE.equals(session.getIsPassed()) ? "Пройден" : "Не пройден");
 
-            // Таблица ответов
-            Row headerRow = sheet.createRow(8);
-            String[] headers = {"#", "Вопрос", "Тип", "Ваш ответ", "Правильный ответ", "Результат"};
+            Row headerRow = sheet.createRow(10);
+            String[] headers = {"#", "Вопрос", "Тип", "Сложность", "Коэффициент", "Ваш ответ", "Правильный ответ", "Результат"};
             for (int i = 0; i < headers.length; i++) {
                 Cell cell = headerRow.createCell(i);
                 cell.setCellValue(headers[i]);
@@ -156,41 +159,37 @@ public class ResultService {
             }
 
             for (int i = 0; i < details.size(); i++) {
-                TestSessionAnswerDTO d = details.get(i);
-                Row row = sheet.createRow(9 + i);
+                TestSessionAnswerDTO detail = details.get(i);
+                Row row = sheet.createRow(11 + i);
                 row.createCell(0).setCellValue(i + 1);
 
                 Cell questionCell = row.createCell(1);
-                questionCell.setCellValue(d.getQuestionText());
+                questionCell.setCellValue(detail.getQuestionText());
                 questionCell.setCellStyle(wrapStyle);
 
-                row.createCell(2).setCellValue(d.getQuestionTypeName());
+                row.createCell(2).setCellValue(detail.getQuestionTypeName());
+                row.createCell(3).setCellValue(detail.getDifficultyLevel() != null ? detail.getDifficultyLevel() : 1);
+                row.createCell(4).setCellValue(detail.getEarnedScoreRatio() != null ? detail.getEarnedScoreRatio() : 0.0);
 
-                // Ваш ответ
-                String userAnswer = getUserAnswerText(d);
-                Cell userCell = row.createCell(3);
-                userCell.setCellValue(userAnswer);
+                Cell userCell = row.createCell(5);
+                userCell.setCellValue(getUserAnswerText(detail));
                 userCell.setCellStyle(wrapStyle);
 
-                // Правильный ответ
-                String correctAnswer = d.getCorrectAnswers().stream()
-                        .map(a -> a.getAnswerText())
-                        .reduce((a, b) -> a + ", " + b)
-                        .orElse("");
-                Cell correctCell = row.createCell(4);
-                correctCell.setCellValue(correctAnswer);
+                Cell correctCell = row.createCell(6);
+                correctCell.setCellValue(getCorrectAnswerText(detail));
                 correctCell.setCellStyle(wrapStyle);
 
-                row.createCell(5).setCellValue(d.isCorrect() ? "Верно" : "Неверно");
+                row.createCell(7).setCellValue(detail.getScoreLevelDisplayName());
             }
 
-            // Авторазмер колонок
             sheet.setColumnWidth(0, 2000);
             sheet.setColumnWidth(1, 10000);
             sheet.setColumnWidth(2, 5000);
-            sheet.setColumnWidth(3, 8000);
-            sheet.setColumnWidth(4, 8000);
-            sheet.setColumnWidth(5, 3000);
+            sheet.setColumnWidth(3, 3000);
+            sheet.setColumnWidth(4, 3500);
+            sheet.setColumnWidth(5, 8000);
+            sheet.setColumnWidth(6, 8000);
+            sheet.setColumnWidth(7, 4500);
 
             workbook.write(baos);
             return baos.toByteArray();
@@ -203,7 +202,9 @@ public class ResultService {
     public byte[] exportSimulationToExcel(Long sessionId, Employee employee) {
         Optional<SimulationSession> sessionOpt = simulationSessionRepository
                 .findByIdAndEmployeeId(sessionId, employee.getId());
-        if (sessionOpt.isEmpty()) return null;
+        if (sessionOpt.isEmpty()) {
+            return null;
+        }
 
         SimulationSession session = sessionOpt.get();
 
@@ -231,10 +232,10 @@ public class ResultService {
 
             DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
 
-            Row r0 = sheet.createRow(0);
-            Cell c0 = r0.createCell(0);
-            c0.setCellValue("Результат прохождения симуляции мнемосхемы");
-            c0.setCellStyle(boldStyle);
+            Row titleRow = sheet.createRow(0);
+            Cell titleCell = titleRow.createCell(0);
+            titleCell.setCellValue("Результат прохождения симуляции мнемосхемы");
+            titleCell.setCellStyle(boldStyle);
 
             sheet.createRow(2).createCell(0).setCellValue("Сотрудник:");
             sheet.getRow(2).createCell(1).setCellValue(session.getEmployee().getFullName());
@@ -248,7 +249,6 @@ public class ResultService {
             sheet.getRow(6).createCell(1).setCellValue(
                     session.getCompletedSteps() + " из " + session.getTotalSteps());
 
-            // Таблица шагов
             Row headerRow = sheet.createRow(8);
             String[] headers = {"#", "Инструкция", "Результат"};
             for (int i = 0; i < headers.length; i++) {
@@ -261,14 +261,14 @@ public class ResultService {
                 List<Map<String, Object>> stepResults = objectMapper.readValue(
                         session.getStepResults(), new TypeReference<>() {});
                 for (int i = 0; i < stepResults.size(); i++) {
-                    Map<String, Object> sr = stepResults.get(i);
+                    Map<String, Object> stepResult = stepResults.get(i);
                     Row row = sheet.createRow(9 + i);
-                    row.createCell(0).setCellValue(((Number) sr.get("step")).intValue());
-                    Cell instrCell = row.createCell(1);
-                    instrCell.setCellValue((String) sr.get("instruction"));
-                    instrCell.setCellStyle(wrapStyle);
+                    row.createCell(0).setCellValue(((Number) stepResult.get("step")).intValue());
+                    Cell instructionCell = row.createCell(1);
+                    instructionCell.setCellValue((String) stepResult.get("instruction"));
+                    instructionCell.setCellStyle(wrapStyle);
                     row.createCell(2).setCellValue(
-                            Boolean.TRUE.equals(sr.get("passed")) ? "Выполнен" : "Ошибка");
+                            Boolean.TRUE.equals(stepResult.get("passed")) ? "Выполнен" : "Ошибка");
                 }
             }
 
@@ -284,8 +284,6 @@ public class ResultService {
         }
     }
 
-    // ========== Вспомогательные ==========
-
     private TestSessionDTO toDTO(TestSession session) {
         TestSessionDTO dto = TestSessionMapper.INSTANCE.toDTO(session);
         List<Long> questionIds = parseQuestionOrder(session.getQuestionOrder());
@@ -295,7 +293,9 @@ public class ResultService {
     }
 
     private List<Long> parseQuestionOrder(String json) {
-        if (json == null || json.isBlank()) return null;
+        if (json == null || json.isBlank()) {
+            return null;
+        }
         try {
             return objectMapper.readValue(json, new TypeReference<>() {});
         } catch (Exception e) {
@@ -304,13 +304,20 @@ public class ResultService {
         }
     }
 
-    private String getUserAnswerText(TestSessionAnswerDTO d) {
-        if (!d.getSelectedAnswers().isEmpty()) {
-            return d.getSelectedAnswers().stream()
-                    .map(a -> a.getAnswerText())
-                    .reduce((a, b) -> a + ", " + b)
+    private String getUserAnswerText(TestSessionAnswerDTO detail) {
+        if (!detail.getSelectedAnswers().isEmpty()) {
+            return detail.getSelectedAnswers().stream()
+                    .map(answer -> answer.getAnswerText())
+                    .reduce((left, right) -> left + ", " + right)
                     .orElse("");
         }
-        return d.getAnswerText() != null ? d.getAnswerText() : "нет ответа";
+        return detail.getAnswerText() != null ? detail.getAnswerText() : "нет ответа";
+    }
+
+    private String getCorrectAnswerText(TestSessionAnswerDTO detail) {
+        return detail.getCorrectAnswers().stream()
+                .map(answer -> answer.getAnswerText())
+                .reduce((left, right) -> left + ", " + right)
+                .orElse("");
     }
 }

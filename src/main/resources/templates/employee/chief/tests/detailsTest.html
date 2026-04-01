@@ -21,7 +21,6 @@
             <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
             <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
 
-            <!-- Заголовок теста -->
             <div class="profile-card p-4 mb-4">
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
@@ -69,7 +68,6 @@
                 </div>
             </div>
 
-            <!-- Список вопросов -->
             <div class="profile-card p-4 mb-4 d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">Вопросы</h5>
                 <a th:href="@{/employee/chief/tests/addQuestion/{id}(id=${testDTO.id})}"
@@ -86,7 +84,8 @@
                         <th style="width: 50px">#</th>
                         <th>Вопрос</th>
                         <th style="width: 150px">Тип</th>
-                        <th style="width: 140px">Раздел теории</th>
+                        <th style="width: 120px">Сложность</th>
+                        <th style="width: 180px">Раздел теории</th>
                         <th style="width: 90px">Ответов</th>
                         <th style="width: 130px">Действия</th>
                     </tr>
@@ -103,6 +102,9 @@
                         </td>
                         <td>
                             <span class="badge bg-info text-dark" th:text="${question.questionTypeDisplayName}"></span>
+                        </td>
+                        <td>
+                            <span class="badge bg-warning text-dark" th:text="${'Уровень ' + question.difficultyLevel}"></span>
                         </td>
                         <td>
                             <span th:if="${question.theorySectionTitle != null}"
@@ -124,7 +126,7 @@
                         </td>
                     </tr>
                     <tr th:if="${#lists.isEmpty(allQuestions)}">
-                        <td colspan="7" class="text-center text-muted">Вопросы ещё не добавлены</td>
+                        <td colspan="8" class="text-center text-muted">Вопросы ещё не добавлены</td>
                     </tr>
                     </tbody>
                 </table>

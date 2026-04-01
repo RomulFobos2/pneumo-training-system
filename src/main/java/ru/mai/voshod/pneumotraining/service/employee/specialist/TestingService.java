@@ -37,6 +37,7 @@ public class TestingService {
     private final TestAssignmentEmployeeRepository testAssignmentEmployeeRepository;
     private final TestAssignmentService testAssignmentService;
     private final DepartmentService departmentService;
+    private final TestScoringService testScoringService;
     private final ObjectMapper objectMapper;
 
     public TestingService(TestRepository testRepository,
@@ -46,7 +47,8 @@ public class TestingService {
                           TestSessionAnswerRepository testSessionAnswerRepository,
                           TestAssignmentEmployeeRepository testAssignmentEmployeeRepository,
                           TestAssignmentService testAssignmentService,
-                          DepartmentService departmentService) {
+                          DepartmentService departmentService,
+                          TestScoringService testScoringService) {
         this.testRepository = testRepository;
         this.testQuestionRepository = testQuestionRepository;
         this.testAnswerRepository = testAnswerRepository;
@@ -55,6 +57,7 @@ public class TestingService {
         this.testAssignmentEmployeeRepository = testAssignmentEmployeeRepository;
         this.testAssignmentService = testAssignmentService;
         this.departmentService = departmentService;
+        this.testScoringService = testScoringService;
         this.objectMapper = new ObjectMapper();
     }
 
@@ -250,8 +253,10 @@ public class TestingService {
             }
 
             fillAnswer(sessionAnswer, question, params);
-
-            sessionAnswer.setCorrect(evaluateAnswer(sessionAnswer, question));
+            List<TestAnswer> questionAnswers = testAnswerRepository.findByQuestionIdOrderBySortOrderAsc(questionId);
+            double earnedScoreRatio = testScoringService.calculateAnswerRatio(sessionAnswer, question, questionAnswers);
+            sessionAnswer.setEarnedScoreRatio(earnedScoreRatio);
+            sessionAnswer.setCorrect(Double.compare(earnedScoreRatio, 1.0) == 0);
 
             testSessionAnswerRepository.save(sessionAnswer);
 
@@ -285,12 +290,18 @@ public class TestingService {
         try {
             List<Long> questionIds = parseQuestionOrder(session.getQuestionOrder());
             int totalScore = questionIds != null ? questionIds.size() : 0;
+            List<TestQuestion> questions = questionIds == null
+                    ? List.of()
+                    : questionIds.stream()
+                    .map(testQuestionRepository::findById)
+                    .flatMap(Optional::stream)
+                    .toList();
 
             List<TestSessionAnswer> answers = testSessionAnswerRepository
                     .findByTestSessionIdOrderByIdAsc(sessionId);
             int score = (int) answers.stream().filter(TestSessionAnswer::isCorrect).count();
 
-            double scorePercent = totalScore > 0 ? (score * 100.0) / totalScore : 0;
+            double scorePercent = testScoringService.calculateWeightedPercent(answers, questions);
 
             session.setScore(score);
             session.setTotalScore(totalScore);
@@ -346,6 +357,10 @@ public class TestingService {
             dto.setTestQuestionId(sa.getTestQuestion().getId());
             dto.setQuestionText(sa.getTestQuestion().getQuestionText());
             dto.setQuestionTypeName(sa.getTestQuestion().getQuestionType().getDisplayName());
+            dto.setDifficultyLevel(sa.getTestQuestion().getDifficultyLevel());
+            double earnedScoreRatio = sa.getEarnedScoreRatio() != null ? sa.getEarnedScoreRatio() : (sa.isCorrect() ? 1.0 : 0.0);
+            dto.setEarnedScoreRatio(earnedScoreRatio);
+            dto.setScoreLevelDisplayName(testScoringService.getScoreLevelDisplayName(earnedScoreRatio));
 
             QuestionType qType = sa.getTestQuestion().getQuestionType();
             if (qType == QuestionType.SEQUENCE && sa.getAnswerText() != null && !sa.getAnswerText().isBlank()) {
@@ -461,71 +476,6 @@ public class TestingService {
                 }
                 break;
             }
-        }
-    }
-
-    private boolean evaluateAnswer(TestSessionAnswer sa, TestQuestion question) {
-        QuestionType type = question.getQuestionType();
-        List<TestAnswer> correctAnswers = testAnswerRepository
-                .findByQuestionIdOrderBySortOrderAsc(question.getId());
-
-        switch (type) {
-            case SINGLE_CHOICE: {
-                if (sa.getSelectedAnswers().size() != 1) return false;
-                return sa.getSelectedAnswers().get(0).isCorrect();
-            }
-            case MULTIPLE_CHOICE: {
-                Set<Long> correctIds = correctAnswers.stream()
-                        .filter(TestAnswer::isCorrect)
-                        .map(TestAnswer::getId)
-                        .collect(Collectors.toSet());
-                Set<Long> selectedIds = sa.getSelectedAnswers().stream()
-                        .map(TestAnswer::getId)
-                        .collect(Collectors.toSet());
-                return correctIds.equals(selectedIds);
-            }
-            case SEQUENCE: {
-                if (sa.getAnswerText() == null || sa.getAnswerText().isBlank()) return false;
-                List<Long> correctOrder = correctAnswers.stream()
-                        .sorted(Comparator.comparingInt(TestAnswer::getSortOrder))
-                        .map(TestAnswer::getId)
-                        .toList();
-                try {
-                    List<Long> userOrder = Arrays.stream(sa.getAnswerText().split(","))
-                            .map(String::trim)
-                            .map(Long::parseLong)
-                            .toList();
-                    return correctOrder.equals(userOrder);
-                } catch (NumberFormatException e) {
-                    return false;
-                }
-            }
-            case MATCHING: {
-                if (sa.getAnswerText() == null || sa.getAnswerText().isBlank()) return false;
-                Map<Long, String> userPairs = new HashMap<>();
-                for (String pair : sa.getAnswerText().split("\\|\\|\\|")) {
-                    String[] parts = pair.split("=", 2);
-                    if (parts.length == 2) {
-                        userPairs.put(Long.parseLong(parts[0].trim()), parts[1].trim());
-                    }
-                }
-                for (TestAnswer answer : correctAnswers) {
-                    String userTarget = userPairs.get(answer.getId());
-                    if (userTarget == null || !userTarget.equals(answer.getMatchTarget())) {
-                        return false;
-                    }
-                }
-                return true;
-            }
-            case OPEN_TEXT: {
-                if (sa.getAnswerText() == null || sa.getAnswerText().isBlank()) return false;
-                List<TestAnswer> correct = correctAnswers.stream()
-                        .filter(TestAnswer::isCorrect).toList();
-                if (correct.isEmpty()) return false;
-                return correct.get(0).getAnswerText().equalsIgnoreCase(sa.getAnswerText().trim());
-            }
-            default:
-                return false;
         }
     }
 
