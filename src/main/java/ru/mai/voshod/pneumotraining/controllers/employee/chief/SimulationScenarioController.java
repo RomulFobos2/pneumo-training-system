@@ -57,15 +57,19 @@ public class SimulationScenarioController {
                                @RequestParam(required = false) String inputDescription,
                                @RequestParam(required = false) Integer inputTimeLimit,
                                @RequestParam Long inputSchemaId,
-                               @RequestParam(required = false) boolean inputIsActive,
+                               @RequestParam(required = false, defaultValue = "false") boolean inputAvailableWithoutAssignment,
                                @RequestParam(required = false) List<Long> inputDepartmentIds,
                                @RequestParam(required = false) String inputScenarioType,
                                @RequestParam(required = false) Long inputParentScenarioId,
                                @AuthenticationPrincipal Employee currentUser,
                                RedirectAttributes redirectAttributes) {
         ScenarioType scenarioType = parseScenarioType(inputScenarioType);
+        if (scenarioType == ScenarioType.FAULT) {
+            inputAvailableWithoutAssignment = false;
+            inputDepartmentIds = List.of();
+        }
         Optional<Long> result = scenarioService.saveScenario(inputTitle, inputDescription,
-                inputTimeLimit, inputSchemaId, inputIsActive, inputDepartmentIds,
+                inputTimeLimit, inputSchemaId, inputAvailableWithoutAssignment, inputDepartmentIds,
                 scenarioType, inputParentScenarioId, currentUser);
         if (result.isEmpty()) {
             redirectAttributes.addFlashAttribute("errorMessage", "Ошибка при создании сценария.");
@@ -94,14 +98,18 @@ public class SimulationScenarioController {
                                 @RequestParam(required = false) String inputDescription,
                                 @RequestParam(required = false) Integer inputTimeLimit,
                                 @RequestParam Long inputSchemaId,
-                                @RequestParam(required = false) boolean inputIsActive,
+                                @RequestParam(required = false, defaultValue = "false") boolean inputAvailableWithoutAssignment,
                                 @RequestParam(required = false) List<Long> inputDepartmentIds,
                                 @RequestParam(required = false) String inputScenarioType,
                                 @RequestParam(required = false) Long inputParentScenarioId,
                                 RedirectAttributes redirectAttributes) {
         ScenarioType scenarioType = parseScenarioType(inputScenarioType);
+        if (scenarioType == ScenarioType.FAULT) {
+            inputAvailableWithoutAssignment = false;
+            inputDepartmentIds = List.of();
+        }
         Optional<Long> result = scenarioService.editScenario(id, inputTitle, inputDescription,
-                inputTimeLimit, inputSchemaId, inputIsActive, inputDepartmentIds,
+                inputTimeLimit, inputSchemaId, inputAvailableWithoutAssignment, inputDepartmentIds,
                 scenarioType, inputParentScenarioId);
         if (result.isEmpty()) {
             redirectAttributes.addFlashAttribute("errorMessage", "Ошибка при обновлении сценария.");

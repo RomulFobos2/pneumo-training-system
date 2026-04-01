@@ -74,7 +74,7 @@
                                 </div>
                             </div>
 
-                            <div class="mb-3">
+                            <div class="mb-3" id="departmentsBlock">
                                 <label class="form-label fw-bold">Подразделения (доступность)</label>
                                 <div class="form-text text-muted mb-2">Выберите подразделения, для которых будет доступен сценарий</div>
                                 <div th:if="${#lists.isEmpty(allDepartments)}" class="text-muted">
@@ -93,11 +93,15 @@
                                 <small class="text-muted">Если не выбрано — сценарий недоступен для прохождения</small>
                             </div>
 
-                            <div class="mb-4">
+                            <div class="mb-3 text-muted" id="faultInheritanceHint" style="display:none;">
+                                Для аварийного сценария подразделения и режим доступа наследуются от штатного сценария.
+                            </div>
+
+                            <div class="mb-4" id="availableWithoutAssignmentBlock">
                                 <div class="form-check form-switch">
-                                    <input type="checkbox" class="form-check-input" name="inputIsActive"
-                                           id="inputIsActive" value="true"/>
-                                    <label class="form-check-label" for="inputIsActive">Доступен без назначения</label>
+                                    <input type="checkbox" class="form-check-input" name="inputAvailableWithoutAssignment"
+                                           id="inputAvailableWithoutAssignment" value="true"/>
+                                    <label class="form-check-label" for="inputAvailableWithoutAssignment">Доступен без назначения</label>
                                 </div>
                             </div>
 
@@ -121,21 +125,39 @@
         var typeSelect = document.getElementById('scenarioTypeSelect');
         var parentBlock = document.getElementById('parentScenarioBlock');
         var parentSelect = document.getElementById('parentScenarioSelect');
+        var departmentsBlock = document.getElementById('departmentsBlock');
+        var availableBlock = document.getElementById('availableWithoutAssignmentBlock');
+        var availableInput = document.getElementById('inputAvailableWithoutAssignment');
+        var inheritanceHint = document.getElementById('faultInheritanceHint');
+        var deptCheckboxes = document.querySelectorAll('.dept-checkbox');
 
-        function toggleParentBlock() {
+        function toggleScenarioMode() {
             if (typeSelect.value === 'FAULT') {
                 parentBlock.style.display = '';
                 parentSelect.required = true;
+                departmentsBlock.style.display = 'none';
+                availableBlock.style.display = 'none';
+                inheritanceHint.style.display = '';
+                availableInput.checked = false;
+                deptCheckboxes.forEach(function(cb) {
+                    cb.checked = false;
+                    cb.indeterminate = false;
+                    cb.disabled = true;
+                });
             } else {
                 parentBlock.style.display = 'none';
                 parentSelect.required = false;
                 parentSelect.value = '';
+                departmentsBlock.style.display = '';
+                availableBlock.style.display = '';
+                inheritanceHint.style.display = 'none';
+                deptCheckboxes.forEach(function(cb) {
+                    cb.disabled = false;
+                });
             }
         }
-        typeSelect.addEventListener('change', toggleParentBlock);
-        toggleParentBlock();
-
-        var deptCheckboxes = document.querySelectorAll('.dept-checkbox');
+        typeSelect.addEventListener('change', toggleScenarioMode);
+        toggleScenarioMode();
 
         deptCheckboxes.forEach(function(cb) {
             cb.addEventListener('change', function() {

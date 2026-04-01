@@ -9,8 +9,6 @@
     <link href="/css/style.css" rel="stylesheet">
     <script src="/js/bootstrap.bundle.min.js"></script>
     <script src="/js/javascript.js"></script>
-    <script src="/js/tablePagination.js"></script>
-    <script src="/js/tableFilter.js"></script>
 </head>
 <body>
 <div id="wrapper">
@@ -30,70 +28,132 @@
             <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
             <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
 
-            <div class="profile-card">
-                <div class="table-responsive">
-                    <table id="allScenariosTable" class="table table-modern mb-0">
-                        <thead>
-                        <tr>
-                            <th style="width: 50px">#</th>
-                            <th>Название</th>
-                            <th style="width: 110px">Тип</th>
-                            <th>Схема</th>
-                            <th style="width: 90px">Шагов</th>
-                            <th style="width: 100px">Время</th>
-                            <th style="width: 100px">Статус</th>
-                            <th style="width: 150px">Действия</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        <tr th:each="s, index : ${allScenarios}">
-                            <td class="row-number" th:text="${index.index + 1}"></td>
-                            <td>
-                                <a th:href="@{/employee/chief/scenarios/detailsScenario/{id}(id=${s.id})}"
-                                   th:text="${s.title}"></a>
-                                <small th:if="${s.parentScenarioTitle != null}" class="d-block text-muted">
-                                    &rarr; <span th:text="${s.parentScenarioTitle}"></span>
-                                </small>
-                            </td>
-                            <td>
-                                <span th:if="${s.scenarioTypeName == 'NORMAL'}" class="badge bg-primary">Штатный</span>
-                                <span th:if="${s.scenarioTypeName == 'FAULT'}" class="badge bg-warning text-dark">Аварийный</span>
-                                <small th:if="${s.scenarioTypeName == 'NORMAL' and s.faultScenarioCount > 0}"
-                                       class="d-block text-muted" th:text="'(' + ${s.faultScenarioCount} + ' авар.)'"></small>
-                            </td>
-                            <td th:text="${s.schemaTitle}"></td>
-                            <td th:text="${s.stepCount}"></td>
-                            <td>
-                                <span th:if="${s.timeLimit != null and s.timeLimit > 0}" th:text="${s.timeLimit + ' мин'}"></span>
-                                <span th:if="${s.timeLimit == null or s.timeLimit == 0}" class="text-muted">&mdash;</span>
-                            </td>
-                            <td>
-                                <span th:if="${s.isActive()}" class="badge bg-success">Активен</span>
-                                <span th:if="${!s.isActive()}" class="badge bg-secondary">Неактивен</span>
-                            </td>
-                            <td>
-                                <div class="action-buttons">
-                                    <a th:href="@{/employee/chief/scenarios/detailsScenario/{id}(id=${s.id})}"
-                                       class="btn btn-sm btn-outline-primary" title="Просмотр">
-                                        <i class="bi bi-eye"></i>
-                                    </a>
-                                    <a th:href="@{/employee/chief/scenarios/editScenario/{id}(id=${s.id})}"
-                                       class="btn btn-sm btn-outline-warning" title="Редактировать">
-                                        <i class="bi bi-pencil-square"></i>
-                                    </a>
-                                    <a th:href="@{/employee/chief/scenarios/deleteScenario/{id}(id=${s.id})}"
-                                       class="btn btn-sm btn-outline-danger" title="Удалить"
-                                       onclick="return confirm('Удалить сценарий?')">
-                                        <i class="bi bi-trash"></i>
-                                    </a>
+            <div th:if="${#lists.isEmpty(allScenarios)}" class="profile-card text-center text-muted py-5">
+                Нет созданных сценариев
+            </div>
+
+            <div th:if="${!#lists.isEmpty(allScenarios)}" class="accordion" id="scenariosAccordion">
+                <div th:each="scenario, index : ${allScenarios}" class="profile-card mb-3 p-0 overflow-hidden">
+                    <div class="p-4 border-bottom">
+                        <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+                            <div>
+                                <div class="d-flex align-items-center gap-2 flex-wrap mb-2">
+                                    <span class="badge bg-primary">Штатный</span>
+                                    <span class="badge bg-success" th:if="${scenario.availableWithoutAssignment}">Доступен без назначения</span>
+                                    <span class="badge bg-info" th:if="${!scenario.availableWithoutAssignment}">Только по назначению</span>
+                                    <span class="badge bg-warning text-dark" th:if="${scenario.faultScenarioCount > 0}"
+                                          th:text="${scenario.faultScenarioCount + ' авар.'}"></span>
                                 </div>
-                            </td>
-                        </tr>
-                        <tr th:if="${#lists.isEmpty(allScenarios)}">
-                            <td colspan="8" class="text-center text-muted py-4">Нет созданных сценариев</td>
-                        </tr>
-                        </tbody>
-                    </table>
+                                <h5 class="mb-1">
+                                    <a th:href="@{/employee/chief/scenarios/detailsScenario/{id}(id=${scenario.id})}"
+                                       th:text="${scenario.title}"></a>
+                                </h5>
+                                <p class="text-muted mb-0" th:if="${scenario.description != null and !scenario.description.isBlank()}"
+                                   th:text="${scenario.description}"></p>
+                            </div>
+
+                            <div class="text-md-end">
+                                <div class="text-muted small mb-1">
+                                    <strong>Схема:</strong> <span th:text="${scenario.schemaTitle}"></span>
+                                </div>
+                                <div class="text-muted small mb-1">
+                                    <strong>Шагов:</strong> <span th:text="${scenario.stepCount}"></span>
+                                </div>
+                                <div class="text-muted small">
+                                    <strong>Время:</strong>
+                                    <span th:if="${scenario.timeLimit != null and scenario.timeLimit > 0}" th:text="${scenario.timeLimit + ' мин'}"></span>
+                                    <span th:if="${scenario.timeLimit == null or scenario.timeLimit == 0}">Без ограничения</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap mt-3">
+                            <div class="d-flex gap-2 flex-wrap">
+                                <a th:href="@{/employee/chief/scenarios/detailsScenario/{id}(id=${scenario.id})}"
+                                   class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-eye"></i> Просмотр
+                                </a>
+                                <a th:href="@{/employee/chief/scenarios/editScenario/{id}(id=${scenario.id})}"
+                                   class="btn btn-sm btn-outline-warning">
+                                    <i class="bi bi-pencil-square"></i> Редактировать
+                                </a>
+                                <a th:href="@{/employee/chief/scenarios/deleteScenario/{id}(id=${scenario.id})}"
+                                   class="btn btn-sm btn-outline-danger"
+                                   onclick="return confirm('Удалить сценарий?')">
+                                    <i class="bi bi-trash"></i> Удалить
+                                </a>
+                            </div>
+
+                            <button th:if="${scenario.faultScenariosList != null and !#lists.isEmpty(scenario.faultScenariosList)}"
+                                    class="btn btn-sm btn-outline-secondary"
+                                    type="button"
+                                    data-bs-toggle="collapse"
+                                    th:data-bs-target="'#faults-' + ${scenario.id}"
+                                    aria-expanded="false"
+                                    th:aria-controls="'faults-' + ${scenario.id}">
+                                <i class="bi bi-chevron-down"></i> Показать аварийные сценарии
+                            </button>
+                        </div>
+                    </div>
+
+                    <div th:if="${scenario.faultScenariosList != null and !#lists.isEmpty(scenario.faultScenariosList)}"
+                         class="collapse"
+                         th:id="'faults-' + ${scenario.id}"
+                         data-bs-parent="#scenariosAccordion">
+                        <div class="p-4 bg-light-subtle">
+                            <h6 class="mb-3">Аварийные сценарии</h6>
+                            <div class="row g-3">
+                                <div th:each="fault : ${scenario.faultScenariosList}" class="col-12">
+                                    <div class="border rounded p-3 bg-white">
+                                        <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+                                            <div>
+                                                <div class="d-flex align-items-center gap-2 flex-wrap mb-2">
+                                                    <span class="badge bg-warning text-dark">Аварийный</span>
+                                                    <span class="badge bg-secondary">Наследует доступ от штатного</span>
+                                                </div>
+                                                <h6 class="mb-1">
+                                                    <a th:href="@{/employee/chief/scenarios/detailsScenario/{id}(id=${fault.id})}"
+                                                       th:text="${fault.title}"></a>
+                                                </h6>
+                                                <p class="text-muted mb-0" th:if="${fault.description != null and !fault.description.isBlank()}"
+                                                   th:text="${fault.description}"></p>
+                                            </div>
+
+                                            <div class="text-md-end">
+                                                <div class="text-muted small mb-1">
+                                                    <strong>Схема:</strong> <span th:text="${fault.schemaTitle}"></span>
+                                                </div>
+                                                <div class="text-muted small mb-1">
+                                                    <strong>Шагов:</strong> <span th:text="${fault.stepCount}"></span>
+                                                </div>
+                                                <div class="text-muted small">
+                                                    <strong>Время:</strong>
+                                                    <span th:if="${fault.timeLimit != null and fault.timeLimit > 0}" th:text="${fault.timeLimit + ' мин'}"></span>
+                                                    <span th:if="${fault.timeLimit == null or fault.timeLimit == 0}">Без ограничения</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="d-flex gap-2 flex-wrap mt-3">
+                                            <a th:href="@{/employee/chief/scenarios/detailsScenario/{id}(id=${fault.id})}"
+                                               class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-eye"></i> Просмотр
+                                            </a>
+                                            <a th:href="@{/employee/chief/scenarios/editScenario/{id}(id=${fault.id})}"
+                                               class="btn btn-sm btn-outline-warning">
+                                                <i class="bi bi-pencil-square"></i> Редактировать
+                                            </a>
+                                            <a th:href="@{/employee/chief/scenarios/deleteScenario/{id}(id=${fault.id})}"
+                                               class="btn btn-sm btn-outline-danger"
+                                               onclick="return confirm('Удалить сценарий?')">
+                                                <i class="bi bi-trash"></i> Удалить
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -101,21 +161,5 @@
         <div th:insert="~{blocks/footer :: footer}"></div>
     </div>
 </div>
-<script>
-    initTableFilter('allScenariosTable', {
-        searchPlaceholder: 'Поиск по названию, схеме...',
-        filters: [
-            { column: 2, label: 'Тип', options: [
-                { value: 'Штатный', text: 'Штатный' },
-                { value: 'Аварийный', text: 'Аварийный' }
-            ]},
-            { column: 6, label: 'Статус', options: [
-                { value: 'Активен', text: 'Активен' },
-                { value: 'Неактивен', text: 'Неактивен' }
-            ]}
-        ],
-        perPage: 20
-    });
-</script>
 </body>
 </html>

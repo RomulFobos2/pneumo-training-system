@@ -105,7 +105,7 @@
                                   th:text="${scenario.description}"></textarea>
                     </div>
                     <div class="row g-3 mb-3">
-                        <div class="col-md-8">
+                        <div class="col-md-8" id="departmentsBlock">
                             <label class="form-label fw-bold">Подразделения</label>
                             <div class="form-text text-muted mb-2">Выберите подразделения, для которых будет доступен сценарий</div>
                             <div th:each="dept : ${allDepartments}" class="form-check"
@@ -120,13 +120,17 @@
                                        th:text="${dept.name}"></label>
                             </div>
                         </div>
-                        <div class="col-md-4 d-flex align-items-end">
+                        <div th:if="${scenario.scenarioTypeName != 'FAULT'}" class="col-md-4 d-flex align-items-end" id="availableWithoutAssignmentBlock">
                             <div class="form-check form-switch mb-2">
-                                <input type="checkbox" class="form-check-input" name="inputIsActive"
-                                       id="inputIsActive" value="true" th:checked="${scenario.isActive()}"/>
-                                <label class="form-check-label" for="inputIsActive">Доступен без назначения</label>
+                                <input type="checkbox" class="form-check-input" name="inputAvailableWithoutAssignment"
+                                       id="inputAvailableWithoutAssignment" value="true" th:checked="${scenario.availableWithoutAssignment}"/>
+                                <label class="form-check-label" for="inputAvailableWithoutAssignment">Доступен без назначения</label>
                             </div>
                         </div>
+                        <div th:if="${scenario.scenarioTypeName == 'FAULT'}" class="col-md-4 d-flex align-items-end"></div>
+                    </div>
+                    <div th:if="${scenario.scenarioTypeName == 'FAULT'}" class="mb-3 text-muted" id="faultInheritanceHint">
+                        Для аварийного сценария подразделения и режим доступа наследуются от штатного сценария.
                     </div>
                     <button type="submit" class="btn btn-auth btn-sm">
                         <i class="bi bi-check-lg"></i> Сохранить настройки
@@ -192,21 +196,37 @@
         var typeSelect = document.getElementById('scenarioTypeSelect');
         var parentBlock = document.getElementById('parentScenarioBlock');
         var parentSelect = document.getElementById('parentScenarioSelect');
+        var departmentsBlock = document.getElementById('departmentsBlock');
+        var availableBlock = document.getElementById('availableWithoutAssignmentBlock');
+        var inheritanceHint = document.getElementById('faultInheritanceHint');
+        var availableInput = document.getElementById('inputAvailableWithoutAssignment');
+        var deptCheckboxes = document.querySelectorAll('.dept-checkbox');
 
-        function toggleParentBlock() {
+        function toggleScenarioMode() {
             if (typeSelect.value === 'FAULT') {
                 parentBlock.style.display = '';
                 parentSelect.required = true;
+                departmentsBlock.style.display = 'none';
+                if (availableBlock) availableBlock.style.display = 'none';
+                if (inheritanceHint) inheritanceHint.style.display = '';
+                if (availableInput) availableInput.checked = false;
+                deptCheckboxes.forEach(function(cb) {
+                    cb.disabled = true;
+                });
             } else {
                 parentBlock.style.display = 'none';
                 parentSelect.required = false;
                 parentSelect.value = '';
+                departmentsBlock.style.display = '';
+                if (availableBlock) availableBlock.style.display = '';
+                if (inheritanceHint) inheritanceHint.style.display = 'none';
+                deptCheckboxes.forEach(function(cb) {
+                    cb.disabled = false;
+                });
             }
         }
-        typeSelect.addEventListener('change', toggleParentBlock);
-        toggleParentBlock();
-
-        var deptCheckboxes = document.querySelectorAll('.dept-checkbox');
+        typeSelect.addEventListener('change', toggleScenarioMode);
+        toggleScenarioMode();
 
         deptCheckboxes.forEach(function(cb) {
             cb.addEventListener('change', function() {
