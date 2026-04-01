@@ -59,8 +59,7 @@ public class SimulationController {
     @GetMapping("/start/{scenarioId}")
     public String startForm(@PathVariable Long scenarioId, Model model,
                             @AuthenticationPrincipal Employee currentUser) {
-        var scenarios = simulationService.getAvailableScenarios(currentUser);
-        var scenarioOpt = scenarios.stream().filter(s -> s.getId().equals(scenarioId)).findFirst();
+        var scenarioOpt = simulationService.getScenarioForStart(scenarioId, currentUser);
         if (scenarioOpt.isEmpty()) return "redirect:/employee/specialist/mnemo/scenarios";
         model.addAttribute("scenario", scenarioOpt.get());
         return "employee/specialist/mnemo/startScenario";

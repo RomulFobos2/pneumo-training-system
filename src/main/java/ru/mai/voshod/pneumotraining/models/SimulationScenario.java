@@ -34,7 +34,7 @@ public class SimulationScenario {
     private Integer timeLimit = 0;
 
     @Column(nullable = false)
-    private boolean isActive = false;
+    private boolean availableWithoutAssignment = false;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)

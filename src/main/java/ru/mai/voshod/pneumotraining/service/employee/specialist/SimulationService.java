@@ -48,6 +48,14 @@ public class SimulationService {
         return scenarioService.getAvailableScenariosForEmployee(employee);
     }
 
+    @Transactional(readOnly = true)
+    public Optional<ru.mai.voshod.pneumotraining.dto.SimulationScenarioDTO> getScenarioForStart(Long scenarioId, Employee employee) {
+        return scenarioService.getScenarioById(scenarioId)
+                .filter(dto -> scenarioService.getScenarioEntity(dto.getId())
+                        .map(scenario -> canEmployeeAccessScenario(scenario, employee))
+                        .orElse(false));
+    }
+
     @Transactional
     public Optional<Long> startSimulation(Long scenarioId, Employee employee) {
         log.info("Старт симуляции: scenarioId={}, employee={}", scenarioId, employee.getId());
@@ -64,8 +72,8 @@ public class SimulationService {
             if (scenarioOpt.isEmpty()) return Optional.empty();
 
             SimulationScenario scenario = scenarioOpt.get();
-            if (!scenario.isActive()) {
-                log.warn("Сценарий неактивен: id={}", scenarioId);
+            if (!canEmployeeAccessScenario(scenario, employee)) {
+                log.warn("Сценарий недоступен для сотрудника: scenarioId={}, employeeId={}", scenarioId, employee.getId());
                 return Optional.empty();
             }
 
@@ -394,7 +402,7 @@ public class SimulationService {
         if (scenario.getScenarioType() != ru.mai.voshod.pneumotraining.enumeration.ScenarioType.NORMAL) {
             return scenario;
         }
-        List<SimulationScenario> faultVariants = scenarioService.getActiveFaultScenarios(scenario.getId());
+        List<SimulationScenario> faultVariants = scenarioService.getFaultScenarios(scenario.getId());
         if (faultVariants.isEmpty()) {
             return scenario;
         }
@@ -406,6 +414,14 @@ public class SimulationService {
         SimulationScenario fault = faultVariants.get(pick - 1);
         log.info("Выбран аварийный сценарий: id={} (вместо штатного id={})", fault.getId(), scenario.getId());
         return fault;
+    }
+
+    private boolean canEmployeeAccessScenario(SimulationScenario scenario, Employee employee) {
+        if (scenarioService.isAvailableWithoutAssignment(scenario)) {
+            return employee.getDepartment() != null
+                    && scenarioService.isDepartmentAllowedForScenario(scenario, employee.getDepartment().getId());
+        }
+        return simulationAssignmentService.hasPendingAssignment(employee.getId(), resolveNormalScenarioId(scenario));
     }
 
     private boolean isExpired(SimulationSession session) {

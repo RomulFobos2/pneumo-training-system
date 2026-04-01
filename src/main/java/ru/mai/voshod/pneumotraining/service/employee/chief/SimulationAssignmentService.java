@@ -37,17 +37,20 @@ public class SimulationAssignmentService {
     private final SimulationScenarioRepository scenarioRepository;
     private final EmployeeRepository employeeRepository;
     private final NotificationService notificationService;
+    private final SimulationScenarioService simulationScenarioService;
 
     public SimulationAssignmentService(SimulationAssignmentRepository assignmentRepository,
                                        SimulationAssignmentEmployeeRepository assignmentEmployeeRepository,
                                        SimulationScenarioRepository scenarioRepository,
                                        EmployeeRepository employeeRepository,
-                                       NotificationService notificationService) {
+                                       NotificationService notificationService,
+                                       SimulationScenarioService simulationScenarioService) {
         this.assignmentRepository = assignmentRepository;
         this.assignmentEmployeeRepository = assignmentEmployeeRepository;
         this.scenarioRepository = scenarioRepository;
         this.employeeRepository = employeeRepository;
         this.notificationService = notificationService;
+        this.simulationScenarioService = simulationScenarioService;
     }
 
     @Transactional(readOnly = true)
@@ -88,7 +91,13 @@ public class SimulationAssignmentService {
 
     @Transactional
     public Optional<Long> createAssignment(Long scenarioId, LocalDate deadline, List<Long> employeeIds, Employee createdBy) {
-        log.info("Создание назначения сценария: scenarioId={}, deadline={}, employees={}", scenarioId, deadline, employeeIds.size());
+        int employeeCount = employeeIds != null ? employeeIds.size() : 0;
+        log.info("Создание назначения сценария: scenarioId={}, deadline={}, employees={}", scenarioId, deadline, employeeCount);
+
+        if (employeeIds == null || employeeIds.isEmpty()) {
+            log.warn("Не переданы сотрудники для назначения сценария: scenarioId={}", scenarioId);
+            return Optional.empty();
+        }
 
         Optional<SimulationScenario> scenarioOpt = scenarioRepository.findById(scenarioId);
         if (scenarioOpt.isEmpty()) {
@@ -101,24 +110,41 @@ public class SimulationAssignmentService {
             log.warn("Нельзя назначить аварийный сценарий: id={}", scenarioId);
             return Optional.empty();
         }
+        if (simulationScenarioService.isAvailableWithoutAssignment(scenario)) {
+            log.warn("Нельзя назначить сценарий со свободным доступом: id={}", scenarioId);
+            return Optional.empty();
+        }
+
+        List<Employee> employees = employeeRepository.findAllById(employeeIds);
+        if (employees.size() != employeeIds.size()) {
+            log.warn("Часть сотрудников для назначения не найдена: requested={}, found={}", employeeIds.size(), employees.size());
+            return Optional.empty();
+        }
+
+        boolean hasEmployeeOutsideAllowedDepartments = employees.stream().anyMatch(employee ->
+                employee.getDepartment() == null
+                        || !simulationScenarioService.isDepartmentAllowedForScenario(scenario, employee.getDepartment().getId()));
+        if (hasEmployeeOutsideAllowedDepartments) {
+            log.warn("Есть сотрудники вне разрешённых подразделений для сценария: scenarioId={}", scenarioId);
+            return Optional.empty();
+        }
+
         SimulationAssignment assignment = new SimulationAssignment(scenario, deadline, createdBy);
         assignmentRepository.save(assignment);
 
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd.MM.yyyy");
         String scenarioLink = "/employee/specialist/mnemo/scenarios";
 
-        for (Long empId : employeeIds) {
-            employeeRepository.findById(empId).ifPresent(employee -> {
-                SimulationAssignmentEmployee ae = new SimulationAssignmentEmployee(assignment, employee);
-                assignmentEmployeeRepository.save(ae);
+        for (Employee employee : employees) {
+            SimulationAssignmentEmployee ae = new SimulationAssignmentEmployee(assignment, employee);
+            assignmentEmployeeRepository.save(ae);
 
-                notificationService.createNotification(employee,
-                        "Вам назначен сценарий мнемосхемы «" + scenario.getTitle() + "». Срок сдачи: " + deadline.format(fmt),
-                        scenarioLink);
-            });
+            notificationService.createNotification(employee,
+                    "Вам назначен сценарий мнемосхемы «" + scenario.getTitle() + "». Срок сдачи: " + deadline.format(fmt),
+                    scenarioLink);
         }
 
-        log.info("Назначение сценария создано: id={}, scenarioId={}, employees={}", assignment.getId(), scenarioId, employeeIds.size());
+        log.info("Назначение сценария создано: id={}, scenarioId={}, employees={}", assignment.getId(), scenarioId, employees.size());
         return Optional.of(assignment.getId());
     }
 
@@ -146,6 +172,13 @@ public class SimulationAssignmentService {
                 .map(this::toAssignedScenarioDTO)
                 .filter(dto -> matchesAssignedScenarioFilter(dto, q, status, hideCompleted, deadlineFrom, deadlineTo, createdFrom, createdTo))
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public boolean hasPendingAssignment(Long employeeId, Long scenarioId) {
+        return !assignmentEmployeeRepository
+                .findByEmployeeIdAndAssignment_ScenarioIdAndStatus(employeeId, scenarioId, AssignmentStatus.PENDING)
+                .isEmpty();
     }
 
     @Transactional

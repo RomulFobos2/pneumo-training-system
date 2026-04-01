@@ -58,9 +58,13 @@
                         </p>
                     </div>
                     <div class="col-md-2">
-                        <p class="mb-1"><strong>Статус:</strong></p>
-                        <span th:if="${scenario.isActive()}" class="badge bg-success">Активен</span>
-                        <span th:if="${!scenario.isActive()}" class="badge bg-secondary">Неактивен</span>
+                        <p class="mb-1"><strong>Режим доступа:</strong></p>
+                        <span th:if="${scenario.availableWithoutAssignment}" class="badge bg-success">Доступен без назначения</span>
+                        <span th:if="${!scenario.availableWithoutAssignment}" class="badge bg-info">Только по назначению</span>
+                        <small th:if="${scenario.scenarioTypeName == 'FAULT' and scenario.parentScenarioTitle != null}"
+                               class="d-block text-muted mt-1">
+                            Наследуется от сценария «<span th:text="${scenario.parentScenarioTitle}"></span>»
+                        </small>
                     </div>
                 </div>
 

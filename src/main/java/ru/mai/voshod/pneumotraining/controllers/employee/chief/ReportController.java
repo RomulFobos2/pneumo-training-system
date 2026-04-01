@@ -12,6 +12,7 @@ import ru.mai.voshod.pneumotraining.dto.SimulationSessionDTO;
 import ru.mai.voshod.pneumotraining.dto.TestAssignmentDTO;
 import ru.mai.voshod.pneumotraining.dto.TestSessionAnswerDTO;
 import ru.mai.voshod.pneumotraining.dto.TestSessionDTO;
+import ru.mai.voshod.pneumotraining.enumeration.ScenarioType;
 import ru.mai.voshod.pneumotraining.repo.EmployeeRepository;
 import ru.mai.voshod.pneumotraining.repo.SimulationScenarioRepository;
 import ru.mai.voshod.pneumotraining.repo.TestRepository;
@@ -134,7 +135,8 @@ public class ReportController {
                                 Model model) {
         model.addAttribute("simAssignments", reportService.getAllSimulationResults(employeeId, scenarioId, dateFrom, dateTo));
         model.addAttribute("allEmployees", employeeRepository.findAllByOrderByLastNameAsc());
-        model.addAttribute("allScenarios", simulationScenarioRepository.findByIsActiveTrueOrderByTitleAsc());
+        model.addAttribute("allScenarios", simulationScenarioRepository
+                .findByAvailableWithoutAssignmentFalseAndScenarioTypeOrderByTitleAsc(ScenarioType.NORMAL));
         model.addAttribute("selectedEmployeeId", employeeId);
         model.addAttribute("selectedScenarioId", scenarioId);
         model.addAttribute("dateFrom", dateFrom);
