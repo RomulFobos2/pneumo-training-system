@@ -77,10 +77,9 @@
             </div>
 
             <div class="profile-card p-4">
-                <table class="table table-modern" id="questionsTable">
+                <table class="table table-modern">
                     <thead>
                     <tr>
-                        <th style="width: 30px"></th>
                         <th style="width: 50px">#</th>
                         <th>Вопрос</th>
                         <th style="width: 150px">Тип</th>
@@ -90,11 +89,9 @@
                         <th style="width: 130px">Действия</th>
                     </tr>
                     </thead>
-                    <tbody id="questionsBody">
-                    <tr th:each="question, index : ${allQuestions}" draggable="true"
-                        th:data-id="${question.id}">
-                        <td class="drag-handle"><i class="bi bi-grip-vertical"></i></td>
-                        <td class="row-number" th:text="${index.index + 1}"></td>
+                    <tbody>
+                    <tr th:each="question, index : ${allQuestions}">
+                        <td th:text="${index.index + 1}"></td>
                         <td>
                             <span th:text="${#strings.length(question.questionText) > 80
                                 ? #strings.substring(question.questionText, 0, 80) + '...'
@@ -126,7 +123,7 @@
                         </td>
                     </tr>
                     <tr th:if="${#lists.isEmpty(allQuestions)}">
-                        <td colspan="8" class="text-center text-muted">Вопросы ещё не добавлены</td>
+                        <td colspan="7" class="text-center text-muted">Вопросы ещё не добавлены</td>
                     </tr>
                     </tbody>
                 </table>
@@ -140,81 +137,5 @@
         <div th:insert="~{blocks/footer :: footer}"></div>
     </div>
 </div>
-
-<script th:inline="javascript">
-    var testId = [[${testDTO.id}]];
-</script>
-<script>
-    (function () {
-        var tbody = document.getElementById('questionsBody');
-        if (!tbody) return;
-        var dragSrcEl = null;
-
-        function handleDragStart(e) {
-            dragSrcEl = this;
-            this.classList.add('dragging');
-            e.dataTransfer.effectAllowed = 'move';
-            e.dataTransfer.setData('text/plain', '');
-        }
-
-        function handleDragOver(e) {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = 'move';
-            var row = this.closest('tr');
-            if (row && row !== dragSrcEl) {
-                row.classList.add('drag-over');
-            }
-        }
-
-        function handleDragLeave() {
-            this.classList.remove('drag-over');
-        }
-
-        function handleDrop(e) {
-            e.preventDefault();
-            this.classList.remove('drag-over');
-            if (dragSrcEl !== this) {
-                var allRows = Array.from(tbody.querySelectorAll('tr[draggable]'));
-                var fromIndex = allRows.indexOf(dragSrcEl);
-                var toIndex = allRows.indexOf(this);
-                if (fromIndex < toIndex) {
-                    tbody.insertBefore(dragSrcEl, this.nextSibling);
-                } else {
-                    tbody.insertBefore(dragSrcEl, this);
-                }
-                updateNumbersAndSave();
-            }
-        }
-
-        function handleDragEnd() {
-            this.classList.remove('dragging');
-            tbody.querySelectorAll('tr').forEach(function (r) {
-                r.classList.remove('drag-over');
-            });
-        }
-
-        function updateNumbersAndSave() {
-            var rows = tbody.querySelectorAll('tr[draggable]');
-            var orderedIds = [];
-            rows.forEach(function (row, i) {
-                row.querySelector('.row-number').textContent = i + 1;
-                orderedIds.push(parseInt(row.getAttribute('data-id')));
-            });
-            fetch('/employee/chief/tests/reorderQuestions/' + testId, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(orderedIds)
-            });
-        }
-
-        tbody.querySelectorAll('tr[draggable]').forEach(function (row) {
-            row.addEventListener('dragstart', handleDragStart);
-            row.addEventListener('dragover', handleDragOver);
-            row.addEventListener('dragleave', handleDragLeave);
-            row.addEventListener('drop', handleDrop);
-            row.addEventListener('dragend', handleDragEnd);
-        });
-    })();
-</script>
 </body>
 </html>

@@ -101,7 +101,7 @@ Key fields:
 - `TheoryMaterial` / `t_theoryMaterial`: `title`, `content`, `sortOrder`, `materialType`
 - `MaterialType`: `TEXT`, `PDF`, `VIDEO_LINK`
 - `Test` / `t_test`: `title`, `description`, `timeLimit`, `passingScore`, `isExam`, `isActive`, `createdBy`
-- `TestQuestion` / `t_testQuestion`: `questionText`, `sortOrder`, `questionType`
+- `TestQuestion` / `t_testQuestion`: `questionText`, `questionType`
 - `QuestionType`: `SINGLE_CHOICE`, `MULTIPLE_CHOICE`, `SEQUENCE`, `MATCHING`, `OPEN_TEXT`
 - `TestAnswer` / `t_testAnswer`: `answerText`, `isCorrect`, `sortOrder`, `matchTarget`
 - `TestSession` / `t_testSession`: `startedAt`, `finishedAt`, `score`, `totalScore`, `scorePercent`, `isPassed`, `sessionStatus`

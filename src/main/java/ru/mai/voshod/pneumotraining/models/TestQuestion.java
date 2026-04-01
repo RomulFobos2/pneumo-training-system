@@ -27,9 +27,6 @@ public class TestQuestion {
     private String questionText;
 
     @Column(nullable = false)
-    private Integer sortOrder;
-
-    @Column(nullable = false)
     private Integer difficultyLevel = 1;
 
     @NotNull

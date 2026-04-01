@@ -40,8 +40,6 @@ public class TestQuestionService {
         this.theorySectionRepository = theorySectionRepository;
     }
 
-    // ========== Валидация ==========
-
     private Optional<String> validateAnswers(String questionType, List<TestAnswerDTO> answers) {
         if (answers == null) answers = List.of();
 
@@ -70,28 +68,28 @@ public class TestQuestionService {
             case "MATCHING": {
                 if (answers.size() < 2)
                     return Optional.of("Для вопроса на соответствие необходимо минимум 2 пары");
-                for (TestAnswerDTO a : answers) {
-                    if (a.getMatchTarget() == null || a.getMatchTarget().isBlank())
+                for (TestAnswerDTO answer : answers) {
+                    if (answer.getMatchTarget() == null || answer.getMatchTarget().isBlank()) {
                         return Optional.of("Заполните оба столбца для каждой пары соответствия");
+                    }
                 }
                 break;
             }
             case "OPEN_TEXT": {
                 if (answers.isEmpty() || answers.get(0).getAnswerText() == null
-                        || answers.get(0).getAnswerText().isBlank())
+                        || answers.get(0).getAnswerText().isBlank()) {
                     return Optional.of("Введите эталонный ответ");
+                }
                 break;
             }
         }
         return Optional.empty();
     }
 
-    // ========== CRUD ==========
-
     @Transactional
-    public Optional<Long> saveQuestion(Long testId, String questionText, Integer sortOrder,
-                                       Integer difficultyLevel, String questionTypeName,
-                                       Long theorySectionId, List<TestAnswerDTO> answerDTOs) {
+    public Optional<Long> saveQuestion(Long testId, String questionText, Integer difficultyLevel,
+                                       String questionTypeName, Long theorySectionId,
+                                       List<TestAnswerDTO> answerDTOs) {
         log.info("Создание вопроса для теста id={}", testId);
 
         Optional<Test> testOptional = testRepository.findById(testId);
@@ -111,14 +109,6 @@ public class TestQuestionService {
 
             TestQuestion question = new TestQuestion();
             question.setQuestionText(questionText);
-            if (sortOrder != null) {
-                question.setSortOrder(sortOrder);
-            } else {
-                int maxOrder = testOptional.get().getQuestions().stream()
-                        .mapToInt(TestQuestion::getSortOrder)
-                        .max().orElse(0);
-                question.setSortOrder(maxOrder + 1);
-            }
             question.setQuestionType(questionType);
             question.setDifficultyLevel(normalizeDifficulty(difficultyLevel));
             question.setTest(testOptional.get());
@@ -128,17 +118,16 @@ public class TestQuestionService {
 
             testQuestionRepository.save(question);
 
-            // Сохраняем варианты ответа
             if (answerDTOs != null && !answerDTOs.isEmpty()) {
                 for (int i = 0; i < answerDTOs.size(); i++) {
-                    TestAnswerDTO aDto = answerDTOs.get(i);
-                    if (aDto.getAnswerText() == null || aDto.getAnswerText().isBlank()) continue;
+                    TestAnswerDTO answerDto = answerDTOs.get(i);
+                    if (answerDto.getAnswerText() == null || answerDto.getAnswerText().isBlank()) continue;
 
                     TestAnswer answer = new TestAnswer();
-                    answer.setAnswerText(aDto.getAnswerText().trim());
-                    answer.setCorrect(aDto.isCorrect());
-                    answer.setSortOrder(aDto.getSortOrder() != null ? aDto.getSortOrder() : i + 1);
-                    answer.setMatchTarget(aDto.getMatchTarget());
+                    answer.setAnswerText(answerDto.getAnswerText().trim());
+                    answer.setCorrect(answerDto.isCorrect());
+                    answer.setSortOrder(answerDto.getSortOrder() != null ? answerDto.getSortOrder() : i + 1);
+                    answer.setMatchTarget(answerDto.getMatchTarget());
                     answer.setQuestion(question);
                     testAnswerRepository.save(answer);
                 }
@@ -157,9 +146,9 @@ public class TestQuestionService {
     }
 
     @Transactional
-    public Optional<Long> editQuestion(Long questionId, String questionText, Integer sortOrder,
-                                       Integer difficultyLevel, String questionTypeName,
-                                       Long theorySectionId, List<TestAnswerDTO> answerDTOs) {
+    public Optional<Long> editQuestion(Long questionId, String questionText, Integer difficultyLevel,
+                                       String questionTypeName, Long theorySectionId,
+                                       List<TestAnswerDTO> answerDTOs) {
         log.info("Редактирование вопроса: id={}", questionId);
 
         Optional<TestQuestion> questionOptional = testQuestionRepository.findById(questionId);
@@ -179,9 +168,6 @@ public class TestQuestionService {
             TestQuestion question = questionOptional.get();
 
             question.setQuestionText(questionText);
-            if (sortOrder != null) {
-                question.setSortOrder(sortOrder);
-            }
             question.setDifficultyLevel(normalizeDifficulty(difficultyLevel));
             question.setQuestionType(questionType);
             if (theorySectionId != null) {
@@ -191,20 +177,19 @@ public class TestQuestionService {
             }
             testQuestionRepository.save(question);
 
-            // Удаляем старые ответы и создаём новые
             List<TestAnswer> oldAnswers = testAnswerRepository.findByQuestionIdOrderBySortOrderAsc(questionId);
             testAnswerRepository.deleteAll(oldAnswers);
 
             if (answerDTOs != null && !answerDTOs.isEmpty()) {
                 for (int i = 0; i < answerDTOs.size(); i++) {
-                    TestAnswerDTO aDto = answerDTOs.get(i);
-                    if (aDto.getAnswerText() == null || aDto.getAnswerText().isBlank()) continue;
+                    TestAnswerDTO answerDto = answerDTOs.get(i);
+                    if (answerDto.getAnswerText() == null || answerDto.getAnswerText().isBlank()) continue;
 
                     TestAnswer answer = new TestAnswer();
-                    answer.setAnswerText(aDto.getAnswerText().trim());
-                    answer.setCorrect(aDto.isCorrect());
-                    answer.setSortOrder(aDto.getSortOrder() != null ? aDto.getSortOrder() : i + 1);
-                    answer.setMatchTarget(aDto.getMatchTarget());
+                    answer.setAnswerText(answerDto.getAnswerText().trim());
+                    answer.setCorrect(answerDto.isCorrect());
+                    answer.setSortOrder(answerDto.getSortOrder() != null ? answerDto.getSortOrder() : i + 1);
+                    answer.setMatchTarget(answerDto.getMatchTarget());
                     answer.setQuestion(question);
                     testAnswerRepository.save(answer);
                 }
@@ -243,14 +228,12 @@ public class TestQuestionService {
         }
     }
 
-    // ========== Запросы данных ==========
-
     @Transactional(readOnly = true)
     public List<TestQuestionDTO> getQuestionsByTest(Long testId) {
-        List<TestQuestion> questions = testQuestionRepository.findByTestIdOrderBySortOrderAsc(testId);
-        return questions.stream().map(q -> {
-            TestQuestionDTO dto = TestQuestionMapper.INSTANCE.toDTO(q);
-            dto.setAnswerCount((int) testAnswerRepository.countByQuestionId(q.getId()));
+        List<TestQuestion> questions = testQuestionRepository.findByTestIdOrderByIdAsc(testId);
+        return questions.stream().map(question -> {
+            TestQuestionDTO dto = TestQuestionMapper.INSTANCE.toDTO(question);
+            dto.setAnswerCount((int) testAnswerRepository.countByQuestionId(question.getId()));
             return dto;
         }).toList();
     }
@@ -258,10 +241,9 @@ public class TestQuestionService {
     @Transactional(readOnly = true)
     public Optional<TestQuestionDTO> getQuestionById(Long questionId) {
         return testQuestionRepository.findById(questionId)
-                .map(q -> {
-                    TestQuestionDTO dto = TestQuestionMapper.INSTANCE.toDTO(q);
-                    dto.setAnswerCount((int) testAnswerRepository.countByQuestionId(q.getId()));
-                    // Загружаем ответы для формы редактирования
+                .map(question -> {
+                    TestQuestionDTO dto = TestQuestionMapper.INSTANCE.toDTO(question);
+                    dto.setAnswerCount((int) testAnswerRepository.countByQuestionId(question.getId()));
                     List<TestAnswer> answers = testAnswerRepository.findByQuestionIdOrderBySortOrderAsc(questionId);
                     dto.setAnswers(ru.mai.voshod.pneumotraining.mapper.TestAnswerMapper.INSTANCE.toDTOList(answers));
                     return dto;
@@ -271,31 +253,7 @@ public class TestQuestionService {
     @Transactional(readOnly = true)
     public Optional<Long> getTestIdByQuestionId(Long questionId) {
         return testQuestionRepository.findById(questionId)
-                .map(q -> q.getTest().getId());
-    }
-
-    // ========== Перестановка ==========
-
-    @Transactional
-    public boolean reorderQuestions(Long testId, List<Long> orderedIds) {
-        log.info("Перестановка вопросов теста id={}: {}", testId, orderedIds);
-        try {
-            for (int i = 0; i < orderedIds.size(); i++) {
-                Optional<TestQuestion> qOpt = testQuestionRepository.findById(orderedIds.get(i));
-                if (qOpt.isEmpty()) {
-                    log.error("Вопрос не найден: id={}", orderedIds.get(i));
-                    return false;
-                }
-                qOpt.get().setSortOrder(i + 1);
-                testQuestionRepository.save(qOpt.get());
-            }
-            log.info("Вопросы переупорядочены успешно");
-            return true;
-        } catch (Exception e) {
-            log.error("Ошибка при переупорядочивании вопросов: {}", e.getMessage(), e);
-            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
-            return false;
-        }
+                .map(question -> question.getTest().getId());
     }
 
     private int normalizeDifficulty(Integer difficultyLevel) {
