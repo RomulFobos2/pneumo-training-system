@@ -16,11 +16,11 @@ var Simulation = (function () {
 
     /** Русские названия типов элементов */
     var TYPE_LABELS = {
-        'VALVE': 'Пневмоклапан',
+        'VALVE': 'Вентиль',
         'PUMP': 'Насос',
         'SWITCH': 'Переключатель',
-        'SENSOR_PRESSURE': 'Датчик давления',
-        'SENSOR_TEMPERATURE': 'Датчик температуры',
+        'SENSOR_PRESSURE': 'Манометр',
+        'SENSOR_TEMPERATURE': 'Термометр',
         'HEATER': 'Нагреватель',
         'LOCK': 'Блокиратор',
         'LABEL': 'Надпись',

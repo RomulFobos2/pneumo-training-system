@@ -5,11 +5,11 @@ import lombok.Getter;
 @Getter
 public enum ElementType {
 
-    VALVE("Клапан"),
+    VALVE("Вентиль"),
     PUMP("Насос"),
     SWITCH("Переключатель"),
-    SENSOR_PRESSURE("Датчик давления"),
-    SENSOR_TEMPERATURE("Датчик температуры"),
+    SENSOR_PRESSURE("Манометр"),
+    SENSOR_TEMPERATURE("Термометр"),
     HEATER("Нагреватель"),
     LOCK("Блокировка"),
     LABEL("Надпись"),
