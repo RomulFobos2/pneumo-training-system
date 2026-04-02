@@ -124,14 +124,17 @@ var SchemaEditor = (function () {
         return '<defs>' + arrowMarker +
             // VALVE off (red)
             '<symbol id="symbol-VALVE-off" viewBox="0 0 60 60">' +
-            '<circle cx="30" cy="30" r="25" fill="#fde8e8" stroke="#e74c3c" stroke-width="2.5"/>' +
-            '<path d="M15 30 L45 30 M30 15 L30 45" stroke="#e74c3c" stroke-width="3"/>' +
+            '<line x1="5" y1="30" x2="16" y2="30" stroke="#e74c3c" stroke-width="2.5"/>' +
+            '<line x1="44" y1="30" x2="55" y2="30" stroke="#e74c3c" stroke-width="2.5"/>' +
+            '<polygon points="16,18 30,30 16,42" fill="#fde8e8" stroke="#e74c3c" stroke-width="2.5"/>' +
+            '<polygon points="44,18 30,30 44,42" fill="#fde8e8" stroke="#e74c3c" stroke-width="2.5"/>' +
             '</symbol>' +
             // VALVE on (green)
             '<symbol id="symbol-VALVE-on" viewBox="0 0 60 60">' +
-            '<circle cx="30" cy="30" r="25" fill="#d4edda" stroke="#27ae60" stroke-width="2.5"/>' +
-            '<path d="M15 30 L45 30" stroke="#27ae60" stroke-width="3"/>' +
-            '<circle cx="30" cy="30" r="5" fill="#27ae60"/>' +
+            '<line x1="5" y1="30" x2="16" y2="30" stroke="#27ae60" stroke-width="2.5"/>' +
+            '<line x1="44" y1="30" x2="55" y2="30" stroke="#27ae60" stroke-width="2.5"/>' +
+            '<polygon points="16,18 30,30 16,42" fill="#d4edda" stroke="#27ae60" stroke-width="2.5"/>' +
+            '<polygon points="44,18 30,30 44,42" fill="#d4edda" stroke="#27ae60" stroke-width="2.5"/>' +
             '</symbol>' +
             // PUMP off
             '<symbol id="symbol-PUMP-off" viewBox="0 0 60 60">' +
@@ -156,23 +159,29 @@ var SchemaEditor = (function () {
             '</symbol>' +
             // SENSOR_PRESSURE off
             '<symbol id="symbol-SENSOR_PRESSURE-off" viewBox="0 0 60 60">' +
-            '<circle cx="30" cy="30" r="25" fill="#f3e8ff" stroke="#9b59b6" stroke-width="2.5"/>' +
-            '<text x="30" y="36" text-anchor="middle" font-size="22" font-weight="bold" fill="#9b59b6">P</text>' +
+            '<circle cx="30" cy="24" r="16" fill="#ffffff" stroke="#212529" stroke-width="2.5"/>' +
+            '<line x1="30" y1="40" x2="30" y2="54" stroke="#212529" stroke-width="2.5"/>' +
+            '<line x1="30" y1="24" x2="22" y2="16" stroke="#212529" stroke-width="2.5"/>' +
+            '<polygon points="22,16 26,16 22,20" fill="#212529"/>' +
             '</symbol>' +
             // SENSOR_PRESSURE on
             '<symbol id="symbol-SENSOR_PRESSURE-on" viewBox="0 0 60 60">' +
-            '<circle cx="30" cy="30" r="25" fill="#e8d5f5" stroke="#8e44ad" stroke-width="2.5"/>' +
-            '<text x="30" y="36" text-anchor="middle" font-size="22" font-weight="bold" fill="#8e44ad">P</text>' +
+            '<circle cx="30" cy="24" r="16" fill="#ffffff" stroke="#212529" stroke-width="2.5"/>' +
+            '<line x1="30" y1="40" x2="30" y2="54" stroke="#212529" stroke-width="2.5"/>' +
+            '<line x1="30" y1="24" x2="22" y2="16" stroke="#212529" stroke-width="2.5"/>' +
+            '<polygon points="22,16 26,16 22,20" fill="#212529"/>' +
             '</symbol>' +
             // SENSOR_TEMPERATURE off
             '<symbol id="symbol-SENSOR_TEMPERATURE-off" viewBox="0 0 60 60">' +
-            '<circle cx="30" cy="30" r="25" fill="#fef3e2" stroke="#e67e22" stroke-width="2.5"/>' +
-            '<text x="30" y="36" text-anchor="middle" font-size="22" font-weight="bold" fill="#e67e22">T</text>' +
+            '<circle cx="30" cy="24" r="16" fill="#ffffff" stroke="#e67e22" stroke-width="2.5"/>' +
+            '<line x1="30" y1="40" x2="30" y2="54" stroke="#e67e22" stroke-width="2.5"/>' +
+            '<text x="30" y="29" text-anchor="middle" font-size="18" font-weight="bold" fill="#e67e22">T</text>' +
             '</symbol>' +
             // SENSOR_TEMPERATURE on
             '<symbol id="symbol-SENSOR_TEMPERATURE-on" viewBox="0 0 60 60">' +
-            '<circle cx="30" cy="30" r="25" fill="#fde3c8" stroke="#d35400" stroke-width="2.5"/>' +
-            '<text x="30" y="36" text-anchor="middle" font-size="22" font-weight="bold" fill="#d35400">T</text>' +
+            '<circle cx="30" cy="24" r="16" fill="#ffffff" stroke="#d35400" stroke-width="2.5"/>' +
+            '<line x1="30" y1="40" x2="30" y2="54" stroke="#d35400" stroke-width="2.5"/>' +
+            '<text x="30" y="29" text-anchor="middle" font-size="18" font-weight="bold" fill="#d35400">T</text>' +
             '</symbol>' +
             // HEATER off
             '<symbol id="symbol-HEATER-off" viewBox="0 0 60 60">' +
@@ -209,15 +218,15 @@ var SchemaEditor = (function () {
             '</symbol>' +
             // REDUCER off (трапеция — сужение давления)
             '<symbol id="symbol-REDUCER-off" viewBox="0 0 60 60">' +
-            '<polygon points="8,15 52,22 52,38 8,45" fill="#f3e8ff" stroke="#8e44ad" stroke-width="2.5"/>' +
-            '<path d="M30 25 L30 35" stroke="#8e44ad" stroke-width="2"/>' +
-            '<path d="M25 30 L35 30" stroke="#8e44ad" stroke-width="2"/>' +
+            '<rect x="10" y="18" width="40" height="24" fill="#f3e8ff" stroke="#8e44ad" stroke-width="2.5"/>' +
+            '<line x1="10" y1="30" x2="50" y2="18" stroke="#8e44ad" stroke-width="2"/>' +
+            '<line x1="10" y1="30" x2="50" y2="42" stroke="#8e44ad" stroke-width="2"/>' +
             '</symbol>' +
             // REDUCER on
             '<symbol id="symbol-REDUCER-on" viewBox="0 0 60 60">' +
-            '<polygon points="8,15 52,22 52,38 8,45" fill="#d4edda" stroke="#27ae60" stroke-width="2.5"/>' +
-            '<path d="M30 25 L30 35" stroke="#27ae60" stroke-width="2"/>' +
-            '<path d="M25 30 L35 30" stroke="#27ae60" stroke-width="2"/>' +
+            '<rect x="10" y="18" width="40" height="24" fill="#d4edda" stroke="#27ae60" stroke-width="2.5"/>' +
+            '<line x1="10" y1="30" x2="50" y2="18" stroke="#27ae60" stroke-width="2"/>' +
+            '<line x1="10" y1="30" x2="50" y2="42" stroke="#27ae60" stroke-width="2"/>' +
             '</symbol>' +
             // SAFETY_VALVE off (клапан с пружиной)
             '<symbol id="symbol-SAFETY_VALVE-off" viewBox="0 0 60 60">' +
@@ -235,19 +244,13 @@ var SchemaEditor = (function () {
             '</symbol>' +
             // FILTER off (прямоугольник с сеткой)
             '<symbol id="symbol-FILTER-off" viewBox="0 0 60 60">' +
-            '<rect x="10" y="10" width="40" height="40" rx="4" fill="#e8f8f5" stroke="#1abc9c" stroke-width="2.5"/>' +
-            '<line x1="10" y1="22" x2="50" y2="22" stroke="#1abc9c" stroke-width="1.5"/>' +
-            '<line x1="10" y1="34" x2="50" y2="34" stroke="#1abc9c" stroke-width="1.5"/>' +
-            '<line x1="22" y1="10" x2="22" y2="50" stroke="#1abc9c" stroke-width="1.5"/>' +
-            '<line x1="38" y1="10" x2="38" y2="50" stroke="#1abc9c" stroke-width="1.5"/>' +
+            '<polygon points="10,30 30,10 50,30 30,50" fill="#e8f8f5" stroke="#1abc9c" stroke-width="2.5"/>' +
+            '<line x1="30" y1="10" x2="30" y2="50" stroke="#1abc9c" stroke-width="2"/>' +
             '</symbol>' +
             // FILTER on (то же)
             '<symbol id="symbol-FILTER-on" viewBox="0 0 60 60">' +
-            '<rect x="10" y="10" width="40" height="40" rx="4" fill="#e8f8f5" stroke="#1abc9c" stroke-width="2.5"/>' +
-            '<line x1="10" y1="22" x2="50" y2="22" stroke="#1abc9c" stroke-width="1.5"/>' +
-            '<line x1="10" y1="34" x2="50" y2="34" stroke="#1abc9c" stroke-width="1.5"/>' +
-            '<line x1="22" y1="10" x2="22" y2="50" stroke="#1abc9c" stroke-width="1.5"/>' +
-            '<line x1="38" y1="10" x2="38" y2="50" stroke="#1abc9c" stroke-width="1.5"/>' +
+            '<polygon points="10,30 30,10 50,30 30,50" fill="#e8f8f5" stroke="#1abc9c" stroke-width="2.5"/>' +
+            '<line x1="30" y1="10" x2="30" y2="50" stroke="#1abc9c" stroke-width="2"/>' +
             '</symbol>' +
             // CHECK_VALVE off (треугольник с вертикальной чертой — обратный клапан)
             '<symbol id="symbol-CHECK_VALVE-off" viewBox="0 0 60 60">' +
@@ -675,7 +678,7 @@ var SchemaEditor = (function () {
     function addElement(type, x, y) {
         var typeNames = {
             'VALVE': 'VP', 'PUMP': 'N', 'SWITCH': 'WS',
-            'SENSOR_PRESSURE': 'PT', 'SENSOR_TEMPERATURE': 'TT',
+            'SENSOR_PRESSURE': 'M', 'SENSOR_TEMPERATURE': 'TT',
             'HEATER': 'NR', 'LOCK': 'BH', 'LABEL': 'L',
             'REDUCER': 'RD', 'SAFETY_VALVE': 'SV', 'FILTER': 'FL', 'CHECK_VALVE': 'CV'
         };
@@ -785,8 +788,8 @@ var SchemaEditor = (function () {
         document.getElementById('connectionProps').style.display = 'none';
 
         var typeNames = {
-            'VALVE': 'Клапан', 'PUMP': 'Насос', 'SWITCH': 'Переключатель',
-            'SENSOR_PRESSURE': 'Датчик давления', 'SENSOR_TEMPERATURE': 'Датчик температуры',
+            'VALVE': 'Вентиль', 'PUMP': 'Насос', 'SWITCH': 'Переключатель',
+            'SENSOR_PRESSURE': 'Манометр', 'SENSOR_TEMPERATURE': 'Термометр',
             'HEATER': 'Нагреватель', 'LOCK': 'Блокировка',
             'REDUCER': 'Редуктор', 'SAFETY_VALVE': 'Предохр. клапан',
             'FILTER': 'Фильтр', 'CHECK_VALVE': 'Обратный клапан'
