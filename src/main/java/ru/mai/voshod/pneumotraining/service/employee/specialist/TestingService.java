@@ -71,8 +71,7 @@ public class TestingService {
         return tests.stream()
                 .filter(test -> {
                     long total = testQuestionRepository.countByTestId(test.getId());
-                    int sample = test.getQuestionsPerAttempt() != null ? test.getQuestionsPerAttempt() : 1;
-                    return total >= sample;
+                    return total >= resolveSampleSize(test);
                 })
                 .map(test -> {
                     TestDTO dto = TestMapper.INSTANCE.toDTO(test);
@@ -104,12 +103,17 @@ public class TestingService {
         }
         Test test = testOpt.get();
         long total = testQuestionRepository.countByTestId(testId);
-        int sample = test.getQuestionsPerAttempt() != null ? test.getQuestionsPerAttempt() : 1;
+        int sample = resolveSampleSize(test);
         if (total < sample) {
             return Optional.of("Тест временно недоступен: вопросов в нём (" + total
                     + ") меньше требуемой выборки (" + sample + "). Обратитесь к начальнику группы.");
         }
         return Optional.empty();
+    }
+
+    private int resolveSampleSize(Test test) {
+        Integer v = test.getQuestionsPerAttempt();
+        return (v == null || v < 1) ? 1 : v;
     }
 
     @Transactional
@@ -128,7 +132,7 @@ public class TestingService {
             log.error("Тест не содержит вопросов: id={}", testId);
             return Optional.empty();
         }
-        int sampleSize = test.getQuestionsPerAttempt() != null ? test.getQuestionsPerAttempt() : 1;
+        int sampleSize = resolveSampleSize(test);
         if (questionCount < sampleSize) {
             log.error("В тесте id={} только {} вопросов, требуется {} для выборки.",
                     testId, questionCount, sampleSize);

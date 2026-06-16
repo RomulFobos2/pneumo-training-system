@@ -178,9 +178,14 @@ public class TestService {
      * вопросов для случайной выборки заданного размера.
      */
     public boolean hasEnoughQuestionsForSample(Test test) {
-        int sample = test.getQuestionsPerAttempt() != null ? test.getQuestionsPerAttempt() : 1;
+        int sample = resolveSampleSize(test);
         long total = testQuestionRepository.countByTestId(test.getId());
         return total >= sample;
+    }
+
+    public static int resolveSampleSize(Test test) {
+        Integer v = test.getQuestionsPerAttempt();
+        return (v == null || v < 1) ? 1 : v;
     }
 
     private int normalizeQuestionsPerAttempt(Integer raw) {

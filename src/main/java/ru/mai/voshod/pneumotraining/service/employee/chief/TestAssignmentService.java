@@ -110,7 +110,7 @@ public class TestAssignmentService {
 
         Test test = testOptional.get();
         long totalQuestions = testQuestionRepository.countByTestId(testId);
-        int sampleSize = test.getQuestionsPerAttempt() != null ? test.getQuestionsPerAttempt() : 1;
+        int sampleSize = ru.mai.voshod.pneumotraining.service.employee.chief.TestService.resolveSampleSize(test);
         if (totalQuestions < sampleSize) {
             log.error("Назначение отклонено: в тесте id={} только {} вопросов, требуется {}.",
                     testId, totalQuestions, sampleSize);

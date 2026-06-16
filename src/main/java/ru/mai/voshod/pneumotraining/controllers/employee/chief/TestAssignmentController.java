@@ -99,7 +99,7 @@ public class TestAssignmentController {
         var testOpt = testRepository.findById(inputTestId);
         if (testOpt.isPresent()) {
             var test = testOpt.get();
-            int sample = test.getQuestionsPerAttempt() != null ? test.getQuestionsPerAttempt() : 1;
+            int sample = ru.mai.voshod.pneumotraining.service.employee.chief.TestService.resolveSampleSize(test);
             long total = testQuestionRepository.countByTestId(inputTestId);
             if (total < sample) {
                 redirectAttributes.addFlashAttribute("errorMessage",
