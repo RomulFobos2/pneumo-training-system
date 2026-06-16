@@ -74,7 +74,7 @@
                             <th style="width: 50px">#</th>
                             <th data-sortable data-sort-type="text">Назначение</th>
                             <th style="width: 130px" data-sortable data-sort-type="date">Создано</th>
-                            <th style="width: 120px" data-sortable data-sort-type="date">Дедлайн</th>
+                            <th style="width: 120px" data-sortable data-sort-type="date">Срок сдачи</th>
                             <th style="width: 100px">Назначено</th>
                             <th style="width: 100px">Выполнено</th>
                             <th style="width: 100px">Не выполнено</th>
@@ -90,7 +90,7 @@
                                 <div class="small text-muted" th:text="'Автор: ' + ${a.createdByFullName}"></div>
                             </td>
                             <td th:text="${#temporals.format(a.createdAt, 'dd.MM.yyyy HH:mm')}"></td>
-                            <td th:text="${#temporals.format(a.deadline, 'dd.MM.yyyy')}"></td>
+                            <td th:text="${#temporals.format(a.deadline, 'dd.MM.yyyy HH:mm')}"></td>
                             <td th:text="${a.totalAssigned}"></td>
                             <td><span class="badge bg-success" th:text="${a.completedCount}"></span></td>
                             <td><span class="badge bg-danger" th:text="${a.failedCount}"></span></td>

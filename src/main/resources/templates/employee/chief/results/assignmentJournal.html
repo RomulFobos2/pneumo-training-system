@@ -24,7 +24,7 @@
                         <h1 class="page-title mb-2" th:text="'Журнал назначения: ' + ${assignment.assignmentTitle}"></h1>
                         <div class="d-flex gap-2 flex-wrap">
                             <span class="badge bg-primary">Тест</span>
-                            <span class="badge bg-primary">Дедлайн: <span th:text="${#temporals.format(assignment.deadline, 'dd.MM.yyyy')}"></span></span>
+                            <span class="badge bg-primary">Срок сдачи: <span th:text="${#temporals.format(assignment.deadline, 'dd.MM.yyyy HH:mm')}"></span></span>
                             <span class="badge bg-secondary">Автор: <span th:text="${assignment.createdByFullName}"></span></span>
                             <span class="badge bg-info text-dark">Создано: <span th:text="${#temporals.format(assignment.createdAt, 'dd.MM.yyyy HH:mm')}"></span></span>
                         </div>

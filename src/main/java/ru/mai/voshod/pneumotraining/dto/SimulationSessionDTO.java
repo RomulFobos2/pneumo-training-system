@@ -29,4 +29,6 @@ public class SimulationSessionDTO {
     private LocalDateTime stepStartedAt;
     private Integer currentStepTimeLimit;
     private boolean hasAssignment;
+    private Integer incorrectActionsCount;
+    private Integer maxIncorrectActions;
 }

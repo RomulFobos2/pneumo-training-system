@@ -26,7 +26,7 @@
                             <span class="badge bg-info"><i class="bi bi-diagram-3"></i> Мнемосхема</span>
                             <span class="badge bg-primary">
                                 <i class="bi bi-calendar-event"></i>
-                                Дедлайн: <span th:text="${#temporals.format(assignment.deadline, 'dd.MM.yyyy')}"></span>
+                                Срок сдачи: <span th:text="${#temporals.format(assignment.deadline, 'dd.MM.yyyy HH:mm')}"></span>
                             </span>
                             <span class="badge bg-secondary">Автор: <span th:text="${assignment.createdByFullName}"></span></span>
                             <span class="badge bg-info text-dark">
@@ -87,11 +87,11 @@
                             </select>
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label">Дедлайн с</label>
+                            <label class="form-label">Срок сдачи с</label>
                             <input type="date" name="deadlineFrom" class="form-control form-control-sm" th:value="${deadlineFrom}">
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label">Дедлайн по</label>
+                            <label class="form-label">Срок сдачи по</label>
                             <input type="date" name="deadlineTo" class="form-control form-control-sm" th:value="${deadlineTo}">
                         </div>
                         <div class="col-md-2">

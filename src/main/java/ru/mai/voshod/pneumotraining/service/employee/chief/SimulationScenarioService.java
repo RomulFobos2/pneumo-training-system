@@ -64,6 +64,7 @@ public class SimulationScenarioService {
 
     @Transactional
     public Optional<Long> saveScenario(String title, String description, Integer timeLimit,
+                                       Integer maxIncorrectActions,
                                        Long schemaId, boolean availableWithoutAssignment, List<Long> departmentIds,
                                        ScenarioType scenarioType, Long parentScenarioId,
                                        Employee createdBy) {
@@ -79,6 +80,7 @@ public class SimulationScenarioService {
             scenario.setTitle(title);
             scenario.setDescription(description);
             scenario.setTimeLimit(timeLimit != null ? timeLimit : 0);
+            scenario.setMaxIncorrectActions(clampMaxIncorrectActions(maxIncorrectActions));
             scenario.setSchema(schemaOpt.get());
             scenario.setCreatedBy(createdBy);
 
@@ -99,6 +101,7 @@ public class SimulationScenarioService {
 
     @Transactional
     public Optional<Long> editScenario(Long id, String title, String description, Integer timeLimit,
+                                       Integer maxIncorrectActions,
                                        Long schemaId, boolean availableWithoutAssignment, List<Long> departmentIds,
                                        ScenarioType scenarioType, Long parentScenarioId) {
         log.info("Редактирование сценария: id={}", id);
@@ -112,6 +115,7 @@ public class SimulationScenarioService {
             scenario.setTitle(title);
             scenario.setDescription(description);
             scenario.setTimeLimit(timeLimit != null ? timeLimit : 0);
+            scenario.setMaxIncorrectActions(clampMaxIncorrectActions(maxIncorrectActions));
 
             if (schemaId != null) {
                 schemaRepository.findById(schemaId).ifPresent(scenario::setSchema);
@@ -251,6 +255,13 @@ public class SimulationScenarioService {
             return scenario.getParentScenario();
         }
         return scenario;
+    }
+
+    private int clampMaxIncorrectActions(Integer value) {
+        if (value == null) return 0;
+        if (value < 0) return 0;
+        if (value > 50) return 50;
+        return value;
     }
 
     private boolean applyAccessConfiguration(SimulationScenario scenario,

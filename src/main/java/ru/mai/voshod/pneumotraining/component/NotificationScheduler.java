@@ -12,6 +12,7 @@ import ru.mai.voshod.pneumotraining.repo.TestAssignmentEmployeeRepository;
 import ru.mai.voshod.pneumotraining.service.general.NotificationService;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Component
@@ -59,14 +60,14 @@ public class NotificationScheduler {
     @Transactional
     public void markOverdueAssignments() {
         log.info("Запуск проверки просроченных назначений");
-        LocalDate today = LocalDate.now();
+        LocalDateTime now = LocalDateTime.now();
         String testLink = "/employee/specialist/testing/availableTests";
         String simulationLink = "/employee/specialist/mnemo/scenarios";
 
         List<TestAssignmentEmployee> overdueTests = testAssignmentEmployeeRepository
-                .findByStatusAndAssignment_DeadlineBefore(AssignmentStatus.PENDING, today);
+                .findByStatusAndAssignment_DeadlineBefore(AssignmentStatus.PENDING, now);
         List<SimulationAssignmentEmployee> overdueSimulations = simulationAssignmentEmployeeRepository
-                .findByStatusAndAssignment_DeadlineBefore(AssignmentStatus.PENDING, today);
+                .findByStatusAndAssignment_DeadlineBefore(AssignmentStatus.PENDING, now);
 
         for (TestAssignmentEmployee ae : overdueTests) {
             ae.setStatus(AssignmentStatus.OVERDUE);
@@ -92,7 +93,8 @@ public class NotificationScheduler {
 
     private void sendTestRemindersForDate(LocalDate deadline, String messagePrefix, String link) {
         List<TestAssignmentEmployee> assignments = testAssignmentEmployeeRepository
-                .findByStatusAndAssignment_Deadline(AssignmentStatus.PENDING, deadline);
+                .findByStatusAndAssignment_DeadlineBetween(AssignmentStatus.PENDING,
+                        deadline.atStartOfDay(), deadline.plusDays(1).atStartOfDay());
 
         for (TestAssignmentEmployee ae : assignments) {
             String testTitle = ae.getAssignment().getTest().getTitle();
@@ -108,7 +110,8 @@ public class NotificationScheduler {
 
     private void sendSimulationRemindersForDate(LocalDate deadline, String messagePrefix, String link) {
         List<SimulationAssignmentEmployee> assignments = simulationAssignmentEmployeeRepository
-                .findByStatusAndAssignment_Deadline(AssignmentStatus.PENDING, deadline);
+                .findByStatusAndAssignment_DeadlineBetween(AssignmentStatus.PENDING,
+                        deadline.atStartOfDay(), deadline.plusDays(1).atStartOfDay());
 
         for (SimulationAssignmentEmployee ae : assignments) {
             String scenarioTitle = ae.getAssignment().getScenario().getTitle();

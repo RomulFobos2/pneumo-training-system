@@ -7,7 +7,6 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -30,7 +29,7 @@ public class TestAssignment {
 
     @NotNull
     @Column(nullable = false)
-    private LocalDate deadline;
+    private LocalDateTime deadline;
 
     @ManyToOne
     @JoinColumn(name = "created_by_id", nullable = false)
@@ -45,7 +44,7 @@ public class TestAssignment {
     @ToString.Exclude
     private List<TestAssignmentEmployee> assignedEmployees = new ArrayList<>();
 
-    public TestAssignment(Test test, LocalDate deadline, Employee createdBy) {
+    public TestAssignment(Test test, LocalDateTime deadline, Employee createdBy) {
         this.test = test;
         this.deadline = deadline;
         this.createdBy = createdBy;

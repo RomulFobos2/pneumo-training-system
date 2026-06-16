@@ -30,6 +30,7 @@
                     <span class="badge bg-primary" th:text="${#lists.size(myAssignments)} + ' шт.'"></span>
                 </div>
                 <form method="get" th:action="@{/employee/specialist/testing/availableTests}" class="mb-3">
+                    <input type="hidden" name="applied" value="1">
                     <div class="row g-3 align-items-end">
                         <div class="col-md-3">
                             <label class="form-label">Поиск</label>
@@ -47,11 +48,11 @@
                             </select>
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label">Дедлайн с</label>
+                            <label class="form-label">Срок сдачи с</label>
                             <input type="date" name="deadlineFrom" class="form-control form-control-sm" th:value="${deadlineFrom}">
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label">Дедлайн по</label>
+                            <label class="form-label">Срок сдачи по</label>
                             <input type="date" name="deadlineTo" class="form-control form-control-sm" th:value="${deadlineTo}">
                         </div>
                         <div class="col-md-2">
@@ -110,8 +111,8 @@
                             </div>
                             <div class="mb-2">
                                 <div class="text-muted small">
-                                    <i class="bi bi-calendar-event"></i> Дедлайн:
-                                    <span th:text="${#temporals.format(at.deadline, 'dd.MM.yyyy')}"></span>
+                                    <i class="bi bi-calendar-event"></i> Срок сдачи:
+                                    <span th:text="${#temporals.format(at.deadline, 'dd.MM.yyyy HH:mm')}"></span>
                                 </div>
                                 <div class="text-muted small">
                                     <i class="bi bi-calendar-plus"></i> Назначено:

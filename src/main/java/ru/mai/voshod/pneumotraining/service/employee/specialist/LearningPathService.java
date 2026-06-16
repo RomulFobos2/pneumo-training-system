@@ -90,7 +90,17 @@ public class LearningPathService {
             topic.setWrongCount(wrongAnswers.size());
             topic.setTotalInSection(totalBySection.getOrDefault(sectionId, 0));
 
-            if (section.getMaterials() != null) {
+            Map<Long, TheoryMaterial> wrongMaterials = new LinkedHashMap<>();
+            for (TestSessionAnswer wa : wrongAnswers) {
+                TheoryMaterial m = wa.getTestQuestion().getTheoryMaterial();
+                if (m != null) wrongMaterials.putIfAbsent(m.getId(), m);
+            }
+            if (!wrongMaterials.isEmpty()) {
+                List<TheoryMaterialDTO> materialDTOs = wrongMaterials.values().stream()
+                        .map(TheoryMaterialMapper.INSTANCE::toDTO)
+                        .toList();
+                topic.setMaterials(materialDTOs);
+            } else if (section.getMaterials() != null) {
                 List<TheoryMaterialDTO> materialDTOs = section.getMaterials().stream()
                         .map(TheoryMaterialMapper.INSTANCE::toDTO)
                         .toList();

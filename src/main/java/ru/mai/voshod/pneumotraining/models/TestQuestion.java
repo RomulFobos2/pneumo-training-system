@@ -41,6 +41,11 @@ public class TestQuestion {
     private TheorySection theorySection;
 
     @ManyToOne
+    @JoinColumn(name = "theory_material_id")
+    @ToString.Exclude
+    private TheoryMaterial theoryMaterial;
+
+    @ManyToOne
     @JoinColumn(name = "test_id", nullable = false)
     @ToString.Exclude
     private Test test;

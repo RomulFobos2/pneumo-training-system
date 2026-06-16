@@ -98,6 +98,12 @@
                             <input type="number" name="inputTimeLimit" class="form-control"
                                    min="0" max="999" th:value="${scenario.timeLimit}"/>
                         </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Макс. ошибок</label>
+                            <input type="number" name="inputMaxIncorrectActions" class="form-control"
+                                   min="0" max="50" th:value="${scenario.maxIncorrectActions}"/>
+                            <div class="form-text">0 — без ограничений</div>
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Описание</label>

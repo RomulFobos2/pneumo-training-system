@@ -90,7 +90,7 @@ public class SimulationAssignmentService {
     }
 
     @Transactional
-    public Optional<Long> createAssignment(Long scenarioId, LocalDate deadline, List<Long> employeeIds, Employee createdBy) {
+    public Optional<Long> createAssignment(Long scenarioId, LocalDateTime deadline, List<Long> employeeIds, Employee createdBy) {
         int employeeCount = employeeIds != null ? employeeIds.size() : 0;
         log.info("Создание назначения сценария: scenarioId={}, deadline={}, employees={}", scenarioId, deadline, employeeCount);
 
@@ -132,7 +132,7 @@ public class SimulationAssignmentService {
         SimulationAssignment assignment = new SimulationAssignment(scenario, deadline, createdBy);
         assignmentRepository.save(assignment);
 
-        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
         String scenarioLink = "/employee/specialist/mnemo/scenarios";
 
         for (Employee employee : employees) {
@@ -243,7 +243,7 @@ public class SimulationAssignmentService {
         dto.setCreatedAt(ae.getAssignment().getCreatedAt());
         dto.setStatusName(ae.getStatus().name());
         dto.setStatusDisplayName(ae.getStatus().getDisplayName());
-        dto.setDaysUntilDeadline(ChronoUnit.DAYS.between(today, ae.getAssignment().getDeadline()));
+        dto.setDaysUntilDeadline(ChronoUnit.DAYS.between(today, ae.getAssignment().getDeadline().toLocalDate()));
         dto.setCompletedSimulationSessionId(ae.getCompletedSimulationSession() != null
                 ? ae.getCompletedSimulationSession().getId() : null);
         return dto;
@@ -266,7 +266,7 @@ public class SimulationAssignmentService {
         if (!matchesText(q, dto.getAssignmentTitle(), dto.getCreatedByFullName(), dto.getScenarioTitle())) {
             return false;
         }
-        if (!matchesDateRange(dto.getDeadline(), deadlineFrom, deadlineTo)) {
+        if (!matchesDateTimeRange(dto.getDeadline(), deadlineFrom, deadlineTo)) {
             return false;
         }
         return matchesDateTimeRange(dto.getCreatedAt(), createdFrom, createdTo);
@@ -289,7 +289,7 @@ public class SimulationAssignmentService {
         if (!matchesText(q, dto.getEmployeeFullName())) {
             return false;
         }
-        if (!matchesDateRange(dto.getDeadline(), deadlineFrom, deadlineTo)) {
+        if (!matchesDateTimeRange(dto.getDeadline(), deadlineFrom, deadlineTo)) {
             return false;
         }
         return matchesDateTimeRange(dto.getCreatedAt(), createdFrom, createdTo);
@@ -312,7 +312,7 @@ public class SimulationAssignmentService {
         if (!matchesText(q, dto.getScenarioTitle(), dto.getScenarioDescription())) {
             return false;
         }
-        if (!matchesDateRange(dto.getDeadline(), deadlineFrom, deadlineTo)) {
+        if (!matchesDateTimeRange(dto.getDeadline(), deadlineFrom, deadlineTo)) {
             return false;
         }
         return matchesDateTimeRange(dto.getCreatedAt(), createdFrom, createdTo);

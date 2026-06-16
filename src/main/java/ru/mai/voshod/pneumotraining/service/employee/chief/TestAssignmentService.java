@@ -99,7 +99,7 @@ public class TestAssignmentService {
     }
 
     @Transactional
-    public Optional<Long> createAssignment(Long testId, LocalDate deadline, List<Long> employeeIds, Employee createdBy) {
+    public Optional<Long> createAssignment(Long testId, LocalDateTime deadline, List<Long> employeeIds, Employee createdBy) {
         log.info("Создание назначения: testId={}, deadline={}, employees={}", testId, deadline, employeeIds.size());
 
         Optional<Test> testOptional = testRepository.findById(testId);
@@ -112,7 +112,7 @@ public class TestAssignmentService {
         TestAssignment assignment = new TestAssignment(test, deadline, createdBy);
         testAssignmentRepository.save(assignment);
 
-        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
         String testLink = "/employee/specialist/testing/availableTests";
 
         for (Long empId : employeeIds) {
@@ -269,7 +269,7 @@ public class TestAssignmentService {
         dto.setCreatedAt(ae.getAssignment().getCreatedAt());
         dto.setStatusName(ae.getStatus().name());
         dto.setStatusDisplayName(ae.getStatus().getDisplayName());
-        dto.setDaysUntilDeadline(ChronoUnit.DAYS.between(today, ae.getAssignment().getDeadline()));
+        dto.setDaysUntilDeadline(ChronoUnit.DAYS.between(today, ae.getAssignment().getDeadline().toLocalDate()));
         dto.setCompletedSessionId(ae.getCompletedSession() != null ? ae.getCompletedSession().getId() : null);
         return dto;
     }
@@ -291,7 +291,7 @@ public class TestAssignmentService {
         if (!matchesText(q, dto.getAssignmentTitle(), dto.getCreatedByFullName(), dto.getTestTitle())) {
             return false;
         }
-        if (!matchesDateRange(dto.getDeadline(), deadlineFrom, deadlineTo)) {
+        if (!matchesDateTimeRange(dto.getDeadline(), deadlineFrom, deadlineTo)) {
             return false;
         }
         return matchesDateTimeRange(dto.getCreatedAt(), createdFrom, createdTo);
@@ -314,7 +314,7 @@ public class TestAssignmentService {
         if (!matchesText(q, dto.getEmployeeFullName())) {
             return false;
         }
-        if (!matchesDateRange(dto.getDeadline(), deadlineFrom, deadlineTo)) {
+        if (!matchesDateTimeRange(dto.getDeadline(), deadlineFrom, deadlineTo)) {
             return false;
         }
         return matchesDateTimeRange(dto.getCreatedAt(), createdFrom, createdTo);
@@ -337,7 +337,7 @@ public class TestAssignmentService {
         if (!matchesText(q, dto.getTestTitle(), dto.getTestDescription())) {
             return false;
         }
-        if (!matchesDateRange(dto.getDeadline(), deadlineFrom, deadlineTo)) {
+        if (!matchesDateTimeRange(dto.getDeadline(), deadlineFrom, deadlineTo)) {
             return false;
         }
         return matchesDateTimeRange(dto.getCreatedAt(), createdFrom, createdTo);

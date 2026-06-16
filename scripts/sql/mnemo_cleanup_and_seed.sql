@@ -10,7 +10,8 @@ START TRANSACTION;
 -- created_by_id = id пользователя с ролью CHIEF (начальник группы)
 -- department_id = id подразделения, которому доступен сценарий
 SET @created_by_id   := 1;
-SET @department_id   := 3;
+-- Берём первое существующее подразделение, чтобы не падать по FK при «голой» БД
+SET @department_id   := (SELECT id FROM t_department ORDER BY id LIMIT 1);
 SET @schema_title    := CONVERT('Пневмосистема ДУ (учебная)' USING utf8mb4) COLLATE utf8mb4_general_ci;
 SET @scenario_title  := CONVERT('Запуск пневмосистемы' USING utf8mb4) COLLATE utf8mb4_general_ci;
 
@@ -152,13 +153,15 @@ VALUES
     (@schema_id, @vp6, @bh1, NULL);
 
 -- ====== Создание сценария ======
+-- max_incorrect_actions = 0 (без ограничения); 1..50 — лимит ошибок, при превышении сессия FAILED.
 INSERT INTO t_simulation_scenario
-    (title, description, time_limit, is_active, schema_id, created_by_id, scenario_type, parent_scenario_id)
+    (title, description, time_limit, max_incorrect_actions, available_without_assignment, schema_id, created_by_id, scenario_type, parent_scenario_id)
 VALUES
     (
         @scenario_title,
         'Последовательный запуск пневмосистемы ДУ: подготовка входного контура, запуск основной магистрали, включение контура нагрева, открытие выходных клапанов.',
         10,
+        0,
         true,
         @schema_id,
         @created_by_id,
@@ -201,9 +204,10 @@ VALUES
      '{"VP3": true, "VP4": true, "VP6": true}',
      @scenario_id);
 
--- Доступ сценария для подразделения
+-- Доступ сценария для подразделения (только если подразделение существует)
 INSERT INTO t_scenario_department (scenario_id, department_id)
-VALUES (@scenario_id, @department_id);
+SELECT @scenario_id, @department_id
+WHERE @department_id IS NOT NULL;
 
 -- ====== Создание АВАРИЙНОГО сценария ======
 -- Демонстрирует все типы аварийных событий: ELEMENT_FAILURE, PRESSURE_ANOMALY,
@@ -230,13 +234,14 @@ DELETE FROM t_simulation_scenario
 WHERE title = @fault_scenario_title AND schema_id = @schema_id;
 
 INSERT INTO t_simulation_scenario
-    (title, description, time_limit, is_active, schema_id, created_by_id, scenario_type, parent_scenario_id)
+    (title, description, time_limit, max_incorrect_actions, available_without_assignment, schema_id, created_by_id, scenario_type, parent_scenario_id)
 VALUES
     (
         @fault_scenario_title,
         'Демонстрационный сценарий с аварийными ситуациями: отказ элемента, аномалия давления, перегрев, ложная тревога, запрещённые действия и ограничение времени на шаг.',
         15,
-        true,
+        3,
+        false,
         @schema_id,
         @created_by_id,
         'FAULT',
@@ -300,9 +305,10 @@ VALUES
      NULL,
      @fault_scenario_id);
 
--- Доступ аварийного сценария для подразделения
+-- Доступ аварийного сценария для подразделения (только если подразделение существует)
 INSERT INTO t_scenario_department (scenario_id, department_id)
-VALUES (@fault_scenario_id, @department_id);
+SELECT @fault_scenario_id, @department_id
+WHERE @department_id IS NOT NULL;
 
 COMMIT;
 

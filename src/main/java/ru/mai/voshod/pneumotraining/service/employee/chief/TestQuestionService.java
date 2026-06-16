@@ -15,6 +15,7 @@ import ru.mai.voshod.pneumotraining.models.TestQuestion;
 import ru.mai.voshod.pneumotraining.repo.TestAnswerRepository;
 import ru.mai.voshod.pneumotraining.repo.TestQuestionRepository;
 import ru.mai.voshod.pneumotraining.repo.TestRepository;
+import ru.mai.voshod.pneumotraining.repo.TheoryMaterialRepository;
 import ru.mai.voshod.pneumotraining.repo.TheorySectionRepository;
 
 import java.util.List;
@@ -29,15 +30,35 @@ public class TestQuestionService {
     private final TestAnswerRepository testAnswerRepository;
     private final TestRepository testRepository;
     private final TheorySectionRepository theorySectionRepository;
+    private final TheoryMaterialRepository theoryMaterialRepository;
 
     public TestQuestionService(TestQuestionRepository testQuestionRepository,
                                TestAnswerRepository testAnswerRepository,
                                TestRepository testRepository,
-                               TheorySectionRepository theorySectionRepository) {
+                               TheorySectionRepository theorySectionRepository,
+                               TheoryMaterialRepository theoryMaterialRepository) {
         this.testQuestionRepository = testQuestionRepository;
         this.testAnswerRepository = testAnswerRepository;
         this.testRepository = testRepository;
         this.theorySectionRepository = theorySectionRepository;
+        this.theoryMaterialRepository = theoryMaterialRepository;
+    }
+
+    private void applyTheoryBinding(TestQuestion question, Long theorySectionId, Long theoryMaterialId) {
+        if (theoryMaterialId != null) {
+            var materialOpt = theoryMaterialRepository.findById(theoryMaterialId);
+            if (materialOpt.isPresent()) {
+                question.setTheoryMaterial(materialOpt.get());
+                question.setTheorySection(materialOpt.get().getSection());
+                return;
+            }
+        }
+        question.setTheoryMaterial(null);
+        if (theorySectionId != null) {
+            question.setTheorySection(theorySectionRepository.findById(theorySectionId).orElse(null));
+        } else {
+            question.setTheorySection(null);
+        }
     }
 
     private Optional<String> validateAnswers(String questionType, List<TestAnswerDTO> answers) {
@@ -89,6 +110,7 @@ public class TestQuestionService {
     @Transactional
     public Optional<Long> saveQuestion(Long testId, String questionText, Integer difficultyLevel,
                                        String questionTypeName, Long theorySectionId,
+                                       Long theoryMaterialId,
                                        List<TestAnswerDTO> answerDTOs) {
         log.info("Создание вопроса для теста id={}", testId);
 
@@ -112,9 +134,7 @@ public class TestQuestionService {
             question.setQuestionType(questionType);
             question.setDifficultyLevel(normalizeDifficulty(difficultyLevel));
             question.setTest(testOptional.get());
-            if (theorySectionId != null) {
-                question.setTheorySection(theorySectionRepository.findById(theorySectionId).orElse(null));
-            }
+            applyTheoryBinding(question, theorySectionId, theoryMaterialId);
 
             testQuestionRepository.save(question);
 
@@ -148,6 +168,7 @@ public class TestQuestionService {
     @Transactional
     public Optional<Long> editQuestion(Long questionId, String questionText, Integer difficultyLevel,
                                        String questionTypeName, Long theorySectionId,
+                                       Long theoryMaterialId,
                                        List<TestAnswerDTO> answerDTOs) {
         log.info("Редактирование вопроса: id={}", questionId);
 
@@ -170,11 +191,7 @@ public class TestQuestionService {
             question.setQuestionText(questionText);
             question.setDifficultyLevel(normalizeDifficulty(difficultyLevel));
             question.setQuestionType(questionType);
-            if (theorySectionId != null) {
-                question.setTheorySection(theorySectionRepository.findById(theorySectionId).orElse(null));
-            } else {
-                question.setTheorySection(null);
-            }
+            applyTheoryBinding(question, theorySectionId, theoryMaterialId);
             testQuestionRepository.save(question);
 
             List<TestAnswer> oldAnswers = testAnswerRepository.findByQuestionIdOrderBySortOrderAsc(questionId);

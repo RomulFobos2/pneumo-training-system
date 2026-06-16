@@ -306,23 +306,40 @@ INSERT INTO tmp_seed_answers (test_no, q_no, answer_no, answer_text, is_correct)
 (2,27,1,'Для сохранения жизни сотрудников и предотвращения повреждений оборудования',true),(2,27,2,'Чтобы ускорить процесс тестирования',false),(2,27,3,'Чтобы снизить расходы на испытания',false),(2,27,4,'Для повышения температуры внутри системы',false);
 
 -- ====== Перенос вопросов в t_test_question ======
-INSERT INTO t_test_question (question_text, question_type, theory_section_id, test_id)
+-- theory_section_id и theory_material_id остаются NULL — seed-вопросы не привязаны к теории.
+-- При первом редактировании через UI начальник обязан выбрать раздел и материал.
+-- difficulty_level — NOT NULL в БД, проставляем 1 (базовый).
+INSERT INTO t_test_question (question_text, question_type, difficulty_level, theory_section_id, theory_material_id, test_id)
 SELECT
     q.question_text,
     'SINGLE_CHOICE',
+    1,
+    NULL,
     NULL,
     CASE WHEN q.test_no = 1 THEN @test1_id ELSE @test2_id END
 FROM tmp_seed_questions q
 ORDER BY q.test_no, q.q_no;
 
+-- Сопоставляем вставленные вопросы с tmp_seed_questions по порядковому номеру внутри теста:
+-- INSERT выше делал ORDER BY test_no, q_no, поэтому id вопросов растут в том же порядке,
+-- что и q_no в источнике. Сопоставление по тексту ненадёжно (бывают дубликаты формулировок).
 INSERT INTO tmp_seed_question_ids (test_no, q_no, question_id)
-SELECT
-    q.test_no,
-    q.q_no,
-    tq.id
-FROM tmp_seed_questions q
-JOIN t_test_question tq ON tq.test_id = CASE WHEN q.test_no = 1 THEN @test1_id ELSE @test2_id END
-                      AND tq.question_text = q.question_text;
+WITH src AS (
+    SELECT q.test_no, q.q_no,
+           ROW_NUMBER() OVER (PARTITION BY q.test_no ORDER BY q.q_no) AS rn
+    FROM tmp_seed_questions q
+),
+inserted AS (
+    SELECT tq.id, tq.test_id,
+           ROW_NUMBER() OVER (PARTITION BY tq.test_id ORDER BY tq.id) AS rn
+    FROM t_test_question tq
+    WHERE tq.test_id IN (@test1_id, @test2_id)
+)
+SELECT src.test_no, src.q_no, inserted.id
+FROM src
+JOIN inserted
+  ON inserted.test_id = CASE WHEN src.test_no = 1 THEN @test1_id ELSE @test2_id END
+ AND inserted.rn = src.rn;
 
 -- ====== Перенос ответов в t_test_answer ======
 INSERT INTO t_test_answer (answer_text, is_correct, sort_order, match_target, question_id)
@@ -346,12 +363,17 @@ INSERT INTO t_test_department (test_id, department_id)
 SELECT @test2_id, d.id FROM t_department d;
 
 -- ====== Создание назначений ======
+-- deadline теперь DATETIME (формат dd.MM.yyyy HH:mm) — фиксируем 23:59 заданного дня.
 INSERT INTO t_test_assignment (test_id, deadline, created_by_id, created_at)
-VALUES (@test1_id, DATE_ADD(CURDATE(), INTERVAL @deadline_days DAY), @created_by_id, NOW());
+VALUES (@test1_id,
+        TIMESTAMP(DATE_ADD(CURDATE(), INTERVAL @deadline_days DAY), '23:59:00'),
+        @created_by_id, NOW());
 SET @assign1_id := LAST_INSERT_ID();
 
 INSERT INTO t_test_assignment (test_id, deadline, created_by_id, created_at)
-VALUES (@test2_id, DATE_ADD(CURDATE(), INTERVAL @deadline_days DAY), @created_by_id, NOW());
+VALUES (@test2_id,
+        TIMESTAMP(DATE_ADD(CURDATE(), INTERVAL @deadline_days DAY), '23:59:00'),
+        @created_by_id, NOW());
 SET @assign2_id := LAST_INSERT_ID();
 
 -- ====== Назначение всем активным сотрудникам с подразделением ======

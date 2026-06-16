@@ -286,11 +286,17 @@ public class SimulationService {
                             entry.getKey(), entry.getValue(), actual);
                     recordStepResult(session, currentStepNum, false);
                     sessionRepository.save(session);
+                    boolean limitExceeded = incrementIncorrectAndCheckLimit(session);
                     Map<String, Object> result = new LinkedHashMap<>();
-                    result.put("status", "wrong");
-                    result.put("failedElement", entry.getKey());
-                    result.put("expected", entry.getValue());
-                    result.put("actual", actual);
+                    if (limitExceeded) {
+                        result.put("status", "limit_exceeded");
+                        result.put("message", limitExceededMessage(session));
+                    } else {
+                        result.put("status", "wrong");
+                        result.put("failedElement", entry.getKey());
+                        result.put("expected", entry.getValue());
+                        result.put("actual", actual);
+                    }
                     return Optional.of(result);
                 }
             }
@@ -571,6 +577,11 @@ public class SimulationService {
                         Map<String, Object> result = new LinkedHashMap<>();
                         result.put("penalty", "WARNING");
                         result.put("message", message);
+                        if (incrementIncorrectAndCheckLimit(session)) {
+                            result.put("forbidden", true);
+                            result.put("failed", true);
+                            result.put("message", limitExceededMessage(session));
+                        }
                         return result;
                     } else if ("TIME_PENALTY".equals(penalty)) {
                         applyTimePenalty(session);
@@ -581,6 +592,11 @@ public class SimulationService {
                         Map<String, Object> result = new LinkedHashMap<>();
                         result.put("penalty", "TIME_PENALTY");
                         result.put("message", message);
+                        if (incrementIncorrectAndCheckLimit(session)) {
+                            result.put("forbidden", true);
+                            result.put("failed", true);
+                            result.put("message", limitExceededMessage(session));
+                        }
                         return result;
                     }
                 }
@@ -589,6 +605,33 @@ public class SimulationService {
             log.error("Ошибка проверки запрещённых действий", e);
         }
         return null;
+    }
+
+    /**
+     * Инкрементит счётчик неправильных действий и проверяет лимит сценария.
+     * Возвращает true, если лимит превышен (сессия помечается FAILED).
+     */
+    private boolean incrementIncorrectAndCheckLimit(SimulationSession session) {
+        int count = (session.getIncorrectActionsCount() == null ? 0 : session.getIncorrectActionsCount()) + 1;
+        session.setIncorrectActionsCount(count);
+        Integer limit = session.getScenario().getMaxIncorrectActions();
+        if (limit != null && limit > 0 && count > limit) {
+            session.setSessionStatus(SimulationSessionStatus.FAILED);
+            session.setFinishedAt(LocalDateTime.now());
+            sessionRepository.save(session);
+            simulationAssignmentService.markAssignmentFailed(
+                    session.getEmployee().getId(), resolveNormalScenarioId(session.getScenario()), session);
+            log.info("Превышен лимит ошибок ({}): sessionId={}", limit, session.getId());
+            return true;
+        }
+        sessionRepository.save(session);
+        return false;
+    }
+
+    private String limitExceededMessage(SimulationSession session) {
+        Integer limit = session.getScenario().getMaxIncorrectActions();
+        return "Превышено допустимое количество ошибок: "
+                + session.getIncorrectActionsCount() + " из " + limit;
     }
 
     private void addWarning(SimulationSession session, int step, String message) {

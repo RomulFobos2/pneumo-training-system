@@ -45,7 +45,13 @@ public class TestingController {
                                  @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate deadlineTo,
                                  @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate createdFrom,
                                  @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate createdTo,
+                                 @RequestParam(required = false) String applied,
                                  Model model) {
+        if (applied == null && q == null && status == null && hideCompleted == null
+                && deadlineFrom == null && deadlineTo == null
+                && createdFrom == null && createdTo == null) {
+            deadlineFrom = java.time.LocalDate.now();
+        }
         boolean resolvedHideCompleted = hideCompleted == null || hideCompleted.contains("true");
         model.addAttribute("availableTests", testingService.getAvailableTests(currentUser));
         model.addAttribute("myAssignments", testAssignmentService.getAssignmentsForEmployee(
