@@ -68,11 +68,16 @@ public class TestingService {
         }
         List<Long> ancestorIds = departmentService.getAncestorIds(employee.getDepartment().getId());
         List<Test> tests = testRepository.findAvailableByDepartmentIds(ancestorIds);
-        return tests.stream().map(test -> {
-            TestDTO dto = TestMapper.INSTANCE.toDTO(test);
-            dto.setQuestionCount((int) testQuestionRepository.countByTestId(test.getId()));
-            return dto;
-        }).toList();
+        return tests.stream()
+                .filter(test -> {
+                    long total = testQuestionRepository.countByTestId(test.getId());
+                    return total >= resolveSampleSize(test);
+                })
+                .map(test -> {
+                    TestDTO dto = TestMapper.INSTANCE.toDTO(test);
+                    dto.setQuestionCount((int) testQuestionRepository.countByTestId(test.getId()));
+                    return dto;
+                }).toList();
     }
 
     @Transactional(readOnly = true)
@@ -84,6 +89,31 @@ public class TestingService {
                     dto.setQuestionCount((int) testQuestionRepository.countByTestId(test.getId()));
                     return dto;
                 });
+    }
+
+    /**
+     * Возвращает причину невозможности запустить тест или {@link Optional#empty()},
+     * если запуск разрешён. Используется контроллером для формирования понятного сообщения.
+     */
+    @Transactional(readOnly = true)
+    public Optional<String> getStartBlockReason(Long testId, Employee employee) {
+        Optional<Test> testOpt = testRepository.findById(testId);
+        if (testOpt.isEmpty() || !canEmployeeAccessTest(testOpt.get(), employee)) {
+            return Optional.of("Тест недоступен.");
+        }
+        Test test = testOpt.get();
+        long total = testQuestionRepository.countByTestId(testId);
+        int sample = resolveSampleSize(test);
+        if (total < sample) {
+            return Optional.of("Тест временно недоступен: вопросов в нём (" + total
+                    + ") меньше требуемой выборки (" + sample + "). Обратитесь к начальнику группы.");
+        }
+        return Optional.empty();
+    }
+
+    private int resolveSampleSize(Test test) {
+        Integer v = test.getQuestionsPerAttempt();
+        return (v == null || v < 1) ? 1 : v;
     }
 
     @Transactional
@@ -102,6 +132,12 @@ public class TestingService {
             log.error("Тест не содержит вопросов: id={}", testId);
             return Optional.empty();
         }
+        int sampleSize = resolveSampleSize(test);
+        if (questionCount < sampleSize) {
+            log.error("В тесте id={} только {} вопросов, требуется {} для выборки.",
+                    testId, questionCount, sampleSize);
+            return Optional.empty();
+        }
 
         List<TestSession> existingSessions = testSessionRepository
                 .findByEmployeeIdAndTestIdAndSessionStatus(employee.getId(), testId, TestSessionStatus.IN_PROGRESS);
@@ -114,6 +150,10 @@ public class TestingService {
             List<TestQuestion> questions = testQuestionRepository.findByTestIdOrderByIdAsc(testId);
             List<Long> questionIds = questions.stream().map(TestQuestion::getId).collect(Collectors.toList());
             Collections.shuffle(questionIds);
+            // Случайная подвыборка нужного размера из общего пула вопросов
+            if (questionIds.size() > sampleSize) {
+                questionIds = new java.util.ArrayList<>(questionIds.subList(0, sampleSize));
+            }
 
             String questionOrderJson = objectMapper.writeValueAsString(questionIds);
 

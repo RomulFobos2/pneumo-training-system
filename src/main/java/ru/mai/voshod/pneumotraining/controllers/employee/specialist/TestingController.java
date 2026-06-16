@@ -83,6 +83,11 @@ public class TestingController {
     public String startTest(@PathVariable(value = "testId") long testId,
                             @AuthenticationPrincipal Employee currentUser,
                             RedirectAttributes redirectAttributes) {
+        Optional<String> blockReason = testingService.getStartBlockReason(testId, currentUser);
+        if (blockReason.isPresent()) {
+            redirectAttributes.addFlashAttribute("errorMessage", blockReason.get());
+            return "redirect:/employee/specialist/testing/availableTests";
+        }
         Optional<Long> sessionId = testingService.startTest(testId, currentUser);
         if (sessionId.isEmpty()) {
             redirectAttributes.addFlashAttribute("errorMessage", "Не удалось начать тест.");

@@ -43,8 +43,17 @@
                         <span th:text="${testDTO.passingScore + '%'}"></span>
                     </div>
                     <div class="col-auto">
-                        <small class="text-muted">Вопросов:</small>
+                        <small class="text-muted">Общее количество вопросов в тесте:</small>
                         <span th:text="${testDTO.questionCount}"></span>
+                    </div>
+                    <div class="col-auto">
+                        <small class="text-muted">Количество вопросов в тесте (на попытку):</small>
+                        <span th:text="${testDTO.questionsPerAttempt}"></span>
+                        <span th:if="${testDTO.questionsPerAttempt != null and testDTO.questionsPerAttempt > testDTO.questionCount}"
+                              class="badge bg-warning text-dark ms-1"
+                              title="Недостаточно вопросов: назначение и запуск пока заблокированы">
+                            недобор
+                        </span>
                     </div>
                     <div class="col-auto" th:if="${testDTO.createdByFullName}">
                         <small class="text-muted">Автор:</small>

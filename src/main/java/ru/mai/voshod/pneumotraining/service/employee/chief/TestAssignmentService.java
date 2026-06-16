@@ -109,6 +109,14 @@ public class TestAssignmentService {
         }
 
         Test test = testOptional.get();
+        long totalQuestions = testQuestionRepository.countByTestId(testId);
+        int sampleSize = ru.mai.voshod.pneumotraining.service.employee.chief.TestService.resolveSampleSize(test);
+        if (totalQuestions < sampleSize) {
+            log.error("Назначение отклонено: в тесте id={} только {} вопросов, требуется {}.",
+                    testId, totalQuestions, sampleSize);
+            return Optional.empty();
+        }
+
         TestAssignment assignment = new TestAssignment(test, deadline, createdBy);
         testAssignmentRepository.save(assignment);
 

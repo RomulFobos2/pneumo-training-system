@@ -11,6 +11,7 @@ public class TestDTO {
     private String description;
     private Integer timeLimit;
     private Integer passingScore;
+    private Integer questionsPerAttempt;
     private boolean availableWithoutAssignment;
     private Long createdById;
     private String createdByFullName;

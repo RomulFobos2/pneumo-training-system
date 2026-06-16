@@ -38,15 +38,21 @@ public class TestAssignmentController {
     private final TestService testService;
     private final DepartmentService departmentService;
     private final EmployeeRepository employeeRepository;
+    private final ru.mai.voshod.pneumotraining.repo.TestRepository testRepository;
+    private final ru.mai.voshod.pneumotraining.repo.TestQuestionRepository testQuestionRepository;
 
     public TestAssignmentController(TestAssignmentService testAssignmentService,
                                     TestService testService,
                                     DepartmentService departmentService,
-                                    EmployeeRepository employeeRepository) {
+                                    EmployeeRepository employeeRepository,
+                                    ru.mai.voshod.pneumotraining.repo.TestRepository testRepository,
+                                    ru.mai.voshod.pneumotraining.repo.TestQuestionRepository testQuestionRepository) {
         this.testAssignmentService = testAssignmentService;
         this.testService = testService;
         this.departmentService = departmentService;
         this.employeeRepository = employeeRepository;
+        this.testRepository = testRepository;
+        this.testQuestionRepository = testQuestionRepository;
     }
 
     @GetMapping("/allAssignments")
@@ -90,6 +96,19 @@ public class TestAssignmentController {
                                 @RequestParam(name = "inputEmployeeIds") List<Long> inputEmployeeIds,
                                 @AuthenticationPrincipal Employee currentUser,
                                 RedirectAttributes redirectAttributes) {
+        var testOpt = testRepository.findById(inputTestId);
+        if (testOpt.isPresent()) {
+            var test = testOpt.get();
+            int sample = ru.mai.voshod.pneumotraining.service.employee.chief.TestService.resolveSampleSize(test);
+            long total = testQuestionRepository.countByTestId(inputTestId);
+            if (total < sample) {
+                redirectAttributes.addFlashAttribute("errorMessage",
+                        "В тесте слишком мало вопросов: " + total + " из " + sample
+                                + " требуется. Дополните пул вопросов или уменьшите параметр в настройках теста.");
+                return "redirect:/employee/chief/assignments/addAssignment";
+            }
+        }
+
         Optional<Long> result = testAssignmentService.createAssignment(inputTestId, inputDeadline, inputEmployeeIds, currentUser);
         if (result.isEmpty()) {
             redirectAttributes.addFlashAttribute("errorMessage", "Ошибка при создании назначения.");
