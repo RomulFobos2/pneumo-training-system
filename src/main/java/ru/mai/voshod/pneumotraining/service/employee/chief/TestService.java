@@ -44,7 +44,8 @@ public class TestService {
 
     @Transactional
     public Optional<Long> saveTest(String title, String description, Integer timeLimit,
-                                    Integer passingScore, boolean allowBackNavigation,
+                                    Integer passingScore, Integer questionsPerAttempt,
+                                    boolean allowBackNavigation,
                                     boolean availableWithoutAssignment, List<Long> departmentIds,
                                     Employee createdBy) {
         log.info("Создание теста: title={}", title);
@@ -60,6 +61,7 @@ public class TestService {
             test.setDescription(description);
             test.setTimeLimit(timeLimit != null ? timeLimit : 0);
             test.setPassingScore(passingScore != null ? passingScore : 60);
+            test.setQuestionsPerAttempt(normalizeQuestionsPerAttempt(questionsPerAttempt));
             test.setAllowBackNavigation(allowBackNavigation);
             test.setAvailableWithoutAssignment(availableWithoutAssignment);
             test.setCreatedBy(createdBy);
@@ -80,7 +82,8 @@ public class TestService {
 
     @Transactional
     public Optional<Long> editTest(Long id, String title, String description, Integer timeLimit,
-                                    Integer passingScore, boolean allowBackNavigation,
+                                    Integer passingScore, Integer questionsPerAttempt,
+                                    boolean allowBackNavigation,
                                     boolean availableWithoutAssignment, List<Long> departmentIds) {
         log.info("Редактирование теста: id={}", id);
 
@@ -101,6 +104,14 @@ public class TestService {
             test.setDescription(description);
             test.setTimeLimit(timeLimit != null ? timeLimit : 0);
             test.setPassingScore(passingScore != null ? passingScore : 60);
+            int normalizedSample = normalizeQuestionsPerAttempt(questionsPerAttempt);
+            test.setQuestionsPerAttempt(normalizedSample);
+            long total = testQuestionRepository.countByTestId(id);
+            if (total > 0 && normalizedSample > total) {
+                log.warn("Тест id={}: размер выборки {} больше числа имеющихся вопросов {}. " +
+                        "Назначение и запуск будут заблокированы, пока пул не будет дополнен.",
+                        id, normalizedSample, total);
+            }
             test.setAllowBackNavigation(allowBackNavigation);
             test.setAvailableWithoutAssignment(availableWithoutAssignment);
 
@@ -158,7 +169,23 @@ public class TestService {
         List<Test> tests = testRepository.findByDepartmentIds(ancestorIds);
         return tests.stream()
                 .filter(t -> !t.isAvailableWithoutAssignment())
+                .filter(this::hasEnoughQuestionsForSample)
                 .map(this::toTestDTO).toList();
+    }
+
+    /**
+     * Тест пригоден для назначения и запуска, если в нём накоплено достаточно
+     * вопросов для случайной выборки заданного размера.
+     */
+    public boolean hasEnoughQuestionsForSample(Test test) {
+        int sample = test.getQuestionsPerAttempt() != null ? test.getQuestionsPerAttempt() : 1;
+        long total = testQuestionRepository.countByTestId(test.getId());
+        return total >= sample;
+    }
+
+    private int normalizeQuestionsPerAttempt(Integer raw) {
+        if (raw == null || raw < 1) return 1;
+        return raw;
     }
 
     @Transactional(readOnly = true)

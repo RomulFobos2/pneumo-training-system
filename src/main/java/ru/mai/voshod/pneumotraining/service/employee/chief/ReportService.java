@@ -128,6 +128,9 @@ public class ReportService {
             sheet.createRow(2).createCell(0).setCellValue("Тест: " + testOpt.get().getTitle());
             sheet.createRow(3).createCell(0).setCellValue("Дата формирования: " + LocalDate.now().format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
             sheet.createRow(4).createCell(0).setCellValue("Проходной балл: " + testOpt.get().getPassingScore() + "%");
+            sheet.createRow(5).createCell(0).setCellValue(
+                    "Количество вопросов в попытке: " + testOpt.get().getQuestionsPerAttempt()
+                            + " (из " + testOpt.get().getQuestions().size() + " доступных)");
 
             Row headerRow = sheet.createRow(6);
             String[] headers = {"#", "ФИО", "Должность", "Дата сдачи", "Баллы", "%", "Результат"};
@@ -455,7 +458,9 @@ public class ReportService {
             sheet.addMergedRegion(new CellRangeAddress(0, 0, 0, 5));
 
             sheet.createRow(1).createCell(0).setCellValue("Дата формирования: " + LocalDate.now().format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
-            sheet.createRow(2).createCell(0).setCellValue("Тест: " + assignment.getTest().getTitle());
+            sheet.createRow(2).createCell(0).setCellValue("Тест: " + assignment.getTest().getTitle()
+                    + " (вопросов в попытке: " + assignment.getTest().getQuestionsPerAttempt()
+                    + " из " + assignment.getTest().getQuestions().size() + " доступных)");
             sheet.createRow(3).createCell(0).setCellValue("Срок сдачи: " + assignment.getDeadline().format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm")));
             sheet.createRow(4).createCell(0).setCellValue("Назначено сотрудников: " + journal.size());
 
@@ -519,7 +524,9 @@ public class ReportService {
 
             summarySheet.createRow(1).createCell(0).setCellValue("Дата формирования: " + LocalDate.now().format(dateFormatter));
             summarySheet.createRow(2).createCell(0).setCellValue("Название назначения: " + assignment.getAssignmentTitle());
-            summarySheet.createRow(3).createCell(0).setCellValue("Тест: " + assignment.getTest().getTitle());
+            summarySheet.createRow(3).createCell(0).setCellValue("Тест: " + assignment.getTest().getTitle()
+                    + " (вопросов в попытке: " + assignment.getTest().getQuestionsPerAttempt()
+                    + " из " + assignment.getTest().getQuestions().size() + " доступных)");
             summarySheet.createRow(4).createCell(0).setCellValue("Срок сдачи: " + assignment.getDeadline().format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm")));
             summarySheet.createRow(5).createCell(0).setCellValue("Назначено сотрудников: " + journal.size());
 

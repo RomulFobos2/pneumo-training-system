@@ -50,6 +50,19 @@
                                     <input type="number" name="inputPassingScore" class="form-control"
                                            required min="0" max="100" th:value="${testDTO.passingScore}">
                                 </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Количество вопросов в тесте <span class="text-danger">*</span></label>
+                                    <input type="number" name="inputQuestionsPerAttempt" id="inputQuestionsPerAttempt"
+                                           class="form-control" required min="1"
+                                           th:value="${testDTO.questionsPerAttempt}"
+                                           th:attr="data-total=${testDTO.questionCount}">
+                                    <div class="form-text text-muted">
+                                        Общее количество вопросов в тесте: <span th:text="${testDTO.questionCount}">0</span>.
+                                    </div>
+                                    <div id="sampleSizeWarning" class="form-text text-danger" style="display:none">
+                                        Назначение и запуск будут заблокированы, пока в тесте меньше вопросов, чем требуется в попытке.
+                                    </div>
+                                </div>
                                 <div class="col-md-4 d-flex align-items-center">
                                     <div>
                                         <div class="form-check mt-3">
@@ -114,6 +127,19 @@
 </div>
 
 <script>
+    (function() {
+        var sampleInput = document.getElementById('inputQuestionsPerAttempt');
+        var sampleWarning = document.getElementById('sampleSizeWarning');
+        if (sampleInput && sampleWarning) {
+            var total = parseInt(sampleInput.getAttribute('data-total') || '0', 10);
+            var check = function() {
+                var val = parseInt(sampleInput.value, 10) || 0;
+                sampleWarning.style.display = (val > total) ? 'block' : 'none';
+            };
+            sampleInput.addEventListener('input', check);
+            check();
+        }
+    })();
     (function() {
         var deptError = document.getElementById('deptError');
         var deptCheckboxes = document.querySelectorAll('.dept-checkbox');

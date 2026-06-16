@@ -109,6 +109,14 @@ public class TestAssignmentService {
         }
 
         Test test = testOptional.get();
+        long totalQuestions = testQuestionRepository.countByTestId(testId);
+        int sampleSize = test.getQuestionsPerAttempt() != null ? test.getQuestionsPerAttempt() : 1;
+        if (totalQuestions < sampleSize) {
+            log.error("Назначение отклонено: в тесте id={} только {} вопросов, требуется {}.",
+                    testId, totalQuestions, sampleSize);
+            return Optional.empty();
+        }
+
         TestAssignment assignment = new TestAssignment(test, deadline, createdBy);
         testAssignmentRepository.save(assignment);
 

@@ -36,6 +36,10 @@ public class Test {
     @Column(nullable = false)
     private Integer passingScore = 60;
 
+    // размер выборки вопросов на одну попытку прохождения
+    @Column(name = "questions_per_attempt", nullable = false)
+    private Integer questionsPerAttempt = 1;
+
     @Column(nullable = false)
     private boolean availableWithoutAssignment = false;
 
