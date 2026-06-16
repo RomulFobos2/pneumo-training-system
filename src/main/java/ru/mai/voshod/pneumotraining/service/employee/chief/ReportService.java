@@ -456,7 +456,7 @@ public class ReportService {
 
             sheet.createRow(1).createCell(0).setCellValue("Дата формирования: " + LocalDate.now().format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
             sheet.createRow(2).createCell(0).setCellValue("Тест: " + assignment.getTest().getTitle());
-            sheet.createRow(3).createCell(0).setCellValue("Дедлайн: " + assignment.getDeadline().format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
+            sheet.createRow(3).createCell(0).setCellValue("Срок сдачи: " + assignment.getDeadline().format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm")));
             sheet.createRow(4).createCell(0).setCellValue("Назначено сотрудников: " + journal.size());
 
             Row headerRow = sheet.createRow(6);
@@ -520,7 +520,7 @@ public class ReportService {
             summarySheet.createRow(1).createCell(0).setCellValue("Дата формирования: " + LocalDate.now().format(dateFormatter));
             summarySheet.createRow(2).createCell(0).setCellValue("Название назначения: " + assignment.getAssignmentTitle());
             summarySheet.createRow(3).createCell(0).setCellValue("Тест: " + assignment.getTest().getTitle());
-            summarySheet.createRow(4).createCell(0).setCellValue("Дедлайн: " + assignment.getDeadline().format(dateFormatter));
+            summarySheet.createRow(4).createCell(0).setCellValue("Срок сдачи: " + assignment.getDeadline().format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm")));
             summarySheet.createRow(5).createCell(0).setCellValue("Назначено сотрудников: " + journal.size());
 
             Row headerRow = summarySheet.createRow(7);
@@ -661,7 +661,7 @@ public class ReportService {
 
             sheet.createRow(1).createCell(0).setCellValue("Дата формирования: " + LocalDate.now().format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
             sheet.createRow(2).createCell(0).setCellValue("Сценарий: " + assignment.getScenario().getTitle());
-            sheet.createRow(3).createCell(0).setCellValue("Дедлайн: " + assignment.getDeadline().format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
+            sheet.createRow(3).createCell(0).setCellValue("Срок сдачи: " + assignment.getDeadline().format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm")));
             sheet.createRow(4).createCell(0).setCellValue("Назначено сотрудников: " + journal.size());
 
             Row headerRow = sheet.createRow(6);
@@ -724,7 +724,7 @@ public class ReportService {
             summarySheet.createRow(1).createCell(0).setCellValue("Дата формирования: " + LocalDate.now().format(dateFormatter));
             summarySheet.createRow(2).createCell(0).setCellValue("Название назначения: " + assignment.getAssignmentTitle());
             summarySheet.createRow(3).createCell(0).setCellValue("Сценарий: " + assignment.getScenario().getTitle());
-            summarySheet.createRow(4).createCell(0).setCellValue("Дедлайн: " + assignment.getDeadline().format(dateFormatter));
+            summarySheet.createRow(4).createCell(0).setCellValue("Срок сдачи: " + assignment.getDeadline().format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm")));
             summarySheet.createRow(5).createCell(0).setCellValue("Назначено сотрудников: " + journal.size());
 
             Row headerRow = summarySheet.createRow(7);

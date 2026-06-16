@@ -2,7 +2,6 @@ package ru.mai.voshod.pneumotraining.dto;
 
 import lombok.Data;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Data
@@ -11,7 +10,7 @@ public class TestAssignmentDTO {
     private Long testId;
     private String testTitle;
     private String assignmentTitle;
-    private LocalDate deadline;
+    private LocalDateTime deadline;
     private String createdByFullName;
     private LocalDateTime createdAt;
     private int totalAssigned;

@@ -321,7 +321,7 @@ var Simulation = (function () {
                 labelText.setAttribute('x', (el.width || 80) / 2);
                 labelText.setAttribute('y', (el.height || 30) / 2 + 5);
                 labelText.setAttribute('text-anchor', 'middle');
-                labelText.setAttribute('font-size', '13');
+                labelText.setAttribute('font-size', '18');
                 labelText.setAttribute('font-weight', '600');
                 labelText.setAttribute('fill', '#495057');
                 labelText.textContent = el.name || 'Текст';
@@ -348,7 +348,7 @@ var Simulation = (function () {
                 label.setAttribute('x', (el.width || 60) / 2);
                 label.setAttribute('y', (el.height || 60) + 14);
                 label.setAttribute('text-anchor', 'middle');
-                label.setAttribute('font-size', '11');
+                label.setAttribute('font-size', '15');
                 label.setAttribute('fill', '#333');
                 label.textContent = el.name || '';
                 group.appendChild(label);
@@ -360,7 +360,7 @@ var Simulation = (function () {
                     valueText.setAttribute('x', (el.width || 60) / 2);
                     valueText.setAttribute('y', (el.height || 60) + 26);
                     valueText.setAttribute('text-anchor', 'middle');
-                    valueText.setAttribute('font-size', '10');
+                    valueText.setAttribute('font-size', '15');
                     valueText.setAttribute('font-weight', '700');
                     valueText.textContent = '0,00';
                     valueText.setAttribute('fill', '#adb5bd');
@@ -437,8 +437,6 @@ var Simulation = (function () {
     // ========== Переключение элемента ==========
 
     function toggleElement(name, group, use, el, valueText) {
-        showFeedback('', '');
-
         fetch('/employee/specialist/mnemo/toggleElement/' + simSessionId, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -491,6 +489,7 @@ var Simulation = (function () {
 
     function checkStep() {
         var btn = document.getElementById('btnCheckStep');
+        showFeedback(null);
         btn.disabled = true;
         btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Проверка...';
 
@@ -547,6 +546,7 @@ var Simulation = (function () {
                 showFeedback('Ошибка: элемент «' + data.failedElement + '» — ожидалось ' +
                     (data.expected ? 'ВКЛ' : 'ВЫКЛ') + ', текущее ' +
                     (data.actual ? 'ВКЛ' : 'ВЫКЛ'), 'error');
+                stepErrorSticky = true;
             } else if (data.status === 'expired') {
                 window.location.href = '/employee/specialist/mnemo/result/' + simSessionId;
             } else if (data.status === 'step_expired') {
@@ -555,6 +555,9 @@ var Simulation = (function () {
                 setTimeout(function () {
                     window.location.href = '/employee/specialist/mnemo/result/' + simSessionId;
                 }, 2000);
+            } else if (data.status === 'limit_exceeded') {
+                stopStepTimer();
+                showFaultFailModal(data.message || 'Превышено допустимое количество неправильных действий');
             }
         })
         .catch(function () {
@@ -641,16 +644,30 @@ var Simulation = (function () {
 
     // ========== Feedback ==========
 
+    var stepErrorSticky = false;
+    var feedbackHideTimer = null;
+
     function showFeedback(msg, type) {
         var el = document.getElementById('simFeedback');
+        if (feedbackHideTimer) {
+            clearTimeout(feedbackHideTimer);
+            feedbackHideTimer = null;
+        }
         if (!msg) {
+            stepErrorSticky = false;
             el.classList.remove('show', 'success', 'error', 'info', 'warning');
+            return;
+        }
+        if (stepErrorSticky && type !== 'error') {
             return;
         }
         el.textContent = msg;
         el.className = 'sim-feedback show ' + type;
         if (type === 'success' || type === 'info' || type === 'warning') {
-            setTimeout(function () { el.classList.remove('show'); }, 4000);
+            feedbackHideTimer = setTimeout(function () {
+                el.classList.remove('show');
+                feedbackHideTimer = null;
+            }, 4000);
         }
     }
 

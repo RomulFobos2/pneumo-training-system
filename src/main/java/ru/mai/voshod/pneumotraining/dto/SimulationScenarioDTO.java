@@ -10,6 +10,7 @@ public class SimulationScenarioDTO {
     private String title;
     private String description;
     private Integer timeLimit;
+    private Integer maxIncorrectActions;
     private boolean availableWithoutAssignment;
     private Long schemaId;
     private String schemaTitle;

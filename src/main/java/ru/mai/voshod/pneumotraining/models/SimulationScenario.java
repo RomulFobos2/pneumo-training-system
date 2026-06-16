@@ -33,6 +33,10 @@ public class SimulationScenario {
     @Column(nullable = false)
     private Integer timeLimit = 0;
 
+    // допустимое количество неправильных действий, 0 = без ограничений
+    @Column(nullable = false)
+    private Integer maxIncorrectActions = 0;
+
     @Column(nullable = false)
     private boolean availableWithoutAssignment = false;
 

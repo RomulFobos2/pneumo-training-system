@@ -12,15 +12,20 @@ import ru.mai.voshod.pneumotraining.dto.TestAnswerDTO;
 import ru.mai.voshod.pneumotraining.dto.TestDTO;
 import ru.mai.voshod.pneumotraining.dto.TestQuestionDTO;
 import ru.mai.voshod.pneumotraining.enumeration.QuestionType;
+import ru.mai.voshod.pneumotraining.models.TheoryMaterial;
+import ru.mai.voshod.pneumotraining.repo.TheoryMaterialRepository;
 import ru.mai.voshod.pneumotraining.repo.TheorySectionRepository;
 import ru.mai.voshod.pneumotraining.service.employee.chief.TestQuestionService;
 import ru.mai.voshod.pneumotraining.service.employee.chief.TestService;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Controller
 @Slf4j
@@ -29,13 +34,24 @@ public class TestQuestionController {
     private final TestQuestionService testQuestionService;
     private final TestService testService;
     private final TheorySectionRepository theorySectionRepository;
+    private final TheoryMaterialRepository theoryMaterialRepository;
 
     public TestQuestionController(TestQuestionService testQuestionService,
                                   TestService testService,
-                                  TheorySectionRepository theorySectionRepository) {
+                                  TheorySectionRepository theorySectionRepository,
+                                  TheoryMaterialRepository theoryMaterialRepository) {
         this.testQuestionService = testQuestionService;
         this.testService = testService;
         this.theorySectionRepository = theorySectionRepository;
+        this.theoryMaterialRepository = theoryMaterialRepository;
+    }
+
+    private Map<Long, List<TheoryMaterial>> groupMaterialsBySection() {
+        return theoryMaterialRepository.findAll().stream()
+                .filter(m -> m.getSection() != null)
+                .sorted((a, b) -> Integer.compare(a.getSortOrder(), b.getSortOrder()))
+                .collect(Collectors.groupingBy(m -> m.getSection().getId(),
+                        LinkedHashMap::new, Collectors.toList()));
     }
 
     @GetMapping("/employee/chief/tests/addQuestion/{testId}")
@@ -47,6 +63,7 @@ public class TestQuestionController {
         model.addAttribute("testDTO", testOptional.get());
         model.addAttribute("allQuestionTypes", QuestionType.values());
         model.addAttribute("allSections", theorySectionRepository.findAllByOrderBySortOrderAsc());
+        model.addAttribute("materialsBySection", groupMaterialsBySection());
         return "employee/chief/tests/addQuestion";
     }
 
@@ -55,7 +72,8 @@ public class TestQuestionController {
                               @RequestParam String inputQuestionText,
                               @RequestParam String inputQuestionType,
                               @RequestParam Integer inputDifficultyLevel,
-                              @RequestParam(required = false) Long inputTheorySectionId,
+                              @RequestParam Long inputTheorySectionId,
+                              @RequestParam Long inputTheoryMaterialId,
                               @RequestParam(required = false) List<String> answerText,
                               @RequestParam(required = false) List<String> answerCorrect,
                               @RequestParam(required = false) List<String> answerSortOrder,
@@ -66,13 +84,14 @@ public class TestQuestionController {
                 answerCorrect, answerSortOrder, answerMatchTarget);
 
         Optional<Long> result = testQuestionService.saveQuestion(testId, inputQuestionText,
-                inputDifficultyLevel, inputQuestionType, inputTheorySectionId, answerDTOs);
+                inputDifficultyLevel, inputQuestionType, inputTheorySectionId, inputTheoryMaterialId, answerDTOs);
 
         if (result.isEmpty()) {
             model.addAttribute("questionError", "Ошибка при сохранении. Проверьте варианты ответа и правильные ответы.");
             model.addAttribute("testDTO", testService.getTestById(testId).orElse(null));
             model.addAttribute("allQuestionTypes", QuestionType.values());
             model.addAttribute("allSections", theorySectionRepository.findAllByOrderBySortOrderAsc());
+            model.addAttribute("materialsBySection", groupMaterialsBySection());
             return "employee/chief/tests/addQuestion";
         }
         return "redirect:/employee/chief/tests/detailsTest/" + testId;
@@ -87,6 +106,7 @@ public class TestQuestionController {
         model.addAttribute("questionDTO", questionOptional.get());
         model.addAttribute("allQuestionTypes", QuestionType.values());
         model.addAttribute("allSections", theorySectionRepository.findAllByOrderBySortOrderAsc());
+        model.addAttribute("materialsBySection", groupMaterialsBySection());
         return "employee/chief/tests/editQuestion";
     }
 
@@ -95,7 +115,8 @@ public class TestQuestionController {
                                @RequestParam String inputQuestionText,
                                @RequestParam Integer inputDifficultyLevel,
                                @RequestParam String inputQuestionType,
-                               @RequestParam(required = false) Long inputTheorySectionId,
+                               @RequestParam Long inputTheorySectionId,
+                               @RequestParam Long inputTheoryMaterialId,
                                @RequestParam(required = false) List<String> answerText,
                                @RequestParam(required = false) List<String> answerCorrect,
                                @RequestParam(required = false) List<String> answerSortOrder,
@@ -107,7 +128,7 @@ public class TestQuestionController {
                 answerCorrect, answerSortOrder, answerMatchTarget);
 
         Optional<Long> result = testQuestionService.editQuestion(questionId, inputQuestionText,
-                inputDifficultyLevel, inputQuestionType, inputTheorySectionId, answerDTOs);
+                inputDifficultyLevel, inputQuestionType, inputTheorySectionId, inputTheoryMaterialId, answerDTOs);
 
         if (result.isEmpty()) {
             redirectAttributes.addFlashAttribute("questionError", "Ошибка при сохранении. Проверьте варианты ответа и правильные ответы.");

@@ -45,12 +45,24 @@
                                     </select>
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="form-label">Раздел теории <span class="text-muted">(опционально)</span></label>
-                                    <select name="inputTheorySectionId" class="form-select">
-                                        <option value="">— Не указан —</option>
+                                    <label class="form-label">Раздел теории <span class="text-danger">*</span></label>
+                                    <select id="theorySectionSelect" name="inputTheorySectionId" class="form-select" required onchange="filterMaterialOptions()">
+                                        <option value="">— Выберите раздел —</option>
                                         <option th:each="section : ${allSections}"
                                                 th:value="${section.id}"
                                                 th:text="${section.title}"></option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Материал теории <span class="text-danger">*</span></label>
+                                    <select id="theoryMaterialSelect" name="inputTheoryMaterialId" class="form-select" required>
+                                        <option value="">— Выберите материал —</option>
+                                        <th:block th:each="entry : ${materialsBySection}">
+                                            <option th:each="m : ${entry.value}"
+                                                    th:value="${m.id}"
+                                                    th:attr="data-section=${entry.key}"
+                                                    th:text="${m.title}"></option>
+                                        </th:block>
                                     </select>
                                 </div>
                                 <div class="col-md-6">
@@ -134,6 +146,22 @@
 </div>
 
 <script>
+    function filterMaterialOptions() {
+        var sectionId = document.getElementById('theorySectionSelect').value;
+        var matSelect = document.getElementById('theoryMaterialSelect');
+        var current = matSelect.value;
+        var matched = false;
+        Array.prototype.forEach.call(matSelect.options, function (opt) {
+            if (!opt.value) { opt.hidden = false; return; }
+            var ok = (opt.getAttribute('data-section') === sectionId);
+            opt.hidden = !ok;
+            opt.disabled = !ok;
+            if (ok && opt.value === current) matched = true;
+        });
+        if (!matched) matSelect.value = '';
+    }
+    document.addEventListener('DOMContentLoaded', filterMaterialOptions);
+
     var typeSelect = document.getElementById('questionTypeSelect');
     var choiceAnswers = document.getElementById('choiceAnswers');
     var sequenceAnswers = document.getElementById('sequenceAnswers');

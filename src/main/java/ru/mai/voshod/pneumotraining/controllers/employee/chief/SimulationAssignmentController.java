@@ -17,6 +17,7 @@ import ru.mai.voshod.pneumotraining.service.employee.chief.SimulationAssignmentS
 import ru.mai.voshod.pneumotraining.service.employee.chief.SimulationScenarioService;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -49,7 +50,13 @@ public class SimulationAssignmentController {
                                  @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate deadlineTo,
                                  @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate createdFrom,
                                  @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate createdTo,
+                                 @RequestParam(required = false) String applied,
                                  Model model) {
+        if (applied == null && q == null && status == null && hideCompleted == null
+                && deadlineFrom == null && deadlineTo == null
+                && createdFrom == null && createdTo == null) {
+            deadlineFrom = LocalDate.now();
+        }
         boolean resolvedHideCompleted = hideCompleted == null || hideCompleted.contains("true");
         model.addAttribute("allAssignments", simulationAssignmentService.getAllAssignments(
                 q, status, resolvedHideCompleted, deadlineFrom, deadlineTo, createdFrom, createdTo));
@@ -72,7 +79,7 @@ public class SimulationAssignmentController {
 
     @PostMapping("/addAssignment")
     public String addAssignment(@RequestParam Long inputScenarioId,
-                                @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate inputDeadline,
+                                @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm") LocalDateTime inputDeadline,
                                 @RequestParam(name = "inputEmployeeIds") List<Long> inputEmployeeIds,
                                 @AuthenticationPrincipal Employee currentUser,
                                 RedirectAttributes redirectAttributes) {

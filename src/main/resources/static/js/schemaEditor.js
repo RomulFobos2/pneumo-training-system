@@ -87,7 +87,7 @@ var SchemaEditor = (function () {
             text.setAttribute('x', (el.width || 60) / 2);
             text.setAttribute('y', (el.height || 60) + 14);
             text.setAttribute('text-anchor', 'middle');
-            text.setAttribute('font-size', '11');
+            text.setAttribute('font-size', '15');
             text.setAttribute('fill', '#495057');
             text.textContent = el.name || '';
             group.appendChild(text);
@@ -405,7 +405,7 @@ var SchemaEditor = (function () {
         text.setAttribute('x', elem.width / 2);
         text.setAttribute('y', elem.height + 14);
         text.setAttribute('text-anchor', 'middle');
-        text.setAttribute('font-size', '11');
+        text.setAttribute('font-size', '15');
         text.setAttribute('fill', '#495057');
         text.setAttribute('pointer-events', 'none');
         text.textContent = elem.name || '';

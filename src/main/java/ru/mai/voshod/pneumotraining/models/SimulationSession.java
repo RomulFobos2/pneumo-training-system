@@ -59,6 +59,9 @@ public class SimulationSession {
 
     private LocalDateTime stepStartedAt;
 
+    @Column(nullable = false)
+    private Integer incorrectActionsCount = 0;
+
     @ManyToOne
     @JoinColumn(name = "employee_id", nullable = false)
     @ToString.Exclude

@@ -16,6 +16,8 @@ public class TestQuestionDTO {
     private String testTitle;
     private Long theorySectionId;
     private String theorySectionTitle;
+    private Long theoryMaterialId;
+    private String theoryMaterialTitle;
     private int answerCount;
     private List<TestAnswerDTO> answers = new ArrayList<>();
 }

@@ -41,7 +41,13 @@ public class SimulationController {
                             @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate deadlineFrom,
                             @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate deadlineTo,
                             @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate createdFrom,
-                            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate createdTo) {
+                            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate createdTo,
+                            @RequestParam(required = false) String applied) {
+        if (applied == null && q == null && status == null && hideCompleted == null
+                && deadlineFrom == null && deadlineTo == null
+                && createdFrom == null && createdTo == null) {
+            deadlineFrom = java.time.LocalDate.now();
+        }
         boolean resolvedHideCompleted = hideCompleted == null || hideCompleted.contains("true");
         model.addAttribute("scenarios", simulationService.getAvailableScenarios(currentUser));
         model.addAttribute("myAssignments", simulationAssignmentService.getAssignmentsForEmployee(

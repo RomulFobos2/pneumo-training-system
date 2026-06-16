@@ -2,7 +2,6 @@ package ru.mai.voshod.pneumotraining.dto;
 
 import lombok.Data;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Data
@@ -13,7 +12,7 @@ public class TestAssignmentEmployeeDTO {
     private String statusName;
     private String statusDisplayName;
     private Long completedSessionId;
-    private LocalDate deadline;
+    private LocalDateTime deadline;
     private LocalDateTime createdAt;
     private LocalDateTime startedAt;
     private LocalDateTime finishedAt;

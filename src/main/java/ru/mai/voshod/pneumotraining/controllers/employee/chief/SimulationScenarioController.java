@@ -56,6 +56,7 @@ public class SimulationScenarioController {
     public String addScenario(@RequestParam String inputTitle,
                                @RequestParam(required = false) String inputDescription,
                                @RequestParam(required = false) Integer inputTimeLimit,
+                               @RequestParam(required = false) Integer inputMaxIncorrectActions,
                                @RequestParam Long inputSchemaId,
                                @RequestParam(required = false, defaultValue = "false") boolean inputAvailableWithoutAssignment,
                                @RequestParam(required = false) List<Long> inputDepartmentIds,
@@ -69,7 +70,7 @@ public class SimulationScenarioController {
             inputDepartmentIds = List.of();
         }
         Optional<Long> result = scenarioService.saveScenario(inputTitle, inputDescription,
-                inputTimeLimit, inputSchemaId, inputAvailableWithoutAssignment, inputDepartmentIds,
+                inputTimeLimit, inputMaxIncorrectActions, inputSchemaId, inputAvailableWithoutAssignment, inputDepartmentIds,
                 scenarioType, inputParentScenarioId, currentUser);
         if (result.isEmpty()) {
             redirectAttributes.addFlashAttribute("errorMessage", "Ошибка при создании сценария.");
@@ -97,6 +98,7 @@ public class SimulationScenarioController {
                                 @RequestParam String inputTitle,
                                 @RequestParam(required = false) String inputDescription,
                                 @RequestParam(required = false) Integer inputTimeLimit,
+                                @RequestParam(required = false) Integer inputMaxIncorrectActions,
                                 @RequestParam Long inputSchemaId,
                                 @RequestParam(required = false, defaultValue = "false") boolean inputAvailableWithoutAssignment,
                                 @RequestParam(required = false) List<Long> inputDepartmentIds,
@@ -109,7 +111,7 @@ public class SimulationScenarioController {
             inputDepartmentIds = List.of();
         }
         Optional<Long> result = scenarioService.editScenario(id, inputTitle, inputDescription,
-                inputTimeLimit, inputSchemaId, inputAvailableWithoutAssignment, inputDepartmentIds,
+                inputTimeLimit, inputMaxIncorrectActions, inputSchemaId, inputAvailableWithoutAssignment, inputDepartmentIds,
                 scenarioType, inputParentScenarioId);
         if (result.isEmpty()) {
             redirectAttributes.addFlashAttribute("errorMessage", "Ошибка при обновлении сценария.");

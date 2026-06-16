@@ -20,6 +20,8 @@ public interface TestQuestionMapper {
     @Mapping(source = "test.title", target = "testTitle")
     @Mapping(source = "theorySection.id", target = "theorySectionId")
     @Mapping(source = "theorySection.title", target = "theorySectionTitle")
+    @Mapping(source = "theoryMaterial.id", target = "theoryMaterialId")
+    @Mapping(source = "theoryMaterial.title", target = "theoryMaterialTitle")
     @Mapping(target = "answerCount", ignore = true)
     @Mapping(source = "answers", target = "answers")
     TestQuestionDTO toDTO(TestQuestion question);

@@ -6,7 +6,7 @@ import org.springframework.data.repository.query.Param;
 import ru.mai.voshod.pneumotraining.enumeration.AssignmentStatus;
 import ru.mai.voshod.pneumotraining.models.TestAssignmentEmployee;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface TestAssignmentEmployeeRepository extends JpaRepository<TestAssignmentEmployee, Long> {
@@ -18,9 +18,9 @@ public interface TestAssignmentEmployeeRepository extends JpaRepository<TestAssi
 
     List<TestAssignmentEmployee> findByEmployeeIdAndAssignment_TestIdAndStatus(Long employeeId, Long testId, AssignmentStatus status);
 
-    List<TestAssignmentEmployee> findByStatusAndAssignment_Deadline(AssignmentStatus status, LocalDate deadline);
+    List<TestAssignmentEmployee> findByStatusAndAssignment_DeadlineBetween(AssignmentStatus status, LocalDateTime from, LocalDateTime to);
 
-    List<TestAssignmentEmployee> findByStatusAndAssignment_DeadlineBefore(AssignmentStatus status, LocalDate deadline);
+    List<TestAssignmentEmployee> findByStatusAndAssignment_DeadlineBefore(AssignmentStatus status, LocalDateTime deadline);
 
     @Query("""
             SELECT COUNT(ae) > 0

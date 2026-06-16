@@ -36,6 +36,7 @@
 
             <div class="profile-card p-4 mb-3">
                 <form method="get" th:action="@{/employee/chief/simAssignments/allAssignments}">
+                    <input type="hidden" name="applied" value="1">
                     <div class="row g-3 align-items-end">
                         <div class="col-md-3">
                             <label class="form-label">Поиск</label>
@@ -53,11 +54,11 @@
                             </select>
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label">Дедлайн с</label>
+                            <label class="form-label">Срок сдачи с</label>
                             <input type="date" name="deadlineFrom" class="form-control form-control-sm" th:value="${deadlineFrom}">
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label">Дедлайн по</label>
+                            <label class="form-label">Срок сдачи по</label>
                             <input type="date" name="deadlineTo" class="form-control form-control-sm" th:value="${deadlineTo}">
                         </div>
                         <div class="col-md-2">
@@ -94,7 +95,7 @@
                     <tr>
                         <th>#</th>
                         <th data-sortable data-sort-type="text">Сценарий</th>
-                        <th data-sortable data-sort-type="date">Дедлайн</th>
+                        <th data-sortable data-sort-type="date">Срок сдачи</th>
                         <th data-sortable data-sort-type="date">Создано</th>
                         <th data-sortable data-sort-type="number">Назначено</th>
                         <th data-sortable data-sort-type="number">Выполнено</th>
@@ -108,7 +109,7 @@
                     <tr th:each="a, index : ${allAssignments}">
                         <td class="row-number" th:text="${index.index + 1}"></td>
                         <td th:text="${a.assignmentTitle}"></td>
-                        <td th:text="${#temporals.format(a.deadline, 'dd.MM.yyyy')}"></td>
+                        <td th:text="${#temporals.format(a.deadline, 'dd.MM.yyyy HH:mm')}"></td>
                         <td th:text="${#temporals.format(a.createdAt, 'dd.MM.yyyy HH:mm')}"></td>
                         <td><span class="badge bg-primary" th:text="${a.totalAssigned}"></span></td>
                         <td><span class="badge bg-success" th:text="${a.completedCount}"></span></td>
