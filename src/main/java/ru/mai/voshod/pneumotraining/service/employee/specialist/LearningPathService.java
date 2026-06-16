@@ -52,10 +52,19 @@ public class LearningPathService {
     }
 
     private LearningRecommendationDTO buildRecommendations(TestSession session) {
-        LearningRecommendationDTO result = new LearningRecommendationDTO();
-        Long currentTestId = session.getTest().getId();
-
         List<TestSessionAnswer> answers = testSessionAnswerRepository.findByTestSessionIdOrderByIdAsc(session.getId());
+        return buildRecommendations(answers, session.getTest());
+    }
+
+    /**
+     * Строит рекомендации по уже собранному списку ответов и конкретному тесту.
+     * Используется как обычным потоком прохождения теста, так и пробным прогоном
+     * начальника группы, где ответы живут только в памяти и в БД не сохраняются.
+     */
+    @Transactional(readOnly = true)
+    public LearningRecommendationDTO buildRecommendations(List<TestSessionAnswer> answers, Test test) {
+        LearningRecommendationDTO result = new LearningRecommendationDTO();
+        Long currentTestId = test.getId();
 
         result.setTotalQuestions(answers.size());
         result.setCorrectCount((int) answers.stream().filter(TestSessionAnswer::isCorrect).count());
