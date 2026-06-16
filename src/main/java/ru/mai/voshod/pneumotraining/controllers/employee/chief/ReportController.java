@@ -16,6 +16,7 @@ import ru.mai.voshod.pneumotraining.enumeration.ScenarioType;
 import ru.mai.voshod.pneumotraining.repo.EmployeeRepository;
 import ru.mai.voshod.pneumotraining.repo.SimulationScenarioRepository;
 import ru.mai.voshod.pneumotraining.repo.TestRepository;
+import ru.mai.voshod.pneumotraining.service.employee.chief.ProtocolService;
 import ru.mai.voshod.pneumotraining.service.employee.chief.ReportService;
 import ru.mai.voshod.pneumotraining.service.employee.specialist.LearningPathService;
 
@@ -36,17 +37,20 @@ public class ReportController {
     private final TestRepository testRepository;
     private final SimulationScenarioRepository simulationScenarioRepository;
     private final LearningPathService learningPathService;
+    private final ProtocolService protocolService;
 
     public ReportController(ReportService reportService,
                             EmployeeRepository employeeRepository,
                             TestRepository testRepository,
                             SimulationScenarioRepository simulationScenarioRepository,
-                            LearningPathService learningPathService) {
+                            LearningPathService learningPathService,
+                            ProtocolService protocolService) {
         this.reportService = reportService;
         this.employeeRepository = employeeRepository;
         this.testRepository = testRepository;
         this.simulationScenarioRepository = simulationScenarioRepository;
         this.learningPathService = learningPathService;
+        this.protocolService = protocolService;
     }
 
     @GetMapping("/allResults")
@@ -254,5 +258,30 @@ public class ReportController {
                 .contentType(MediaType.parseMediaType(
                         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
                 .body(data);
+    }
+
+    // ========== Word-протокол по одной сессии (по шаблону из docs_tenplates) ==========
+
+    @PostMapping("/exportTestProtocolDoc")
+    public ResponseEntity<byte[]> exportTestProtocolDoc(@RequestParam Long sessionId) {
+        return protocolService.generateTestProtocol(sessionId)
+                .map(this::toDocxResponse)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @PostMapping("/exportSimProtocolDoc")
+    public ResponseEntity<byte[]> exportSimProtocolDoc(@RequestParam Long sessionId) {
+        return protocolService.generateSimProtocol(sessionId)
+                .map(this::toDocxResponse)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    private ResponseEntity<byte[]> toDocxResponse(ProtocolService.ProtocolResult result) {
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"" + result.filename() + "\"")
+                .contentType(MediaType.valueOf(
+                        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"))
+                .body(result.data());
     }
 }

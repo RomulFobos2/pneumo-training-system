@@ -83,6 +83,7 @@
                             <th>Баллы</th>
                             <th>Результат</th>
                             <th>Детали</th>
+                            <th>Сформировать протокол</th>
                         </tr>
                         </thead>
                         <tbody>
@@ -111,9 +112,22 @@
                                 </a>
                                 <span th:if="${ae.completedSessionId == null}" class="text-muted">—</span>
                             </td>
+                            <td>
+                                <form th:if="${ae.completedSessionId != null}"
+                                      method="post"
+                                      th:action="@{/employee/chief/results/exportTestProtocolDoc}"
+                                      class="d-inline">
+                                    <input type="hidden" name="sessionId" th:value="${ae.completedSessionId}">
+                                    <button type="submit" class="btn btn-sm btn-outline-success"
+                                            title="Сформировать протокол (Word)">
+                                        <i class="bi bi-file-earmark-word"></i>
+                                    </button>
+                                </form>
+                                <span th:if="${ae.completedSessionId == null}" class="text-muted">—</span>
+                            </td>
                         </tr>
                         <tr th:if="${#lists.isEmpty(assignmentEmployees)}">
-                            <td colspan="7" class="text-center text-muted">Сотрудники не найдены</td>
+                            <td colspan="8" class="text-center text-muted">Сотрудники не найдены</td>
                         </tr>
                         </tbody>
                     </table>
