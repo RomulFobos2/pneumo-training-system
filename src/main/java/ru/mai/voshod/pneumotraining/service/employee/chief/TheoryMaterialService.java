@@ -35,6 +35,21 @@ public class TheoryMaterialService {
         this.fileStorageService = fileStorageService;
     }
 
+    private static final org.jsoup.safety.Safelist TEXT_SAFELIST =
+            org.jsoup.safety.Safelist.relaxed()
+                    .addAttributes("img", "style", "class")
+                    .addAttributes(":all", "class", "style")
+                    .addProtocols("img", "src", "http", "https", "data");
+
+    /**
+     * Чистит HTML-контент только для материалов типа TEXT. Для PDF/VIDEO_LINK
+     * содержимое — это имя файла или URL, его трогать нельзя.
+     */
+    private String sanitizeIfText(String content, MaterialType type) {
+        if (type != MaterialType.TEXT || content == null) return content;
+        return org.jsoup.Jsoup.clean(content, TEXT_SAFELIST);
+    }
+
     // ========== CRUD ==========
 
     @Transactional
@@ -52,7 +67,7 @@ public class TheoryMaterialService {
             MaterialType materialType = MaterialType.valueOf(materialTypeName);
             TheoryMaterial material = new TheoryMaterial();
             material.setTitle(title);
-            material.setContent(content);
+            material.setContent(sanitizeIfText(content, materialType));
             material.setSortOrder(sortOrder);
             material.setMaterialType(materialType);
             material.setSection(sectionOptional.get());
@@ -113,7 +128,7 @@ public class TheoryMaterialService {
                 fileStorageService.deleteFile(material.getContent());
             }
             material.setTitle(title);
-            material.setContent(content);
+            material.setContent(sanitizeIfText(content, materialType));
             material.setSortOrder(sortOrder);
             material.setMaterialType(materialType);
             theoryMaterialRepository.save(material);

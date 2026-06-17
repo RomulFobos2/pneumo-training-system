@@ -21,13 +21,21 @@ public class FileStorageService {
     private String uploadDir;
 
     private Path uploadPath;
+    private Path imagePath;
+
+    private static final long MAX_IMAGE_SIZE_BYTES = 5L * 1024 * 1024; // 5 MB
+    private static final java.util.Set<String> ALLOWED_IMAGE_EXT =
+            java.util.Set.of("png", "jpg", "jpeg", "gif", "webp");
 
     @PostConstruct
     public void init() {
         uploadPath = Paths.get(uploadDir).toAbsolutePath().normalize();
+        imagePath = uploadPath.resolve("images");
         try {
             Files.createDirectories(uploadPath);
+            Files.createDirectories(imagePath);
             log.info("Директория для загрузок: {}", uploadPath);
+            log.info("Директория для картинок: {}", imagePath);
         } catch (IOException e) {
             log.error("Не удалось создать директорию для загрузок: {}", e.getMessage(), e);
         }
@@ -78,5 +86,46 @@ public class FileStorageService {
 
     public Path getFilePath(String filename) {
         return uploadPath.resolve(filename).normalize();
+    }
+
+    public Path getImagePath(String filename) {
+        return imagePath.resolve(filename).normalize();
+    }
+
+    /**
+     * Сохраняет картинку в подпапку images/ и возвращает имя файла (UUID.ext)
+     * или null, если файл не прошёл валидацию.
+     */
+    public String saveImage(MultipartFile file) throws ImageUploadException {
+        if (file == null || file.isEmpty()) {
+            throw new ImageUploadException("Файл пуст или не передан");
+        }
+        if (file.getSize() > MAX_IMAGE_SIZE_BYTES) {
+            throw new ImageUploadException("Размер картинки превышает 5 МБ");
+        }
+
+        String originalFilename = file.getOriginalFilename();
+        if (originalFilename == null || !originalFilename.contains(".")) {
+            throw new ImageUploadException("Не удалось определить тип файла");
+        }
+        String ext = originalFilename.substring(originalFilename.lastIndexOf('.') + 1).toLowerCase();
+        if (!ALLOWED_IMAGE_EXT.contains(ext)) {
+            throw new ImageUploadException("Допустимы только форматы PNG, JPG, GIF, WebP");
+        }
+
+        try {
+            String filename = UUID.randomUUID() + "." + ext;
+            Path targetPath = imagePath.resolve(filename);
+            Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
+            log.info("Картинка сохранена: {}", filename);
+            return filename;
+        } catch (IOException e) {
+            log.error("Ошибка при сохранении картинки: {}", e.getMessage(), e);
+            throw new ImageUploadException("Внутренняя ошибка при сохранении файла");
+        }
+    }
+
+    public static class ImageUploadException extends Exception {
+        public ImageUploadException(String message) { super(message); }
     }
 }
