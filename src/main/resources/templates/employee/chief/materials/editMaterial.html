@@ -126,8 +126,20 @@
         }
     });
 
+    // Непрерывная синхронизация скрытого input'a с содержимым Quill —
+    // надёжнее чем полагаться только на submit-listener.
+    function syncContentToHidden() {
+        if (quill.getLength() <= 1) {
+            contentHidden.value = '';
+        } else {
+            contentHidden.value = quill.root.innerHTML;
+        }
+    }
+    quill.on('text-change', syncContentToHidden);
+
     if (currentType === 'TEXT' && currentContent) {
         quill.clipboard.dangerouslyPasteHTML(currentContent);
+        syncContentToHidden();
     }
 
     function imageHandler() {
@@ -190,7 +202,7 @@
 
     document.querySelector('form').addEventListener('submit', function () {
         if (typeSelect.value === 'TEXT') {
-            contentHidden.value = quill.root.innerHTML;
+            syncContentToHidden();
         }
     });
 

@@ -112,6 +112,18 @@
         }
     });
 
+    // Непрерывная синхронизация скрытого input'a с содержимым Quill —
+    // надёжнее чем полагаться только на submit-listener.
+    function syncContentToHidden() {
+        if (quill.getLength() <= 1) {
+            // только пустой <p><br></p> — считаем что текста нет
+            contentHidden.value = '';
+        } else {
+            contentHidden.value = quill.root.innerHTML;
+        }
+    }
+    quill.on('text-change', syncContentToHidden);
+
     function imageHandler() {
         var input = document.createElement('input');
         input.type = 'file';
@@ -163,7 +175,7 @@
 
     document.querySelector('form').addEventListener('submit', function () {
         if (typeSelect.value === 'TEXT') {
-            contentHidden.value = quill.root.innerHTML;
+            syncContentToHidden();
         }
     });
 

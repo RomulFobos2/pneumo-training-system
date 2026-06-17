@@ -39,7 +39,11 @@ public class TheoryMaterialService {
             org.jsoup.safety.Safelist.relaxed()
                     .addAttributes("img", "style", "class")
                     .addAttributes(":all", "class", "style")
-                    .addProtocols("img", "src", "http", "https", "data");
+                    // Снимаем ограничение по протоколам для src у <img>: относительные
+                    // пути типа /files/images/uuid.png иначе вырезаются. img не умеет
+                    // исполнять javascript: даже если кто-то его туда подсунет.
+                    .removeProtocols("img", "src", "http", "https")
+                    .preserveRelativeLinks(true);
 
     /**
      * Чистит HTML-контент только для материалов типа TEXT. Для PDF/VIDEO_LINK
