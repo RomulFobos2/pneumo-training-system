@@ -7,8 +7,13 @@
     <link href="/css/bootstrap.min.css" rel="stylesheet">
     <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
     <link href="/css/style.css" rel="stylesheet">
+    <link href="/css/quill/quill.snow.css" rel="stylesheet">
     <script src="/js/bootstrap.bundle.min.js"></script>
     <script src="/js/javascript.js"></script>
+    <style>
+        #editorContainer { min-height: 300px; background: #fff; }
+        .ql-toolbar.ql-snow, .ql-container.ql-snow { border-color: #ced4da; }
+    </style>
 </head>
 <body>
 <div id="wrapper">
@@ -50,8 +55,10 @@
                                 </div>
                                 <div class="col-12" id="contentFieldWrapper">
                                     <label class="form-label" id="contentLabel">Содержимое *</label>
-                                    <textarea id="contentTextarea" name="inputContent" class="form-control" rows="10"
-                                              required placeholder="HTML-содержимое материала"></textarea>
+                                    <div id="editorWrapper">
+                                        <div id="editorContainer"></div>
+                                    </div>
+                                    <input type="hidden" id="contentHidden" name="inputContent">
                                     <input type="url" id="contentUrl" class="form-control d-none"
                                            placeholder="https://" disabled>
                                     <input type="file" id="contentFile" name="inputFile" class="form-control d-none"
@@ -77,26 +84,70 @@
     </div>
 </div>
 
+<script src="/js/quill/quill.min.js"></script>
 <script>
     var typeSelect = document.getElementById('materialTypeSelect');
-    var contentTextarea = document.getElementById('contentTextarea');
+    var editorWrapper = document.getElementById('editorWrapper');
+    var contentHidden = document.getElementById('contentHidden');
     var contentUrl = document.getElementById('contentUrl');
     var contentFile = document.getElementById('contentFile');
     var contentLabel = document.getElementById('contentLabel');
 
+    var quill = new Quill('#editorContainer', {
+        theme: 'snow',
+        placeholder: 'Содержимое материала…',
+        modules: {
+            toolbar: {
+                container: [
+                    ['bold', 'italic', 'underline', 'strike'],
+                    [{ header: [1, 2, 3, false] }],
+                    [{ list: 'ordered' }, { list: 'bullet' }],
+                    ['blockquote', 'code-block'],
+                    [{ align: [] }],
+                    ['link', 'image'],
+                    ['clean']
+                ],
+                handlers: { image: imageHandler }
+            }
+        }
+    });
+
+    function imageHandler() {
+        var input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.onchange = function () {
+            var file = input.files && input.files[0];
+            if (!file) return;
+            var fd = new FormData();
+            fd.append('image', file);
+            fetch('/employee/chief/materials/uploadImage', { method: 'POST', body: fd })
+                .then(function (r) { return r.json().then(function (b) { return { ok: r.ok, body: b }; }); })
+                .then(function (res) {
+                    if (!res.ok || !res.body.url) {
+                        alert('Не удалось загрузить картинку: ' + (res.body.error || 'неизвестная ошибка'));
+                        return;
+                    }
+                    var range = quill.getSelection(true);
+                    quill.insertEmbed(range.index, 'image', res.body.url, 'user');
+                    quill.setSelection(range.index + 1, 0);
+                })
+                .catch(function () { alert('Ошибка связи с сервером при загрузке картинки'); });
+        };
+        input.click();
+    }
+
     function toggleContentField() {
         var type = typeSelect.value;
-        // Скрыть всё
-        contentTextarea.classList.add('d-none'); contentTextarea.disabled = true; contentTextarea.name = '';
+        editorWrapper.classList.add('d-none');
+        contentHidden.disabled = true;
         contentUrl.classList.add('d-none'); contentUrl.disabled = true; contentUrl.name = '';
         contentFile.classList.add('d-none'); contentFile.disabled = true;
 
         if (type === 'TEXT') {
-            contentTextarea.classList.remove('d-none');
-            contentTextarea.disabled = false;
-            contentTextarea.name = 'inputContent';
+            editorWrapper.classList.remove('d-none');
+            contentHidden.disabled = false;
             contentLabel.textContent = 'Содержимое *';
-            contentTextarea.placeholder = 'HTML-содержимое материала';
         } else if (type === 'PDF') {
             contentFile.classList.remove('d-none');
             contentFile.disabled = false;
@@ -109,6 +160,12 @@
             contentUrl.placeholder = 'https://www.youtube.com/watch?v=...';
         }
     }
+
+    document.querySelector('form').addEventListener('submit', function () {
+        if (typeSelect.value === 'TEXT') {
+            contentHidden.value = quill.root.innerHTML;
+        }
+    });
 
     typeSelect.addEventListener('change', toggleContentField);
     toggleContentField();

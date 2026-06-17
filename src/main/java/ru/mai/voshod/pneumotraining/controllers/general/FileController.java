@@ -41,4 +41,33 @@ public class FileController {
             return ResponseEntity.notFound().build();
         }
     }
+
+    @GetMapping("/files/images/{filename}")
+    public ResponseEntity<Resource> serveImage(@PathVariable(value = "filename") String filename) {
+        try {
+            Path filePath = fileStorageService.getImagePath(filename);
+            Resource resource = new UrlResource(filePath.toUri());
+            if (!resource.exists()) {
+                log.warn("Картинка не найдена: {}", filename);
+                return ResponseEntity.notFound().build();
+            }
+            MediaType mediaType = mediaTypeForExtension(filename);
+            return ResponseEntity.ok()
+                    .contentType(mediaType)
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + filename + "\"")
+                    .body(resource);
+        } catch (Exception e) {
+            log.error("Ошибка при отдаче картинки {}: {}", filename, e.getMessage(), e);
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    private MediaType mediaTypeForExtension(String filename) {
+        String lower = filename.toLowerCase();
+        if (lower.endsWith(".png")) return MediaType.IMAGE_PNG;
+        if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return MediaType.IMAGE_JPEG;
+        if (lower.endsWith(".gif")) return MediaType.IMAGE_GIF;
+        if (lower.endsWith(".webp")) return MediaType.parseMediaType("image/webp");
+        return MediaType.APPLICATION_OCTET_STREAM;
+    }
 }

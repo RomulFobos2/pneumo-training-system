@@ -12,6 +12,7 @@ import ru.mai.voshod.pneumotraining.dto.TheorySectionDTO;
 import ru.mai.voshod.pneumotraining.enumeration.MaterialType;
 import ru.mai.voshod.pneumotraining.service.employee.chief.TheoryMaterialService;
 import ru.mai.voshod.pneumotraining.service.employee.chief.TheorySectionService;
+import ru.mai.voshod.pneumotraining.service.general.FileStorageService;
 
 import java.util.HashMap;
 import java.util.List;
@@ -24,11 +25,14 @@ public class TheorySectionController {
 
     private final TheorySectionService theorySectionService;
     private final TheoryMaterialService theoryMaterialService;
+    private final FileStorageService fileStorageService;
 
     public TheorySectionController(TheorySectionService theorySectionService,
-                                   TheoryMaterialService theoryMaterialService) {
+                                   TheoryMaterialService theoryMaterialService,
+                                   FileStorageService fileStorageService) {
         this.theorySectionService = theorySectionService;
         this.theoryMaterialService = theoryMaterialService;
+        this.fileStorageService = fileStorageService;
     }
 
     // ========== AJAX проверка уникальности названия раздела ==========
@@ -213,5 +217,21 @@ public class TheorySectionController {
         Map<String, Boolean> response = new HashMap<>();
         response.put("success", theoryMaterialService.reorderMaterials(sectionId, orderedIds));
         return ResponseEntity.ok(response);
+    }
+
+    // ========== Загрузка картинки из WYSIWYG-редактора ==========
+
+    @PostMapping(value = "/employee/chief/materials/uploadImage", consumes = "multipart/form-data")
+    @ResponseBody
+    public ResponseEntity<Map<String, String>> uploadImage(@RequestParam("image") MultipartFile image) {
+        Map<String, String> response = new HashMap<>();
+        try {
+            String filename = fileStorageService.saveImage(image);
+            response.put("url", "/files/images/" + filename);
+            return ResponseEntity.ok(response);
+        } catch (FileStorageService.ImageUploadException e) {
+            response.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        }
     }
 }

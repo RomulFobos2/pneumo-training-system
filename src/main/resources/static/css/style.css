@@ -809,3 +809,6 @@ th[data-sortable] .sort-icon {
 .pagination-wrapper {
     font-size: .875rem;
 }
+
+/* Изображения внутри HTML-материала теории не вылезают за контейнер */
+.material-content img { max-width: 100%; height: auto; display: block; margin: 0.5rem 0; }
